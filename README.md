@@ -2,7 +2,7 @@
 
 ![umpv main image](images/umpv_001.jpg)
 
-**umpv** is a user-friendly interface for **mpv**, specifically designed as a simple video player for postproduction. No installation is necessary—just download the latest release and launch umpv.exe.
+**umpv** is a user-friendly interface for **mpv** on Windows, specifically designed as a simple video player for postproduction. No installation is necessary—just download the latest release and launch umpv.exe.
 
 Including:
 - Drag and drop video loading.
