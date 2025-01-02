@@ -47,6 +47,8 @@ It's worth noting that this implementation of Avalonia + libmpv has one huge fla
 
 The color space transforms are luts made with OCIOtools, using ACES and Blender OCIO configs. I haven't tested everything, but from experience with the configs, not all camera transforms are perfect. These functions are not made with final quality in mind but only to eyeball proxy renders in production without opening another app.
 
+Timecode is currently zero-based for all videos, but I plan on eventually extracting actual timecodes and providing an option to load that instead. 
+
 I am certainly open to suggestions and contributions, but remember that this app is created for personal use. Hence, you are better off forking it and making changes for yourself. But if you do fork it and do something clever or fix something janky, please let me know. I am particularly interested in a MacOS Arm port--which is theoretically possible with a few changes to the window positioning/tracking (Windows-specific implementation), screenshot functions (Also currently Windows-specific), and a few things I am forgetting.
 
 One more thing: The app is slow to load the first time you use it but loads fast in subsequent runs. I have this problem with other Avalonia apps, and I am also looking into it. 
