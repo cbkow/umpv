@@ -18,9 +18,9 @@ Including:
 
 ## Installation
 
-Download the latest release, unzip, and open umpv.exe. (Keep all the files included together in the provided hierarchy.)
-
 ![umpv Installation](images/umpv_007.jpg)
+
+Download the latest release, unzip, and open umpv.exe. (Keep all the files included together in the provided hierarchy.)
 
 ## Advanced Installation (experimental)
 
