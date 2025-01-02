@@ -1,0 +1,12 @@
+ <Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="UnionMpvPlayer.Views.BackgroundWindow"
+        Background="Black"
+        IsHitTestVisible="False"
+        TransparencyLevelHint="None"
+        SystemDecorations="None"
+        ShowInTaskbar="False"
+        CanResize="False"
+        Title="background"
+        WindowStartupLocation="Manual">
+</Window>

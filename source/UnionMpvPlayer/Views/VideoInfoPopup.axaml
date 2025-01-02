@@ -1,0 +1,304 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:UnionMpvPlayer.Views"
+        x:Class="UnionMpvPlayer.Views.VideoInfoPopup"
+        xmlns:conv="clr-namespace:UnionMpvPlayer.Converters"
+        x:DataType="local:VideoInfoPopup"
+        Title="info"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaTitleBarHeightHint="0"
+        ExtendClientAreaChromeHints="NoChrome"
+        Width="1020"
+        Height="640"
+        WindowStartupLocation="CenterOwner"
+		CanResize="False"
+        Icon="/Assets/union.ico">
+
+	<Window.Resources>
+		<conv:ButtonVisibilityConverter x:Key="ButtonVisibilityConverter" />
+	</Window.Resources>
+
+	<Grid Background="{DynamicResource SystemChromeLowColor}">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+		</Grid.RowDefinitions>
+
+		<!-- Custom Title Bar -->
+		<Border Background="{DynamicResource SystemChromeLowColor}"
+                BorderBrush="{DynamicResource SystemBaseLowColor}"
+                BorderThickness="0"
+                Grid.Row="0" Height="40"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Top">
+			<Grid ColumnDefinitions="*, Auto">
+				<!-- Window Title -->
+				<StackPanel Orientation="Horizontal"
+                          Grid.Column="0"
+                          HorizontalAlignment="Left"
+                          VerticalAlignment="Center"
+                          Spacing="1">
+					<Image Source="avares://umpv/Assets/union.ico"
+                           Width="18" Height="18"
+                           VerticalAlignment="Center"
+                           Margin="12,0,0,0"/>
+					<TextBlock Text="info"
+                             VerticalAlignment="Center"
+                             Margin="10,0"
+                             FontSize="13"
+                             Foreground="{DynamicResource SystemBaseMediumHighColor}"/>
+				</StackPanel>
+
+				<!-- Window Controls -->
+				<StackPanel Orientation="Horizontal"
+                          Grid.Column="1"
+                          HorizontalAlignment="Right"
+                          VerticalAlignment="Center"
+                          Spacing="1"
+                          Background="{DynamicResource SystemChromeLowColor}">
+					<!-- Close Button -->
+					<Button Width="40" Height="40"
+                            Background="Transparent"
+                            BorderBrush="Transparent"
+                            Name="CloseButton"
+                            Click="CloseButton_Click">
+						<Canvas Width="40" Height="40">
+							<Path Fill="{DynamicResource SystemBaseHighColor}"
+                                  Data="{DynamicResource dismiss_regular}"
+                                  Width="12" Height="12"
+                                  Stretch="Uniform"
+                                  Canvas.Left="14" Canvas.Top="14"/>
+						</Canvas>
+					</Button>
+				</StackPanel>
+			</Grid>
+		</Border>
+
+		<!-- DataGrid -->
+		<DataGrid x:Name="InfoDataGrid"
+				  Grid.Row="1"
+				  AutoGenerateColumns="False"
+				  CanUserResizeColumns="True"
+				  HeadersVisibility="Column"
+				  ItemsSource="{Binding Metadata}"
+				  HorizontalAlignment="Stretch"
+				  VerticalAlignment="Stretch"
+				  Margin="10"
+				  IsReadOnly="True"
+				  SelectionMode="Single"
+				  CanUserSortColumns="False">
+
+			<DataGrid.Styles>
+				<!-- Base DataGrid Styles -->
+				<Style Selector="DataGrid">
+					<Setter Property="GridLinesVisibility" Value="None"/>
+					<Setter Property="SelectionMode" Value="Single"/>
+				</Style>
+
+				<!-- Row Styles -->
+				<Style Selector="DataGridRow">
+					<Setter Property="BorderBrush" Value="{DynamicResource SystemChromeMediumColor}"/>
+					<Setter Property="BorderThickness" Value="0,0,0,1"/>
+					<Setter Property="Background" Value="Transparent"/>
+				</Style>
+
+				<!-- Disable ALL row states -->
+				<Style Selector="DataGridRow:pointerover /template/ Rectangle#BackgroundRectangle">
+					<Setter Property="Fill" Value="Transparent"/>
+					<Setter Property="Stroke" Value="Transparent"/>
+				</Style>
+
+				<Style Selector="DataGridRow:selected /template/ Rectangle#BackgroundRectangle">
+					<Setter Property="Fill" Value="Transparent"/>
+					<Setter Property="Stroke" Value="Transparent"/>
+				</Style>
+
+				<!-- Cell Styles -->
+				<Style Selector="DataGridCell">
+					<Setter Property="Background" Value="Transparent"/>
+					<Setter Property="BorderThickness" Value="0"/>
+					<Setter Property="Padding" Value="8,4"/>
+					<Setter Property="Template">
+						<ControlTemplate>
+							<Grid Background="{TemplateBinding Background}"
+								  ColumnDefinitions="*">
+								<ContentPresenter Content="{TemplateBinding Content}"
+												ContentTemplate="{TemplateBinding ContentTemplate}"
+												Margin="{TemplateBinding Padding}"
+												VerticalAlignment="Center"/>
+							</Grid>
+						</ControlTemplate>
+					</Setter>
+				</Style>
+
+				<!-- Disable ALL cell states -->
+				<Style Selector="DataGridCell:pointerover">
+					<Setter Property="Background" Value="Transparent"/>
+					<Setter Property="BorderBrush" Value="Transparent"/>
+				</Style>
+
+				<Style Selector="DataGridCell:selected">
+					<Setter Property="Background" Value="Transparent"/>
+					<Setter Property="BorderBrush" Value="Transparent"/>
+					<Setter Property="Foreground" Value="{DynamicResource SystemBaseHighColor}"/>
+				</Style>
+
+				<!-- TextBox Styles -->
+				<Style Selector="TextBox">
+					<Setter Property="BorderThickness" Value="0"/>
+					<Setter Property="Background" Value="Transparent"/>
+					<Setter Property="Foreground" Value="{DynamicResource SystemBaseHighColor}"/>
+					<Setter Property="CaretBrush" Value="{DynamicResource SystemBaseHighColor}"/>
+					<Setter Property="SelectionBrush" Value="{DynamicResource SystemAccentColor}"/>
+					<Setter Property="SelectionForegroundBrush" Value="{DynamicResource SystemAltHighColor}"/>
+					<Setter Property="Padding" Value="0"/>
+					<Setter Property="Template">
+						<ControlTemplate>
+							<Border Background="{TemplateBinding Background}"
+									BorderBrush="Transparent"
+									BorderThickness="0">
+								<ScrollViewer HorizontalScrollBarVisibility="{TemplateBinding (ScrollViewer.HorizontalScrollBarVisibility)}"
+											VerticalScrollBarVisibility="{TemplateBinding (ScrollViewer.VerticalScrollBarVisibility)}">
+									<TextPresenter Name="PART_TextPresenter"
+												 Text="{TemplateBinding Text, Mode=TwoWay}"
+												 CaretIndex="{TemplateBinding CaretIndex}"
+												 SelectionStart="{TemplateBinding SelectionStart}"
+												 SelectionEnd="{TemplateBinding SelectionEnd}"
+												 TextAlignment="{TemplateBinding TextAlignment}"
+												 TextWrapping="{TemplateBinding TextWrapping}"
+												 PasswordChar="{TemplateBinding PasswordChar}"
+												 RevealPassword="{TemplateBinding RevealPassword}"
+												 SelectionBrush="{TemplateBinding SelectionBrush}"
+												 SelectionForegroundBrush="{TemplateBinding SelectionForegroundBrush}"
+												 CaretBrush="{TemplateBinding CaretBrush}"/>
+								</ScrollViewer>
+							</Border>
+						</ControlTemplate>
+					</Setter>
+				</Style>
+
+				<!-- Disable ALL TextBox states -->
+				<Style Selector="TextBox:pointerover">
+					<Setter Property="Background" Value="Transparent"/>
+					<Setter Property="BorderBrush" Value="Transparent"/>
+				</Style>
+
+				<Style Selector="TextBox:focus">
+					<Setter Property="Background" Value="Transparent"/>
+					<Setter Property="BorderBrush" Value="Transparent"/>
+				</Style>
+
+				<Style Selector="TextBox:pressed">
+					<Setter Property="Background" Value="Transparent"/>
+					<Setter Property="BorderBrush" Value="Transparent"/>
+				</Style>
+				<!-- Header Styles -->
+				<Style Selector="DataGridColumnHeader">
+					<Setter Property="Background" Value="Transparent"/>
+					<Setter Property="BorderThickness" Value="0"/>
+					<Setter Property="Padding" Value="8,4"/>
+					<Setter Property="Template">
+						<ControlTemplate>
+							<Grid Background="{TemplateBinding Background}">
+								<ContentPresenter Content="{TemplateBinding Content}"
+												HorizontalAlignment="Left"
+												VerticalAlignment="Center"
+												Margin="{TemplateBinding Padding}"/>
+							</Grid>
+						</ControlTemplate>
+					</Setter>
+				</Style>
+
+				<!-- Disable header hover effects -->
+				<Style Selector="DataGridColumnHeader:pointerover">
+					<Setter Property="Background" Value="Transparent"/>
+				</Style>
+
+				<!-- Disable header pressed state -->
+				<Style Selector="DataGridColumnHeader:pressed">
+					<Setter Property="Background" Value="Transparent"/>
+				</Style>
+
+				<!-- Style the header text -->
+				<Style Selector="DataGridColumnHeader TextBlock">
+					<Setter Property="Foreground" Value="{DynamicResource SystemBaseMediumColor}"/>
+					<Setter Property="FontSize" Value="12"/>
+				</Style>
+			</DataGrid.Styles>
+
+			<DataGrid.Columns>
+				<!-- Name Column -->
+				<DataGridTextColumn Header="Name"
+                                  Binding="{Binding Name}"
+                                  Width="200"
+                                  IsReadOnly="True" 
+								  FontSize="12"/>
+
+				<!-- Value Column -->
+				<DataGridTemplateColumn Header="Value" Width="*">
+					<DataGridTemplateColumn.CellTemplate>
+						<DataTemplate>
+							<TextBox Text="{Binding Value}"
+									 IsReadOnly="True"
+									 Background="Transparent"
+									 BorderThickness="0"
+									 VerticalAlignment="Center"
+									 VerticalContentAlignment="Center"
+									 Margin="2,8,2,0"
+									 Padding="4,2"
+									 FontSize="12"
+									 TextWrapping="Wrap"/>
+						</DataTemplate>
+					</DataGridTemplateColumn.CellTemplate>
+				</DataGridTemplateColumn>
+
+				<!-- Actions Column -->
+				<DataGridTemplateColumn Header="Actions" Width="100">
+					<DataGridTemplateColumn.CellTemplate>
+						<DataTemplate>
+							<StackPanel Orientation="Horizontal"
+									  HorizontalAlignment="Left"
+									  Spacing="5">
+								<Button Width="32" Height="32"
+										ToolTip.Tip="Copy path to clipboard"
+										Background="Transparent"
+										BorderBrush="Transparent"
+										IsVisible="{Binding Name, 
+											Converter={StaticResource ButtonVisibilityConverter}, 
+											ConverterParameter=Link}"
+										Command="{Binding $parent[local:VideoInfoPopup].((local:VideoInfoPopup)DataContext).LinkCommand}"
+										CommandParameter="{Binding Value}">
+									<Canvas Width="32" Height="32">
+										<Path Fill="{DynamicResource SystemBaseHighColor}"
+											  Data="{DynamicResource link_square_regular}"
+											  Width="16" Height="16"
+											  Stretch="Uniform"
+											  Canvas.Left="8" Canvas.Top="8"/>
+									</Canvas>
+								</Button>
+
+								<Button Width="32" Height="32"
+										Background="Transparent"
+										BorderBrush="Transparent"
+										ToolTip.Tip="Open File"
+										IsVisible="{Binding Name, 
+											Converter={StaticResource ButtonVisibilityConverter}, 
+											ConverterParameter=Project}"
+										Command="{Binding $parent[local:VideoInfoPopup].((local:VideoInfoPopup)DataContext).ProjectCommand}"
+										CommandParameter="{Binding Value}">
+									<Canvas Width="32" Height="32">
+										<Path Fill="{DynamicResource SystemBaseHighColor}"
+											  Data="{DynamicResource open_regular}"
+											  Width="16" Height="16"
+											  Stretch="Uniform"
+											  Canvas.Left="8" Canvas.Top="8"/>
+									</Canvas>
+								</Button>
+							</StackPanel>
+						</DataTemplate>
+					</DataGridTemplateColumn.CellTemplate>
+				</DataGridTemplateColumn>
+			</DataGrid.Columns>
+		</DataGrid>
+	</Grid>
+</Window>

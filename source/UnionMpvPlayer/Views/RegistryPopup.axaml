@@ -1,0 +1,130 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="UnionMpvPlayer.Views.RegistryPopup"
+        Title="File Type Association"
+        Width="400"
+        Height="300"
+		ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaTitleBarHeightHint="0"
+        ExtendClientAreaChromeHints="NoChrome"
+        WindowStartupLocation="CenterOwner"
+		CanResize="False"
+        Icon="/Assets/union.ico">
+
+	<Grid Background="{DynamicResource SystemChromeLowColor}">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+
+		<!-- Custom Title Bar -->
+		<Border Background="{DynamicResource SystemChromeLowColor}"
+                BorderBrush="{DynamicResource SystemBaseLowColor}"
+                BorderThickness="0"
+                Grid.Row="0" Height="40"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Top">
+			<Grid ColumnDefinitions="*, Auto">
+				<!-- Window Title -->
+				<StackPanel Orientation="Horizontal"
+                          Grid.Column="0"
+                          HorizontalAlignment="Left"
+                          VerticalAlignment="Center"
+                          Spacing="1">
+					<Image Source="avares://umpv/Assets/union.ico"
+                           Width="18" Height="18"
+                           VerticalAlignment="Center"
+                           Margin="12,0,0,0"/>
+					<TextBlock Text="registry installer"
+                             VerticalAlignment="Center"
+                             Margin="10,0"
+                             FontSize="13"
+                             Foreground="{DynamicResource SystemBaseMediumHighColor}"/>
+				</StackPanel>
+
+				<!-- Window Controls -->
+				<StackPanel Orientation="Horizontal"
+                          Grid.Column="1"
+                          HorizontalAlignment="Right"
+                          VerticalAlignment="Center"
+                          Spacing="1"
+                          Background="{DynamicResource SystemChromeLowColor}">
+					<!-- Close Button -->
+					<Button Width="40" Height="40"
+                            Background="Transparent"
+                            BorderBrush="Transparent"
+                            Name="CloseButton"
+                            Click="CloseButton_Click">
+						<Canvas Width="40" Height="40">
+							<Path Fill="{DynamicResource SystemBaseHighColor}"
+                                  Data="{DynamicResource dismiss_regular}"
+                                  Width="12" Height="12"
+                                  Stretch="Uniform"
+                                  Canvas.Left="14" Canvas.Top="14"/>
+						</Canvas>
+					</Button>
+				</StackPanel>
+			</Grid>
+		</Border>
+
+		<!-- Content -->
+		<StackPanel Grid.Row="1" Margin="20" Spacing="10">
+			<TextBlock Text="Associate file types with this application:"
+                       FontSize="14"
+                       Foreground="{DynamicResource SystemBaseHighColor}"/>
+			<TextBlock Text="File types: mp4, mov, mxf, gif, mkv, avi"
+                       FontSize="12"
+                       Foreground="{DynamicResource SystemBaseMediumHighColor}"/>
+			<TextBlock Text="Click 'Install' to set this app as the default handler for these files. Click 'Uninstall' to remove the association."
+                       FontSize="12"
+                       Foreground="{DynamicResource SystemBaseMediumColor}"
+                       TextWrapping="Wrap"/>
+			<Border BorderThickness="1" BorderBrush="Gold" Margin="0,10,0,0">
+			    <StackPanel>
+				    <Grid Margin="5,10,5,10">
+					    <Grid.ColumnDefinitions>
+						    <ColumnDefinition Width="40"/>
+						    <ColumnDefinition Width="*"/>
+					    </Grid.ColumnDefinitions>
+
+					    <!-- Icon -->
+					    <Path Grid.Column="0"
+                              Width="24" Height="24"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Top"
+                              Stretch="Uniform"
+						      Margin="4,4,8,4"
+                              Fill="Gold"
+                              Data="{DynamicResource warning_regular}"/>
+
+					    <!-- Toast Title and Message -->
+					    <StackPanel Grid.Column="1">
+						    <!-- Title -->
+						    <TextBlock Name="ToastTitle"
+                                       Text="Warning"
+                                       TextWrapping="Wrap"
+                                       HorizontalAlignment="Left"
+                                       FontSize="14"
+                                       FontWeight="Bold"
+                                       Foreground="{DynamicResource SystemBaseMediumHighColor}"/>
+						    <!-- Message -->
+						    <TextBlock Name="ToastMessage"
+                                       Text="This will change the Windows Registry. Proceed with caution and be aware of the potential risks!"
+                                       TextWrapping="Wrap"
+                                       HorizontalAlignment="Left"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource SystemBaseMediumHighColor}"/>
+					    </StackPanel>
+				    </Grid>
+			    </StackPanel>
+			</Border>
+		</StackPanel>
+
+		<!-- Buttons -->
+		<StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10" Margin="10">
+			<Button Name="InstallButton" Content="Install" Width="185"  HorizontalContentAlignment="Center" Click="InstallButton_Click"/>
+			<Button Name="UninstallButton" Content="Uninstall" Width="185" HorizontalContentAlignment="Center" Click="UninstallButton_Click"/>
+		</StackPanel>
+	</Grid>
+</Window>

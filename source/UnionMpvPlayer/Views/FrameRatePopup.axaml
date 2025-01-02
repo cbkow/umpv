@@ -1,0 +1,81 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:local="clr-namespace:UnionMpvPlayer.Views"
+        x:Class="UnionMpvPlayer.Views.FrameRatePopup"
+		Title="Enter Frame Rate"
+        Width="400" Height="154"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaTitleBarHeightHint="0"
+        ExtendClientAreaChromeHints="NoChrome"
+        WindowStartupLocation="CenterOwner"
+		CanResize="False"
+        Icon="/Assets/union.ico">
+
+	<Grid Background="{DynamicResource SystemChromeLowColor}">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+		</Grid.RowDefinitions>
+
+		<!-- Custom Title Bar -->
+		<Border Background="{DynamicResource SystemChromeLowColor}"
+                BorderBrush="{DynamicResource SystemBaseLowColor}"
+                BorderThickness="0"
+                Grid.Row="0" Height="40"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Top">
+			<Grid ColumnDefinitions="*, Auto">
+				<!-- Window Title -->
+				<StackPanel Orientation="Horizontal"
+                            Grid.Column="0"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Center"
+                            Spacing="1">
+					<Image Source="avares://umpv/Assets/union.ico"
+                           Width="18" Height="18"
+                           VerticalAlignment="Center"
+                           Margin="12,0,0,0"/>
+					<TextBlock Text="set the FPS"
+                               VerticalAlignment="Center"
+                               Margin="10,0"
+                               FontSize="13"
+                               Foreground="{DynamicResource SystemBaseMediumHighColor}"/>
+				</StackPanel>
+
+				<!-- Window Controls -->
+				<StackPanel Orientation="Horizontal"
+                            Grid.Column="1"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Spacing="1"
+                            Background="{DynamicResource SystemChromeLowColor}">
+					<!-- Close Button -->
+					<Button Width="40" Height="40"
+                            Background="Transparent"
+                            BorderBrush="Transparent"
+                            Name="CloseButton"
+                            Click="CloseButton_Click">
+						<Canvas Width="40" Height="40">
+							<Path Fill="{DynamicResource SystemBaseHighColor}"
+                                  Data="{DynamicResource dismiss_regular}"
+                                  Width="12" Height="12"
+                                  Stretch="Uniform"
+                                  Canvas.Left="14" Canvas.Top="14"/>
+						</Canvas>
+					</Button>
+				</StackPanel>
+			</Grid>
+		</Border>
+		<StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="10">
+			<TextBlock Text="Enter the framerate (e.g., 24, 25, 30):" FontSize="12"
+					   Foreground="{DynamicResource SystemBaseMediumHighColor}" HorizontalAlignment="Center"/>
+			<TextBox Name="FrameRateInput" Width="380" SelectionBrush="{DynamicResource SystemChromeMediumLowColor}"/>
+			<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
+				<Button Name="OkButton" Content="OK" Width="186"
+                                HorizontalContentAlignment="Center" Click="OkButton_Click"/>
+				<Button Name="CancelButton" Content="Cancel" Width="186"
+                                HorizontalContentAlignment="Center" Click="CancelButton_Click"/>
+			</StackPanel>
+		</StackPanel>
+	</Grid>
+</Window>
