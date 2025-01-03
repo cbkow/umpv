@@ -106,6 +106,12 @@ namespace UnionMpvPlayer.Views
             }
         }
 
+        public void TriggerRemoveFromPlaylist()
+        {
+            RemoveFromPlaylist_Click(this, null);
+        }
+
+
         private void TogglePlaylistMode_Click(object? sender, RoutedEventArgs e)
         {
             IsPlaylistModeActive = !IsPlaylistModeActive;
@@ -332,7 +338,7 @@ namespace UnionMpvPlayer.Views
             }
         }
 
-        private void RemoveFromPlaylist_Click(object? sender, RoutedEventArgs e)
+        public void RemoveFromPlaylist_Click(object? sender, RoutedEventArgs e)
         {
             if (PlaylistListBox.SelectedItem is PlaylistItem selectedItem)
             {

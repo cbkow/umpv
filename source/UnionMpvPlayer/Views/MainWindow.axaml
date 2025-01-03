@@ -224,6 +224,16 @@
 									Click="PlaylistButton_Click" />
 					</MenuItem>
 
+					<MenuItem Header="_Video" Padding="10,2,10,2" CornerRadius="2"
+								Foreground="{DynamicResource SystemBaseMediumHighColor}" FontSize="12">
+						<MenuItem x:Name="Trigger1to1mode" Header="_1:1 Video Size" Padding="10,8,10,8"
+									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+									Click="ResizeToPixelRatio_Click" />
+						<MenuItem x:Name="Trigger50percentMode" Header="_50% of Screen Video Size" Padding="10,8,10,8"
+									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+									Click="ResizeToHalfScreenSize_Click" />
+					</MenuItem>
+
 					<MenuItem Header="_App" Padding="10,2,10,2" CornerRadius="2"
 								Foreground="{DynamicResource SystemBaseMediumHighColor}" FontSize="12">
 						<MenuItem x:Name="SettingsMenuButton" Header="_Keyboard Bindings" Padding="10,8,10,8"
@@ -382,6 +392,21 @@
 								Padding="8,8"
 								Click="InfoButton_Click">
 							<Path Data="{DynamicResource info_regular}"
+									Fill="{DynamicResource SystemBaseHighColor}"
+									Stretch="Uniform" />
+						</Button>
+
+						<Button x:Name="Toggle1to1Button"
+								Background="Transparent"
+								Cursor="Hand"
+								ToolTip.Tip="Toggle Video 1:1"
+								Width="33"
+								Height="33"
+								Margin="10,0,0,10"
+								VerticalContentAlignment="Center"
+								Padding="8,8"
+								Click="ResizeToPixelRatio_Click">
+							<Path Data="{DynamicResource slide_size_regular}"
 									Fill="{DynamicResource SystemBaseHighColor}"
 									Stretch="Uniform" />
 						</Button>

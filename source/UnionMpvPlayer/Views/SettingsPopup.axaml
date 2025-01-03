@@ -17,6 +17,7 @@
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto" />
 		</Grid.RowDefinitions>
 
 		<!-- Custom Title Bar -->
@@ -37,7 +38,7 @@
                            Width="18" Height="18"
                            VerticalAlignment="Center"
                            Margin="12,0,0,0"/>
-					<TextBlock Text="keyboard bindings"
+					<TextBlock Text="keyboard bindings - double click a key to change"
                              VerticalAlignment="Center"
                              Margin="10,0"
                              FontSize="13"
@@ -71,16 +72,16 @@
 
 		<!-- Key Bindings Table -->
 		<DataGrid Grid.Row="1"
-                  AutoGenerateColumns="False"
-                  CanUserResizeColumns="True"
-                  HeadersVisibility="Column"
-                  HorizontalAlignment="Stretch"
-                  VerticalAlignment="Stretch"
-                  Margin="10"
-                  IsReadOnly="True"
-                  SelectionMode="Single"
-                  CanUserSortColumns="False"
-                  ItemsSource="{Binding KeyBindings}">
+				  AutoGenerateColumns="False"
+				  CanUserResizeColumns="True"
+				  HeadersVisibility="Column"
+				  HorizontalAlignment="Stretch"
+				  VerticalAlignment="Stretch"
+				  Margin="10"
+				  IsReadOnly="False"
+				  SelectionMode="Single"
+				  CanUserSortColumns="False"
+				  ItemsSource="{Binding KeyBindings}">
 			<DataGrid.Styles>
 				<!-- Base DataGrid Styles -->
 				<Style Selector="DataGrid">
@@ -147,9 +148,9 @@
 					<Setter Property="Padding" Value="0"/>
 					<Setter Property="Template">
 						<ControlTemplate>
-							<Border Background="{TemplateBinding Background}"
-									BorderBrush="Transparent"
-									BorderThickness="0">
+							<Border Background="{DynamicResource SystemRegionColor}"
+									BorderBrush="{DynamicResource SystemBaseMediumColor}"
+									BorderThickness="1">
 								<ScrollViewer HorizontalScrollBarVisibility="{TemplateBinding (ScrollViewer.HorizontalScrollBarVisibility)}"
 											VerticalScrollBarVisibility="{TemplateBinding (ScrollViewer.VerticalScrollBarVisibility)}">
 									<TextPresenter Name="PART_TextPresenter"
@@ -171,7 +172,7 @@
 				</Style>
 
 				<!-- Disable ALL TextBox states -->
-				<Style Selector="TextBox:pointerover">
+				<!--<Style Selector="TextBox:pointerover">
 					<Setter Property="Background" Value="Transparent"/>
 					<Setter Property="BorderBrush" Value="Transparent"/>
 				</Style>
@@ -184,7 +185,7 @@
 				<Style Selector="TextBox:pressed">
 					<Setter Property="Background" Value="Transparent"/>
 					<Setter Property="BorderBrush" Value="Transparent"/>
-				</Style>
+				</Style>-->
 				<!-- Header Styles -->
 				<Style Selector="DataGridColumnHeader">
 					<Setter Property="Background" Value="Transparent"/>
@@ -220,19 +221,35 @@
 			</DataGrid.Styles>
 			<DataGrid.Columns>
 				<!-- Key Column -->
-				<DataGridTextColumn Header="Key"
-                                  Binding="{Binding Key}"
-                                  Width="100"
-								  FontSize="12"
-                                  IsReadOnly="True" />
+				<DataGridTemplateColumn Header="Key" Width="100">
+					<DataGridTemplateColumn.CellTemplate>
+						<DataTemplate>
+							<TextBlock Text="{Binding Key}" />
+						</DataTemplate>
+					</DataGridTemplateColumn.CellTemplate>
+					<DataGridTemplateColumn.CellEditingTemplate>
+						<DataTemplate>
+							<TextBox Text="{Binding Key, Mode=TwoWay}" />
+						</DataTemplate>
+					</DataGridTemplateColumn.CellEditingTemplate>
+				</DataGridTemplateColumn>
 
 				<!-- Bindings Column -->
 				<DataGridTextColumn Header="Bindings"
-                                  Binding="{Binding Bindings}"
-                                  Width="*"
-							      FontSize="12"
-                                  IsReadOnly="True" />
+									Binding="{Binding Bindings}"
+									Width="*"
+									FontSize="12"
+									IsReadOnly="True" />
 			</DataGrid.Columns>
+
 		</DataGrid>
+		<Button Grid.Row="2"
+            Content="Reset to Default"
+            HorizontalAlignment="Center"
+			HorizontalContentAlignment="Center"
+            Margin="10"
+            Padding="8"
+			Width="580"
+            Click="ResetToDefault_Click" />
 	</Grid>
 </Window>

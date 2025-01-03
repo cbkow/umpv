@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 
@@ -109,10 +110,11 @@ namespace UnionMpvPlayer.Helpers
         [StructLayout(LayoutKind.Explicit)]
         public struct node_data
         {
-            [FieldOffset(0)] public string str;
-            [FieldOffset(0)] public double dbl;
-            [FieldOffset(0)] public long i64;
+            [FieldOffset(0)] public IntPtr str;  // Pointer to a string
+            [FieldOffset(0)] public double dbl; // Double value
+            [FieldOffset(0)] public long i64;   // 64-bit integer value
         }
+
         #endregion
 
         #region Core MPV Functions
@@ -290,6 +292,24 @@ namespace UnionMpvPlayer.Helpers
             finally
             {
                 mpv_free(ptr);
+            }
+
+            return null;
+        }
+
+        public static int? GetIntProperty(IntPtr ctx, string name)
+        {
+            try
+            {
+                IntPtr result = mpv_get_property(ctx, name, mpv_format.MPV_FORMAT_INT64, out var data);
+                if (result == 0) // MPV_SUCCESS
+                {
+                    return (int)data.i64;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error getting integer property '{name}': {ex.Message}");
             }
 
             return null;

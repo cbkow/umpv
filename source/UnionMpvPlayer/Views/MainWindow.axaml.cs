@@ -33,6 +33,7 @@ using UnionMpvPlayer.Helpers;
 using DrawingImage = System.Drawing.Image;
 using DrawingPoint = System.Drawing.Point;
 using AvaloniaPath = Avalonia.Controls.Shapes.Path;
+using System.Collections.ObjectModel;
 
 namespace UnionMpvPlayer.Views
 {
@@ -86,10 +87,17 @@ namespace UnionMpvPlayer.Views
         private const int WS_VISIBLE = 0x10000000;
         private const int WS_CLIPSIBLINGS = 0x04000000;
 
+        private ObservableCollection<KeyBindingItem> KeyBindings = new();
+
+        private readonly double[] BackwardSpeeds = { 1.0, 2.0, 4.0, 6.0 };
+        private int currentBackwardSpeedIndex = 0;
+
+
         public MainWindow()
         {
             InitializeComponent();
             DataContext = new MainWindowViewModel();
+            InitializeKeyBindings();
             if (_playlistView != null)
             {
                 _playlistView.SetCallbacks(
@@ -141,6 +149,9 @@ namespace UnionMpvPlayer.Views
             {
                 LoadBlankVideo();
             }
+            EnsureCorrectWindowOrder();
+
+
         }
 
         private void InitializeComponent()
@@ -177,7 +188,8 @@ namespace UnionMpvPlayer.Views
             KeyDown += MainWindow_KeyDown;
             _playlistView = this.FindControl<PlaylistView>("PlaylistView");
             _playlistToggleButton = this.FindControl<Button>("PlaylistToggle");
-
+            Topmenu = this.FindControl<Grid>("Topmenu");
+            BottomToolbar = this.FindControl<StackPanel>("BottomToolbar");
             // Subscribe to container size changes
             videoContainer.PropertyChanged += (sender, args) =>
             {
@@ -311,22 +323,56 @@ namespace UnionMpvPlayer.Views
         }
 
         // Toast message
+        private ToastView? _currentToast; // Keep a reference to the active toast
+
         public void ShowToast(string title, string message)
         {
-            var toast = new ToastView();
-            toast.SetContent(title, message);
-            toast.Show();
-            DispatcherTimer timer = new DispatcherTimer
+            try
             {
-                Interval = TimeSpan.FromSeconds(3.5) // Adjust duration if needed
-            };
-            timer.Tick += (s, e) =>
+                // Close the current toast if one is already displayed
+                if (_currentToast != null)
+                {
+                    _currentToast.Close();
+                    _currentToast = null;
+                }
+
+                // Create and configure the toast
+                var toast = new ToastView();
+                toast.SetContent(title, message);
+
+                // Position the toast relative to the main window
+                var scalingFactor = VisualRoot?.RenderScaling ?? 1.0;
+                const int margin = 16; // Margin from the screen edges
+                var xPos = Position.X + (int)(Bounds.Width - (toast.Width * scalingFactor) - (margin * scalingFactor));
+                var yPos = Position.Y + (int)(Bounds.Height - (toast.Height * scalingFactor) - (margin * scalingFactor));
+
+                toast.Position = new PixelPoint(xPos, yPos);
+
+                // Show the toast
+                toast.Show();
+
+                // Set the current toast reference
+                _currentToast = toast;
+
+                // Close the toast after 3.5 seconds
+                DispatcherTimer timer = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromSeconds(3.5)
+                };
+                timer.Tick += (s, e) =>
+                {
+                    toast.Close();
+                    _currentToast = null; // Clear the reference when the toast is closed
+                    timer.Stop();
+                };
+                timer.Start();
+            }
+            catch (Exception ex)
             {
-                toast.Close();
-                timer.Stop();
-            };
-            timer.Start();
+                Debug.WriteLine($"Error showing toast: {ex.Message}");
+            }
         }
+
 
 
         // Draggable Menu Bar
@@ -926,11 +972,16 @@ namespace UnionMpvPlayer.Views
 
         // App Menu
 
-        private void SettingsButton_Click(object sender, RoutedEventArgs e)
+        private void SettingsButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
-            var popup = new SettingsPopup();
-            popup.ShowDialog(this);
+            var settingsPopup = new SettingsPopup
+            {
+                OnSettingsUpdated = InitializeKeyBindings // Pass the callback
+            };
+
+            settingsPopup.ShowDialog(this);
         }
+
 
         private void RegistryButton_Click(object sender, RoutedEventArgs e)
         {
@@ -1224,7 +1275,7 @@ namespace UnionMpvPlayer.Views
                 Dispatcher.UIThread.InvokeAsync(async () =>
                 {
                     // Give the UI a moment to update layout
-                    await Task.Delay(50);
+                    await Task.Delay(0);
                     UpdateChildWindowBounds();
                     OnVideoModeChanged();
                 });
@@ -1232,7 +1283,7 @@ namespace UnionMpvPlayer.Views
                 if (_playlistToggleButton?.Content is AvaloniaPath playlistPath)
                 {
                     var iconKey = _playlistView.IsVisible ?
-                        "slide_hide_regular" : "slide_text_regular";
+                        "dismiss_regular" : "slide_text_regular";
 
                     if (App.Current?.Resources.TryGetResource(iconKey,
                         ThemeVariant.Default, out object? resource) == true &&
@@ -1256,6 +1307,198 @@ namespace UnionMpvPlayer.Views
 
 
         // Buttons
+
+        private void RemovePlaylistButton_Click(object? sender, RoutedEventArgs e)
+        {
+            if (_playlistView != null && _playlistView.IsVisible) // Check the visibility of PlaylistView
+            {
+                _playlistView.TriggerRemoveFromPlaylist(); // Call the exposed method in PlaylistView
+            }
+            else
+            {
+                // Provide feedback if PlaylistView is not visible
+                var window = TopLevel.GetTopLevel(this) as Window;
+                if (window != null)
+                {
+                    var toast = new ToastView();
+                    toast.ShowToast("Error", "PlaylistView is not open or visible.", window);
+                }
+            }
+        }
+
+
+        private void SeekBackwardIncrement_Click(object? sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (mpvHandle == IntPtr.Zero)
+                {
+                    Debug.WriteLine("MPV handle is not initialized.");
+                    return;
+                }
+
+                // Check if MPV is paused
+                var isPaused = MPVInterop.GetStringProperty(mpvHandle, "pause");
+                if (isPaused == "yes")
+                {
+                    Debug.WriteLine("MPV is paused. Triggering PlayButton_Click to resume playback.");
+                    PlayButton_Click(null, null); // Resume playback
+                }
+
+                // Get the current backward speed
+                currentBackwardSpeedIndex = (currentBackwardSpeedIndex + 1) % BackwardSpeeds.Length;
+                var speed = BackwardSpeeds[currentBackwardSpeedIndex];
+
+                // Send the command to MPV
+                MPVInterop.mpv_command(mpvHandle, new[] { "set", "speed", speed.ToString("F1") });
+                MPVInterop.mpv_command(mpvHandle, new[] { "set", "play-dir", "-" });
+
+                Debug.WriteLine($"Playing backward at {speed}x speed.");
+
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error setting backward playback speed: {ex.Message}");
+               
+            }
+        }
+
+
+        private void SeekForwardIncrement_Click(object? sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (mpvHandle == IntPtr.Zero)
+                {
+                    Debug.WriteLine("MPV handle is not initialized.");
+                    return;
+                }
+
+                // Check if MPV is paused
+                var isPaused = MPVInterop.GetStringProperty(mpvHandle, "pause");
+                if (isPaused == "yes")
+                {
+                    Debug.WriteLine("MPV is paused. Triggering PlayButton_Click to resume playback.");
+                    PlayButton_Click(null, null); // Resume playback
+                }
+
+                // Get the current forward speed
+                currentBackwardSpeedIndex = (currentBackwardSpeedIndex + 1) % BackwardSpeeds.Length;
+                var speed = BackwardSpeeds[currentBackwardSpeedIndex];
+
+                // Send the command to MPV
+                MPVInterop.mpv_command(mpvHandle, new[] { "set", "speed", speed.ToString("F1") });
+                MPVInterop.mpv_command(mpvHandle, new[] { "set", "play-dir", "+" });
+
+                Debug.WriteLine($"Playing forward at {speed}x speed.");
+
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error setting forward playback speed: {ex.Message}");
+
+            }
+        }
+
+
+
+        private void ResizeToPixelRatio_Click(object? sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (mpvHandle == IntPtr.Zero)
+                {
+                    Debug.WriteLine("MPV handle is not initialized.");
+                    return;
+                }
+
+                // Get video dimensions
+                var videoWidth = MPVInterop.GetIntProperty(mpvHandle, "width");
+                var videoHeight = MPVInterop.GetIntProperty(mpvHandle, "height");
+
+                if (!videoWidth.HasValue || !videoHeight.HasValue || videoWidth.Value <= 0 || videoHeight.Value <= 0)
+                {
+                    Debug.WriteLine("Failed to retrieve video dimensions.");
+                    return;
+                }
+
+                // Measure UI elements
+                var topToolbarHeight = Topmenu?.Bounds.Height ?? 0;
+                var bottomToolbarHeight = BottomToolbar?.Bounds.Height ?? 0;
+                var sideMargins = Bounds.Width - (videoContainer?.Bounds.Width ?? 0);
+
+                // Measure system chrome
+                var chromeHeight = Height - ClientSize.Height; // Vertical chrome (titlebar + borders)
+                var chromeWidth = Width - ClientSize.Width;    // Horizontal chrome (borders)
+
+                Debug.WriteLine($"TopToolbar: {topToolbarHeight}, BottomToolbar: {bottomToolbarHeight}");
+                Debug.WriteLine($"ChromeHeight: {chromeHeight}, ChromeWidth: {chromeWidth}");
+
+                // Add fixed padding if necessary
+                const int SystemTitlebarHeight = 30; // Adjust for platform-specific titlebars
+                const int SystemBorderHeight = 5;    // Optional: borders
+                chromeHeight = Math.Max(chromeHeight, SystemTitlebarHeight + SystemBorderHeight);
+
+                // Calculate offsets
+                var extraWidth = (int)(sideMargins + chromeWidth);
+                var extraHeight = (int)(topToolbarHeight + bottomToolbarHeight + chromeHeight);
+
+                // Calculate new window size
+                var newWidth = videoWidth.Value + extraWidth;
+                var newHeight = videoHeight.Value + extraHeight;
+
+                // Apply new size
+                Width = newWidth / RenderScaling;
+                Height = newHeight / RenderScaling;
+
+                // Update video container bounds
+                UpdateChildWindowBounds();
+
+                Debug.WriteLine($"Resized window to {newWidth}x{newHeight} (video: {videoWidth}x{videoHeight}, UI: {extraWidth}x{extraHeight}).");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error resizing for 1:1 pixel ratio: {ex.Message}");
+            }
+        }
+
+        private void ResizeToHalfScreenSize_Click(object? sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Get screen dimensions
+                var screen = Screens.Primary; // Use primary screen
+                var screenWidth = screen.Bounds.Width;
+                var screenHeight = screen.Bounds.Height;
+
+                // Calculate half of the screen size
+                var halfWidth = screenWidth / 2;
+                var halfHeight = screenHeight / 2;
+
+                // Add padding for UI
+                var topToolbarHeight = Topmenu?.Bounds.Height ?? 0;
+                var bottomToolbarHeight = BottomToolbar?.Bounds.Height ?? 0;
+                const int SystemTitlebarHeight = 30; // Adjust as needed for the platform
+                const int SystemBorderHeight = 5;    // Optional: borders
+
+                var extraHeight = topToolbarHeight + bottomToolbarHeight + SystemTitlebarHeight + SystemBorderHeight;
+
+                // Resize the window to 50% of the screen size
+                Width = halfWidth / RenderScaling;
+                Height = (halfHeight + extraHeight) / RenderScaling;
+
+                // Update video container bounds
+                UpdateChildWindowBounds();
+
+                Debug.WriteLine($"Resized window to 50% of screen size: {Width}x{Height}");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error resizing to 50% of screen size: {ex.Message}");
+            }
+        }
+
+
         private async void ImageSeq_Click(object sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
             var openFileDialog = new OpenFileDialog
@@ -1965,69 +2208,100 @@ namespace UnionMpvPlayer.Views
         }
 
         // Keyboard commands
+
+        private void InitializeKeyBindings()
+        {
+            KeyBindings.Clear();
+
+            var settingsPopup = new SettingsPopup();
+            settingsPopup.LoadKeyBindings();
+
+            foreach (var binding in settingsPopup.KeyBindings)
+            {
+                KeyBindings.Add(binding);
+            }
+
+            Debug.WriteLine("Keybindings reloaded in MainWindow.");
+        }
+
         private void MainWindow_KeyDown(object? sender, KeyEventArgs e)
         {
-            switch (e.Key)
+            var keyBinding = KeyBindings.FirstOrDefault(kb => kb.Key.Equals(e.Key.ToString(), StringComparison.OrdinalIgnoreCase));
+            if (keyBinding != null)
             {
-                case Key.W:
-                    PlayButton_Click(null, null);
-                    e.Handled = true;
-                    break;
-                case Key.O:
-                    OpenMenuItem_Click(null, null);
-                    e.Handled = true;
-                    break;
-                case Key.I:
-                    InfoButton_Click(null, null);
-                    e.Handled = true;
-                    break;
-                case Key.Q: // "Q" key
-                    PrevFrameButton_Click(null, null);
-                    e.Handled = true;
-                    break;
-                case Key.E: // "E" key
-                    NextFrameButton_Click(null, null);
-                    e.Handled = true;
-                    break;
-                case Key.S: // "S" key
-                    CameraButton_Click(null, null);
-                    e.Handled = true;
-                    break;
-                case Key.A: // "A" key
-                    SeekBackward_Click(null, null);
-                    e.Handled = true;
-                    break;
-                case Key.D: // "D" key
-                    SeekForward_Click(null, null);
-                    e.Handled = true;
-                    break;
-                case Key.Z: // "Z" key
-                    ToStartButton_Click(null, null);
-                    e.Handled = true;
-                    break;
-                case Key.C: // "C" key
-                    ToEndButton_Click(null, null);
-                    e.Handled = true;
-                    break;
-                case Key.B: // "B" key
-                    PlaylistButton_Click(null, null);
-                    e.Handled = true;
-                    break;
-                case Key.F: // "F" key
-                    FullScreenButton_Click(null, null);
-                    e.Handled = true;
-                    break;
-                case Key.R: // "R" key
-                    LoopingButton_Click(null, null);
-                    e.Handled = true;
-                    break;
-                case Key.Escape: // Escape key
-                    if (isFullScreen) // Exit full-screen mode
-                    {
+                switch (keyBinding.Bindings)
+                {
+                    case "Play / Pause":
+                        PlayButton_Click(null, null);
+                        break;
+                    case "Play / Pause Alt":
+                        PlayButton_Click(null, null);
+                        break;
+                    case "Open File":
+                        OpenMenuItem_Click(null, null);
+                        break;
+                    case "Info":
+                        InfoButton_Click(null, null);
+                        break;
+                    case "Previous Frame":
+                        PrevFrameButton_Click(null, null);
+                        break;
+                    case "Next Frame":
+                        NextFrameButton_Click(null, null);
+                        break;
+                    case "Screenshot to Clipboard":
+                        CameraButton_Click(null, null);
+                        break;
+                    case "Seek Backward 1 sec":
+                        SeekBackward_Click(null, null);
+                        break;
+                    case "Play Backward Interval Speeds":
+                        SeekBackwardIncrement_Click(null, null);
+                        break;
+                    case "Seek Forward 1 sec":
+                        SeekForward_Click(null, null);
+                        break;
+                    case "Play Forward Interval Speeds":
+                        SeekForwardIncrement_Click(null, null);
+                        break;
+                    case "Go to Video Beginning":
+                        ToStartButton_Click(null, null);
+                        break;
+                    case "Go to Video End":
+                        ToEndButton_Click(null, null);
+                        break;
+                    case "Toggle Playlist":
+                        PlaylistButton_Click(null, null);
+                        break;
+                    case "Toggle Looping":
+                        LoopingButton_Click(null, null);
+                        break;
+                    case "Play Video 1:1 Size":
+                        ResizeToPixelRatio_Click(null, null);
+                        break;
+                    case "Play Video 50% Screen Size":
+                        ResizeToHalfScreenSize_Click(null, null);
+                        break;
+                    case "16:9 Title/Action Safety":
+                        SafetyButton_Click(null, null);
+                        break;
+                    case "Toggle Full-screen Mode":
                         FullScreenButton_Click(null, null);
-                        e.Handled = true;
-                    }
-                    break;
+                        break;
+                    case "Exit Full-screen Mode":
+                        if (isFullScreen)
+                        {
+                            FullScreenButton_Click(null, null);
+                        }
+                        break;
+                    case "Delete Playlist Item":
+                        if (_playlistView != null)
+                        {
+                            RemovePlaylistButton_Click(null, null);
+                        }
+                        break;
+                }
+                e.Handled = true;
             }
         }
 
