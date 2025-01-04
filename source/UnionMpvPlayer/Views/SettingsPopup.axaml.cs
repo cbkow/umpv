@@ -48,6 +48,7 @@ namespace UnionMpvPlayer.Views
             }
         }
 
+
         // Load keybindings from JSON
         public void LoadKeyBindings()
         {
@@ -64,7 +65,11 @@ namespace UnionMpvPlayer.Views
                         {
                             KeyBindings.Add(binding);
                         }
+
                         Debug.WriteLine($"Keybindings loaded from {KeyBindingsFilePath}");
+
+                        // Merge with default keybindings to ensure all keys are present
+                        MergeWithDefaultKeyBindings();
                         return;
                     }
                 }
@@ -74,8 +79,64 @@ namespace UnionMpvPlayer.Views
                 Debug.WriteLine($"Error loading keybindings: {ex.Message}");
             }
 
-            // Load default keybindings if JSON loading fails
-            LoadDefaultKeyBindings();
+            // Load defaults if JSON loading fails
+            var defaultBindings = new ObservableCollection<KeyBindingItem>();
+            LoadDefaultKeyBindingsInto(defaultBindings);
+
+            // Use defaultBindings to update the KeyBindings collection
+            KeyBindings.Clear();
+            foreach (var binding in defaultBindings)
+            {
+                KeyBindings.Add(binding);
+            }
+
+        }
+
+
+        private void MergeWithDefaultKeyBindings()
+        {
+            // Load the default keybindings
+            var defaultBindings = new ObservableCollection<KeyBindingItem>();
+            LoadDefaultKeyBindingsInto(defaultBindings);
+
+            // Create a dictionary for fast lookup of keys in user-defined bindings
+            var userBindingsMap = KeyBindings.ToDictionary(k => k.Key, k => k);
+
+            // Add missing default keybindings
+            foreach (var defaultBinding in defaultBindings)
+            {
+                if (!userBindingsMap.ContainsKey(defaultBinding.Key))
+                {
+                    KeyBindings.Add(defaultBinding);
+                    Debug.WriteLine($"Added missing keybinding: {defaultBinding.Key} - {defaultBinding.Bindings}");
+                }
+            }
+        }
+
+        private void LoadDefaultKeyBindingsInto(ObservableCollection<KeyBindingItem> target)
+        {
+            target.Clear();
+            target.Add(new KeyBindingItem("W", "Play / Pause"));
+            target.Add(new KeyBindingItem("K", "Play / Pause Alt"));
+            target.Add(new KeyBindingItem("O", "Open File"));
+            target.Add(new KeyBindingItem("I", "Info"));
+            target.Add(new KeyBindingItem("Q", "Previous Frame"));
+            target.Add(new KeyBindingItem("E", "Next Frame"));
+            target.Add(new KeyBindingItem("S", "Screenshot to Clipboard"));
+            target.Add(new KeyBindingItem("A", "Seek Backward 1 sec"));
+            target.Add(new KeyBindingItem("J", "Progressive Backward Speed (Key Hold)"));
+            target.Add(new KeyBindingItem("D", "Seek Forward 1 sec"));
+            target.Add(new KeyBindingItem("L", "Progressive Forward Speed (Key Hold)"));
+            target.Add(new KeyBindingItem("Z", "Go to Video Beginning"));
+            target.Add(new KeyBindingItem("C", "Go to Video End"));
+            target.Add(new KeyBindingItem("B", "Toggle Playlist"));
+            target.Add(new KeyBindingItem("R", "Toggle Looping"));
+            target.Add(new KeyBindingItem("Y", "Play Video 1:1 Size"));
+            target.Add(new KeyBindingItem("H", "Play Video 50% Screen Size"));
+            target.Add(new KeyBindingItem("T", "16:9 Title/Action Safety"));
+            target.Add(new KeyBindingItem("F", "Toggle Full-screen Mode"));
+            target.Add(new KeyBindingItem("esc", "Exit Full-screen Mode"));
+            target.Add(new KeyBindingItem("Back", "Delete Playlist Item"));
         }
 
         private void LoadDefaultKeyBindings()
@@ -89,9 +150,9 @@ namespace UnionMpvPlayer.Views
             KeyBindings.Add(new KeyBindingItem("E", "Next Frame"));
             KeyBindings.Add(new KeyBindingItem("S", "Screenshot to Clipboard"));
             KeyBindings.Add(new KeyBindingItem("A", "Seek Backward 1 sec"));
-            KeyBindings.Add(new KeyBindingItem("J", "Play Backward Interval Speeds"));
+            KeyBindings.Add(new KeyBindingItem("J", "Progressive Backward Speed (Key Hold)"));
             KeyBindings.Add(new KeyBindingItem("D", "Seek Forward 1 sec"));
-            KeyBindings.Add(new KeyBindingItem("L", "Play Forward Interval Speeds"));
+            KeyBindings.Add(new KeyBindingItem("L", "Progressive Forward Speed (Key Hold)"));
             KeyBindings.Add(new KeyBindingItem("Z", "Go to Video Beginning"));
             KeyBindings.Add(new KeyBindingItem("C", "Go to Video End"));
             KeyBindings.Add(new KeyBindingItem("B", "Toggle Playlist"));

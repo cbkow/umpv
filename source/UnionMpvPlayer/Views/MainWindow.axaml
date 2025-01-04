@@ -12,10 +12,13 @@
         WindowStartupLocation="CenterScreen"
         Title="{Binding TopTitle}"
         Width="1130"
-        Height="766">
+        Height="766"
+		Focusable="True"
+		KeyDown="MainWindow_KeyDown"
+        KeyUp="MainWindow_KeyUp">
 
 	<Window.Styles>
-		<Style Selector="Slider:horizontal">
+		<Style Selector="Slider.thickslider">
 			<Setter Property="MinWidth" Value="40" />
 			<Setter Property="MinHeight" Value="20" />
 			<Style Selector="^ Track">
@@ -42,6 +45,52 @@
 			<Setter Property="Background" Value="{DynamicResource SystemBaseHighColor}"/>
 			<Setter Property="Opacity" Value="0.1"/>
 		</Style>
+
+		<Style Selector="Slider.speedslider">
+			<!-- General Slider Properties -->
+			<Setter Property="MinWidth" Value="50" />
+			<Setter Property="MinHeight" Value="25" />
+			<Setter Property="Opacity" Value="1.0" />
+			<!-- Default Opacity -->
+
+			<!-- Track Style -->
+			<Style Selector="^ Track">
+				<Setter Property="Height" Value="2" />
+
+				<!-- RepeatButton Border Style -->
+				<Style Selector="^ RepeatButton Border">
+					<Setter Property="CornerRadius" Value="0" />
+					<Setter Property="Height" Value="10" />
+					<Setter Property="Background" Value="{DynamicResource SystemBaseLowColor}" />
+				</Style>
+
+				<!-- Thumb Style -->
+				<Style Selector="^ Thumb">
+					<Setter Property="Height" Value="13" />
+					<Setter Property="Width" Value="13" />
+					<Setter Property="Margin" Value="0" />
+					<Setter Property="CornerRadius" Value="8" />
+					<Setter Property="Background" Value="{DynamicResource SystemAccentColor}" />
+				</Style>
+			</Style>
+
+			<!-- Define Snapping Behavior -->
+			<Setter Property="IsSnapToTickEnabled" Value="True" />
+			<Setter Property="TickFrequency" Value="1" />
+
+			<!-- Add Ticks Visualization -->
+			<Style Selector="^ TickBar">
+				<Setter Property="Height" Value="2" />
+				<Setter Property="Fill" Value="{DynamicResource SystemAccentColor}" />
+			</Style>
+		</Style>
+
+		<!-- Dimmed appearance when disabled -->
+		<Style Selector="Slider.speedslider:disabled">
+			<Setter Property="Opacity" Value="0.3" />
+		</Style>
+
+
 	</Window.Styles>
 	
 	<Grid>
@@ -226,12 +275,22 @@
 
 					<MenuItem Header="_Video" Padding="10,2,10,2" CornerRadius="2"
 								Foreground="{DynamicResource SystemBaseMediumHighColor}" FontSize="12">
-						<MenuItem x:Name="Trigger1to1mode" Header="_1:1 Video Size" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="ResizeToPixelRatio_Click" />
-						<MenuItem x:Name="Trigger50percentMode" Header="_50% of Screen Video Size" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="ResizeToHalfScreenSize_Click" />
+						<MenuItem Header="_Size" Padding="10,8,10,8"
+									CornerRadius="1" Margin="4,0,4,0" 
+									Foreground="{DynamicResource SystemBaseMediumHighColor}" FontSize="12">
+							<MenuItem x:Name="Trigger1to1mode" Header="_1:1 Video Size" Padding="10,8,10,8"
+										CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+										Click="ResizeToPixelRatio_Click" />
+							<MenuItem x:Name="Trigger50percentMode" Header="_50% of Screen Size" Padding="10,8,10,8"
+										CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+										Click="ResizeToHalfScreenSize_Click" />
+						</MenuItem>
+						<MenuItem Header="_Safety Guides" Padding="10,8,10,8"
+									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}" FontSize="12">
+							<MenuItem x:Name="TitleSafetyMenuButton" Header="_Toggle 16:9 Title/Action Safety" Padding="10,8,10,8"
+										CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+										Click="SafetyButton_Click" />
+						</MenuItem>
 					</MenuItem>
 
 					<MenuItem Header="_App" Padding="10,2,10,2" CornerRadius="2"
@@ -294,6 +353,7 @@
 				</Grid>
 
 				<Slider x:Name="PlaybackSlider"
+						Classes="thickslider"
 						Cursor="Hand"
 						Orientation="Horizontal"
 						HorizontalAlignment="Stretch"
@@ -348,6 +408,22 @@
 									Stretch="Uniform" />
 						</Button>
 
+						<!--<Button x:Name="PingPongButton"
+								Background="Transparent"
+								Cursor="Hand"
+								Width="33"
+								Height="33"
+								Margin="10,0,0,10"
+								Padding="8,8"
+								ToolTip.Tip="Toggle Video Looping"
+								VerticalContentAlignment="Center"
+								Click="PingPongButton_Click">
+							<Path x:Name="PingPongPath"
+								  Data="{DynamicResource arrow_swap_regular}"
+								  Fill="{DynamicResource SystemBaseHighColor}"
+								  Stretch="Uniform" />
+						</Button>-->
+
 						<!-- Photo Filter Button -->
 						<Button x:Name="PhotoFilterButton"
 								Background="Transparent"
@@ -381,35 +457,34 @@
 									Stretch="Uniform" />
 						</Button>
 
-						<Button x:Name="InfoButton"
+						<Button x:Name="SpeedButton"
 								Background="Transparent"
 								Cursor="Hand"
-								ToolTip.Tip="Info/metadata"
+								ToolTip.Tip="Toggle Speed Control"
 								Width="33"
 								Height="33"
 								Margin="10,0,0,10"
 								VerticalContentAlignment="Center"
 								Padding="8,8"
-								Click="InfoButton_Click">
-							<Path Data="{DynamicResource info_regular}"
+								Click="SpeedEnable_Click"
+								Opacity="0.3">
+							<Path Data="{DynamicResource toggle_right_regular}"
 									Fill="{DynamicResource SystemBaseHighColor}"
 									Stretch="Uniform" />
 						</Button>
 
-						<Button x:Name="Toggle1to1Button"
-								Background="Transparent"
-								Cursor="Hand"
-								ToolTip.Tip="Toggle Video 1:1"
-								Width="33"
-								Height="33"
-								Margin="10,0,0,10"
-								VerticalContentAlignment="Center"
-								Padding="8,8"
-								Click="ResizeToPixelRatio_Click">
-							<Path Data="{DynamicResource slide_size_regular}"
-									Fill="{DynamicResource SystemBaseHighColor}"
-									Stretch="Uniform" />
-						</Button>
+						<Slider Name="SpeedSlider"
+								x:Name="SpeedSlider"
+								IsEnabled="False"
+								Classes="speedslider"
+								Width="100"
+								Minimum="-6" Maximum="6" Value="0"
+								Margin="12,0,12,8"
+								TickFrequency="1" IsSnapToTickEnabled="True"
+								HorizontalAlignment="Center"
+								VerticalAlignment="Center"
+								PointerReleased="SpeedSlider_PointerReleased"
+								PointerMoved="SpeedSlider_PointerMoved" />
 					</StackPanel>
 
 					<!--Middle Column-->
@@ -427,7 +502,7 @@
 									Fill="{DynamicResource SystemBaseHighColor}"
 									Stretch="Uniform" />
 						</Button>
-
+						
 						<Button Name="PrevFrameButton"
 								Background="Transparent"
 								Cursor="Hand"
@@ -468,7 +543,7 @@
 									Fill="{DynamicResource SystemBaseHighColor}"
 									Stretch="Uniform" />
 						</Button>
-
+	
 						<Button Name="ToEndButton"
 								Background="Transparent"
 								Cursor="Hand"
@@ -483,6 +558,7 @@
 									Fill="{DynamicResource SystemBaseHighColor}"
 									Stretch="Uniform" />
 						</Button>
+						
 					</StackPanel>
 
 					<!--Right Column-->
@@ -511,6 +587,7 @@
 						</Button>
 
 						<Slider x:Name="VolumeSlider"
+								Classes="thickslider"
 								Cursor="Hand"
 								Width="100"
 								Minimum="0"
@@ -532,6 +609,36 @@
 								Click="CameraButton_Click"
 								VerticalContentAlignment="Center">
 							<Path Data="{DynamicResource camera_regular}"
+									Fill="{DynamicResource SystemBaseHighColor}"
+									Stretch="Uniform" />
+						</Button>
+
+						<Button x:Name="InfoButton"
+								Background="Transparent"
+								Cursor="Hand"
+								ToolTip.Tip="Info/metadata"
+								Width="33"
+								Height="33"
+								Margin="0,0,0,10"
+								VerticalContentAlignment="Center"
+								Padding="8,8"
+								Click="InfoButton_Click">
+							<Path Data="{DynamicResource info_regular}"
+									Fill="{DynamicResource SystemBaseHighColor}"
+									Stretch="Uniform" />
+						</Button>
+
+						<Button x:Name="Toggle1to1Button"
+								Background="Transparent"
+								Cursor="Hand"
+								ToolTip.Tip="Toggle Video 1:1"
+								Width="33"
+								Height="33"
+								Margin="0,0,0,10"
+								VerticalContentAlignment="Center"
+								Padding="8,8"
+								Click="ResizeToPixelRatio_Click">
+							<Path Data="{DynamicResource slide_size_regular}"
 									Fill="{DynamicResource SystemBaseHighColor}"
 									Stretch="Uniform" />
 						</Button>

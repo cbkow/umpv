@@ -34,6 +34,7 @@ using DrawingImage = System.Drawing.Image;
 using DrawingPoint = System.Drawing.Point;
 using AvaloniaPath = Avalonia.Controls.Shapes.Path;
 using System.Collections.ObjectModel;
+using Avalonia.Collections;
 
 namespace UnionMpvPlayer.Views
 {
@@ -89,15 +90,39 @@ namespace UnionMpvPlayer.Views
 
         private ObservableCollection<KeyBindingItem> KeyBindings = new();
 
-        private readonly double[] BackwardSpeeds = { 1.0, 2.0, 4.0, 6.0 };
-        private int currentBackwardSpeedIndex = 0;
+        private DispatcherTimer? _speedTimer;
+        private int currentSpeedIndex = 0;
+        private readonly double[] SeekSteps = {
+            0.04167, // 1 frame (1x)
+            0.08333, // 2x
+            0.125,   // 3x
+            0.16667, // 4x
+            0.20833, // 5x
+            0.25     // 6x
+        };
+        private string? originalPausedState;
+        private bool isAdjustingSpeed = false;
+        private DispatcherTimer? _sliderTimer;
 
+        private DispatcherTimer? _progressiveTimer;
+        private double _currentSpeedStep = 0.0; // Tracks the current ramped-up speed
+        private int _rampIndex = 0; // Tracks the current ramp step
+        private readonly double[] SpeedRamp = { 0.5, 1.0, 1.5, 2.0, 3.0, 5.0 }; // Speed progression
+
+        private PingPongController? _pingPongController;
+        private bool isPingPongActive = false;
 
         public MainWindow()
         {
             InitializeComponent();
             DataContext = new MainWindowViewModel();
             InitializeKeyBindings();
+            // Assign ticks to the specific slider
+            this.Loaded += (s, e) =>
+            {
+                
+            };
+
             if (_playlistView != null)
             {
                 _playlistView.SetCallbacks(
@@ -138,7 +163,9 @@ namespace UnionMpvPlayer.Views
                     MPVInterop.mpv_set_option_string(mpvHandle, "keep-open", keepOpenValue);
                 };
             }
+
             InitializeMPV();
+
             // Check for a passed file or load blank.mp4
             string[] args = Environment.GetCommandLineArgs();
             if (args.Length > 1 && File.Exists(args[1]))
@@ -149,9 +176,24 @@ namespace UnionMpvPlayer.Views
             {
                 LoadBlankVideo();
             }
+    
+            this.Loaded += (s, e) =>
+            {
+                var slider = this.GetVisualDescendants().OfType<Slider>().FirstOrDefault(s => s.Name == "SpeedSlider");
+                if (slider != null)
+                {
+                    slider.Ticks = new AvaloniaList<double> { -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6 };
+                    slider.IsSnapToTickEnabled = true;
+                    slider.PropertyChanged += SpeedSlider_PropertyChanged;
+                    Debug.WriteLine("SpeedSlider found during Loaded event.");
+                }
+                else
+                {
+                    Debug.WriteLine("SpeedSlider is still null during Loaded event.");
+                }
+            };
+            _pingPongController = new PingPongController(mpvHandle);
             EnsureCorrectWindowOrder();
-
-
         }
 
         private void InitializeComponent()
@@ -186,6 +228,7 @@ namespace UnionMpvPlayer.Views
             volumeSlider.PointerPressed += VolumeSlider_PointerPressed;
             volumeSlider.PointerReleased += VolumeSlider_PointerReleased;
             KeyDown += MainWindow_KeyDown;
+            KeyUp += MainWindow_KeyUp;
             _playlistView = this.FindControl<PlaylistView>("PlaylistView");
             _playlistToggleButton = this.FindControl<Button>("PlaylistToggle");
             Topmenu = this.FindControl<Grid>("Topmenu");
@@ -209,7 +252,33 @@ namespace UnionMpvPlayer.Views
             };
         }
 
+        private void SpeedSlider_PropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+        {
+            if (e.Property == IsEnabledProperty)
+            {
+                if (SpeedButton != null)
+                {
+                    SpeedButton.Opacity = SpeedSlider.IsEnabled ? 0.3 : 1.0;
+                    Debug.WriteLine($"SpeedButton Opacity updated: {SpeedButton.Opacity}");
+                }
+            }
+        }
+
         // Background Window
+
+        protected override void OnOpened(EventArgs e)
+        {
+            base.OnOpened(e);
+
+            // Bring the window to the top
+            this.Topmost = true; // Temporarily make the window topmost
+            this.Topmost = false; // Restore to normal state
+
+            // Set focus to the window
+            this.Focus();
+
+        }
+
 
         private void InitializeBackgroundWindow()
         {
@@ -276,6 +345,51 @@ namespace UnionMpvPlayer.Views
                 });
             }
         }
+
+        // Ping Pong
+
+        //private async void PingPongButton_Click(object? sender, RoutedEventArgs e)
+        //{
+        //    try
+        //    {
+        //        if (_pingPongController == null) return;
+
+        //        isPingPongActive = !isPingPongActive;
+
+        //        // Update button icon
+        //        if (PingPongPath != null)
+        //        {
+        //            var iconKey = isPingPongActive ? "dismiss_regular" : "arrow_swap_regular";
+        //            if (App.Current?.Resources.TryGetResource(iconKey, ThemeVariant.Default, out object? resource) == true &&
+        //                resource is StreamGeometry geometry)
+        //            {
+        //                PingPongPath.Data = geometry;
+        //            }
+        //        }
+
+        //        if (isPingPongActive)
+        //        {
+        //            var currentPath = MPVInterop.GetStringProperty(mpvHandle, "path");
+        //            var currentPosition = MPVInterop.GetDoubleProperty(mpvHandle, "time-pos");
+
+        //            if (string.IsNullOrEmpty(currentPath) || !currentPosition.HasValue)
+        //            {
+        //                return;
+        //            }
+
+        //            await _pingPongController.StartPingPong(currentPath, currentPosition.Value);
+        //        }
+        //        else
+        //        {
+        //            await _pingPongController.StopPingPong();
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Debug.WriteLine($"Error in PingPongButton_Click: {ex.Message}");
+        //    }
+        //}
+
 
         // Sync playback in PlaylistView
         private async Task UpdatePlayState()
@@ -464,6 +578,8 @@ namespace UnionMpvPlayer.Views
 
             try
             {
+
+                _pingPongController?.Dispose();
                 _eventLoopCancellation?.Cancel();
                 await Task.Delay(100);
                 // Cleanup child window
@@ -1305,8 +1421,158 @@ namespace UnionMpvPlayer.Views
             _playlistView?.PlayPrevious();
         }
 
+        // Speed Slider
+
+        // Handle Slider Movement
+        private void SpeedSlider_PointerMoved(object? sender, PointerEventArgs e)
+        {
+            if (sender is Slider slider)
+            {
+                double sliderValue = slider.Value;
+                Debug.WriteLine($"Slider Value: {sliderValue}");
+
+                if (sliderValue == 0)
+                {
+                    // Neutral (Zero state), stop seeking
+                    StopSliderActions();
+                }
+                else
+                {
+                    // Determine speed step based on slider value
+                    double speedStep = GetSpeedStep(sliderValue);
+                    StartSliderActions(speedStep);
+                }
+            }
+        }
+
+        // Handle Slider Release
+        private void SpeedSlider_PointerReleased(object? sender, PointerReleasedEventArgs e)
+        {
+            if (sender is Slider slider)
+            {
+                slider.Value = 0; // Reset slider to neutral position
+                StopSliderActions();
+            }
+        }
+
+
+        // Start Slider Actions
+
+        private double GetSpeedStep(double sliderValue)
+        {
+            // Map each slider value to a speed multiplier divided by 24
+            return sliderValue switch
+            {
+                0 => 0,                   // Neutral (no seeking)
+                > 0 => sliderValue / 6,  // Forward speeds (scaled by 24)
+                < 0 => sliderValue / 6,  // Rewind speeds (scaled by 24)
+                _ => 0                    // Fallback for safety
+            };
+        }
+
+        private void StartSliderActions(double sliderValue)
+        {
+            StopSliderActions(); // Ensure no duplicate timers
+
+            if (sliderValue == 0) return; // Neutral state, no seeking
+
+            // Save the original paused state if not already saved
+            if (originalPausedState == null)
+            {
+                originalPausedState = MPVInterop.GetStringProperty(mpvHandle, "pause");
+                Debug.WriteLine($"Saved original paused state: {originalPausedState}");
+
+                if (originalPausedState == "no")
+                {
+                    MPVInterop.mpv_command(mpvHandle, new[] { "set", "pause", "yes" }); // Pause playback
+                    Debug.WriteLine("Paused MPV for seeking.");
+                }
+            }
+
+            double speedStep = GetSpeedStep(sliderValue); // Adjusted for 4x scaling
+
+            _speedTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(10) // Adjust for smoothness
+            };
+
+            _speedTimer.Tick += (s, e) =>
+            {
+                MPVInterop.mpv_command(mpvHandle, new[] { "seek", speedStep.ToString("F6"), "relative" });
+                Debug.WriteLine($"Seeking with Speed Step: {speedStep}");
+            };
+
+            _speedTimer.Start();
+        }
+
+        private void SpeedEnable_Click(object? sender, RoutedEventArgs e)
+        {
+            var speedSlider = this.FindControl<Slider>("SpeedSlider");
+            var speedButton = this.FindControl<Button>("SpeedButton"); // Dynamically find the button
+
+            if (speedSlider != null)
+            {
+                speedSlider.IsEnabled = !speedSlider.IsEnabled;
+                speedSlider.Value = 0;
+
+                if (!speedSlider.IsEnabled)
+                {
+                    StopSliderActions();
+                }
+
+                Debug.WriteLine($"SpeedSlider is now {(speedSlider.IsEnabled ? "enabled" : "disabled")}");
+
+                if (speedButton != null)
+                {
+                    speedButton.Opacity = speedSlider.IsEnabled ? 1.0 : 0.3;
+                    Debug.WriteLine($"SpeedButton Opacity updated: {speedButton.Opacity}");
+                }
+                else
+                {
+                    Debug.WriteLine("SpeedButton not found");
+                }
+            }
+            else
+            {
+                Debug.WriteLine("SpeedSlider not found");
+            }
+        }
+
+
+        // Stop Slider Actions
+        private void StopSliderActions()
+        {
+            _speedTimer?.Stop();
+            _speedTimer = null;
+
+            _progressiveTimer?.Stop();
+            _progressiveTimer = null;
+
+            // Restore the original pause state if needed
+            if (originalPausedState != null)
+            {
+                MPVInterop.mpv_command(mpvHandle, new[] { "set", "pause", originalPausedState });
+                Debug.WriteLine($"Restored original paused state: {originalPausedState}");
+                originalPausedState = null;
+            }
+
+            Debug.WriteLine("Stopped slider actions.");
+        }
+
+
+        private void StopSliderActionsNoCheck()
+        {
+            _speedTimer?.Stop();
+            _speedTimer = null;
+
+
+            Debug.WriteLine("Stopped slider actions.");
+        }
+
 
         // Buttons
+
+        
 
         private void RemovePlaylistButton_Click(object? sender, RoutedEventArgs e)
         {
@@ -1325,82 +1591,6 @@ namespace UnionMpvPlayer.Views
                 }
             }
         }
-
-
-        private void SeekBackwardIncrement_Click(object? sender, RoutedEventArgs e)
-        {
-            try
-            {
-                if (mpvHandle == IntPtr.Zero)
-                {
-                    Debug.WriteLine("MPV handle is not initialized.");
-                    return;
-                }
-
-                // Check if MPV is paused
-                var isPaused = MPVInterop.GetStringProperty(mpvHandle, "pause");
-                if (isPaused == "yes")
-                {
-                    Debug.WriteLine("MPV is paused. Triggering PlayButton_Click to resume playback.");
-                    PlayButton_Click(null, null); // Resume playback
-                }
-
-                // Get the current backward speed
-                currentBackwardSpeedIndex = (currentBackwardSpeedIndex + 1) % BackwardSpeeds.Length;
-                var speed = BackwardSpeeds[currentBackwardSpeedIndex];
-
-                // Send the command to MPV
-                MPVInterop.mpv_command(mpvHandle, new[] { "set", "speed", speed.ToString("F1") });
-                MPVInterop.mpv_command(mpvHandle, new[] { "set", "play-dir", "-" });
-
-                Debug.WriteLine($"Playing backward at {speed}x speed.");
-
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error setting backward playback speed: {ex.Message}");
-               
-            }
-        }
-
-
-        private void SeekForwardIncrement_Click(object? sender, RoutedEventArgs e)
-        {
-            try
-            {
-                if (mpvHandle == IntPtr.Zero)
-                {
-                    Debug.WriteLine("MPV handle is not initialized.");
-                    return;
-                }
-
-                // Check if MPV is paused
-                var isPaused = MPVInterop.GetStringProperty(mpvHandle, "pause");
-                if (isPaused == "yes")
-                {
-                    Debug.WriteLine("MPV is paused. Triggering PlayButton_Click to resume playback.");
-                    PlayButton_Click(null, null); // Resume playback
-                }
-
-                // Get the current forward speed
-                currentBackwardSpeedIndex = (currentBackwardSpeedIndex + 1) % BackwardSpeeds.Length;
-                var speed = BackwardSpeeds[currentBackwardSpeedIndex];
-
-                // Send the command to MPV
-                MPVInterop.mpv_command(mpvHandle, new[] { "set", "speed", speed.ToString("F1") });
-                MPVInterop.mpv_command(mpvHandle, new[] { "set", "play-dir", "+" });
-
-                Debug.WriteLine($"Playing forward at {speed}x speed.");
-
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error setting forward playback speed: {ex.Message}");
-
-            }
-        }
-
-
 
         private void ResizeToPixelRatio_Click(object? sender, RoutedEventArgs e)
         {
@@ -1506,7 +1696,7 @@ namespace UnionMpvPlayer.Views
                 Title = "Select an Image",
                 Filters = new List<FileDialogFilter>
                 {
-                    new FileDialogFilter { Name = "Images", Extensions = { "jpg", "tif", "tiff", "png" } }
+                    new FileDialogFilter { Name = "Images", Extensions = { "jpg", "tif", "tiff", "png", "exr" } }
                 }
             };
             var filePaths = await openFileDialog.ShowAsync(this);
@@ -1531,7 +1721,7 @@ namespace UnionMpvPlayer.Views
                 // Update the icon
                 if (_isPhotoFilterActive)
                 {
-                    PhotoFilterIcon.Data = Application.Current.FindResource("checkmark_circle_regular") as StreamGeometry;
+                    PhotoFilterIcon.Data = Application.Current.FindResource("circle_half_fill_regular") as StreamGeometry;
                     await ApplyLut("709_sRGB.cube");
                     var toast = new ToastView();
                     toast.ShowToast("Success", "Color transformed applied.", this);
@@ -1579,12 +1769,36 @@ namespace UnionMpvPlayer.Views
                     Debug.WriteLine("MPV handle is not initialized");
                     return;
                 }
+
+                // Cycle pause state in MPV
                 var args = new[] { "cycle", "pause" };
                 int result = MPVInterop.mpv_command(mpvHandle, args);
+
                 if (result < 0)
                 {
                     Debug.WriteLine($"MPV Error: {MPVInterop.GetError(result)}");
                     EnsureCorrectWindowOrder();
+                }
+                else
+                {
+                    // Check if SpeedSlider is enabled
+                    var speedSlider = this.FindControl<Slider>("SpeedSlider");
+                    if (speedSlider != null)
+                    {
+                        if (speedSlider.IsEnabled)
+                        {
+                            Debug.WriteLine("SpeedSlider is enabled. Toggling with SpeedEnable_Click.");
+                            SpeedEnable_Click(speedSlider, new Avalonia.Interactivity.RoutedEventArgs());
+                        }
+                        else
+                        {
+                            Debug.WriteLine("SpeedSlider is already disabled.");
+                        }
+                    }
+                    else
+                    {
+                        Debug.WriteLine("SpeedSlider not found");
+                    }
                 }
             }
             catch (Exception ex)
@@ -1592,6 +1806,8 @@ namespace UnionMpvPlayer.Views
                 Debug.WriteLine($"Error in PlayButton_Click: {ex.Message}");
             }
         }
+
+
 
         private async Task UpdatePlayPauseIcon()
         {
@@ -2255,14 +2471,8 @@ namespace UnionMpvPlayer.Views
                     case "Seek Backward 1 sec":
                         SeekBackward_Click(null, null);
                         break;
-                    case "Play Backward Interval Speeds":
-                        SeekBackwardIncrement_Click(null, null);
-                        break;
                     case "Seek Forward 1 sec":
                         SeekForward_Click(null, null);
-                        break;
-                    case "Play Forward Interval Speeds":
-                        SeekForwardIncrement_Click(null, null);
                         break;
                     case "Go to Video Beginning":
                         ToStartButton_Click(null, null);
@@ -2300,9 +2510,92 @@ namespace UnionMpvPlayer.Views
                             RemovePlaylistButton_Click(null, null);
                         }
                         break;
+                    case "Progressive Backward Speed (Key Hold)":
+                        if (!isAdjustingSpeed)
+                        {
+                            isAdjustingSpeed = true;
+                            StartSpeedTimer(isBackward: true);
+                        }
+                        break;
+                    case "Progressive Forward Speed (Key Hold)":
+                        if (!isAdjustingSpeed)
+                        {
+                            isAdjustingSpeed = true;
+                            StartSpeedTimer(isBackward: false);
+                        }
+                        break;
                 }
                 e.Handled = true;
             }
+        }
+
+        private void MainWindow_KeyUp(object? sender, KeyEventArgs e)
+        {
+            var keyBinding = KeyBindings.FirstOrDefault(kb => kb.Key.Equals(e.Key.ToString(), StringComparison.OrdinalIgnoreCase));
+            if (keyBinding != null &&
+                (keyBinding.Bindings == "Progressive Backward Speed (Key Hold)" || keyBinding.Bindings == "Progressive Forward Speed (Key Hold)"))
+            {
+                StopSpeedTimer(); // Stop the progressive speed timer
+
+                if (originalPausedState != null)
+                {
+                    MPVInterop.mpv_command(mpvHandle, new[] { "set", "pause", originalPausedState });
+                    Debug.WriteLine($"Restored original paused state: {originalPausedState}");
+                    originalPausedState = null; // Clear the saved state
+                }
+
+                Debug.WriteLine("Ensured MPV is in a normal playback state.");
+
+                isAdjustingSpeed = false; // Allow new speed adjustments
+                e.Handled = true;
+            }
+        }
+
+        private void StartSpeedTimer(bool isBackward)
+        {
+            currentSpeedIndex = 1; // Start at the slowest speed (1 frame)
+
+            var currentPausedState = MPVInterop.GetStringProperty(mpvHandle, "pause");
+            if (originalPausedState == null) // Only save once
+            {
+                originalPausedState = currentPausedState;
+                Debug.WriteLine($"Saved original paused state: {originalPausedState}");
+            }
+
+            _speedTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(20) // Adjust seek position every 100ms
+            };
+
+            _speedTimer.Tick += (s, e) =>
+            {
+                // Check if MPV is paused, and resume playback if necessary
+                var isPaused = MPVInterop.GetStringProperty(mpvHandle, "pause");
+                if (isPaused == "no")
+                {
+                    Debug.WriteLine("MPV is paused. Triggering PlayButton_Click to resume playback.");
+                    PlayButton_Click(null, null); // Pause playback
+                }
+
+                // Cap speed at the maximum value
+                if (currentSpeedIndex < SeekSteps.Length - 1)
+                {
+                    currentSpeedIndex++;
+                }
+
+                var seekStep = SeekSteps[currentSpeedIndex] * (isBackward ? -1 : 1); // Negative for backward
+                MPVInterop.mpv_command(mpvHandle, new[] { "seek", seekStep.ToString("F2"), "relative" });
+
+                Debug.WriteLine($"SeekRelative: {(isBackward ? "Backward" : "Forward")} at step {seekStep} seconds.");
+            };
+
+            _speedTimer.Start();
+        }
+
+        private void StopSpeedTimer()
+        {
+            _speedTimer?.Stop();
+            _speedTimer = null;
         }
 
         // Playback and the Slider

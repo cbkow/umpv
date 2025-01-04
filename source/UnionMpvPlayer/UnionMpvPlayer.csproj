@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <AvaloniaResource Remove="Assets\blank.mp4" />
+    <AvaloniaResource Remove="Assets\bouncing-loop.lua" />
     <AvaloniaResource Remove="Assets\exiftool.zip" />
     <AvaloniaResource Remove="Assets\libmpv-2.dll" />
     <AvaloniaResource Remove="Assets\luts.zip" />
@@ -76,6 +77,9 @@
 
   <ItemGroup>
     <None Update="Assets\blank.mp4">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\bouncing-loop.lua">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Assets\libmpv-2.dll">
