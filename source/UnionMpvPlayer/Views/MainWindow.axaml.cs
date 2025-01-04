@@ -1637,20 +1637,49 @@ namespace UnionMpvPlayer.Views
                 var newWidth = videoWidth.Value + extraWidth;
                 var newHeight = videoHeight.Value + extraHeight;
 
-                // Apply new size
-                Width = newWidth / RenderScaling;
-                Height = newHeight / RenderScaling;
+                // Get screen dimensions
+                var screen = Screens.Primary; // Use the primary screen or find the relevant one
+                var screenWidth = screen.Bounds.Width;
+                var screenHeight = screen.Bounds.Height;
+
+                if (newWidth > screenWidth || newHeight > screenHeight)
+                {
+                    // Expand to full screen
+                    Width = screenWidth / RenderScaling;
+                    Height = screenHeight / RenderScaling;
+                    Position = new PixelPoint(0, 0); // Top-left corner of the screen
+                    Debug.WriteLine($"Window size exceeds screen size, expanding to full screen.");
+                    var toast = new ToastView();
+                    toast.ShowToast("Warning", "Window size exceeds screen size, this is not truly 1:1.", this);
+
+                }
+                else
+                {
+                    // Center the window on the screen
+                    var screenCenterX = screen.Bounds.Width / 2;
+                    var screenCenterY = screen.Bounds.Height / 2;
+
+                    var newLeft = screenCenterX - (newWidth / 2);
+                    var newTop = screenCenterY - (newHeight / 2);
+
+                    // Apply new size and position
+                    Width = newWidth / RenderScaling;
+                    Height = newHeight / RenderScaling;
+                    Position = new PixelPoint((int)newLeft, (int)newTop);
+
+                    Debug.WriteLine($"Resized window to {newWidth}x{newHeight} (video: {videoWidth}x{videoHeight}, UI: {extraWidth}x{extraHeight}).");
+                    Debug.WriteLine($"Centered window at ({newLeft}, {newTop}).");
+                }
 
                 // Update video container bounds
                 UpdateChildWindowBounds();
-
-                Debug.WriteLine($"Resized window to {newWidth}x{newHeight} (video: {videoWidth}x{videoHeight}, UI: {extraWidth}x{extraHeight}).");
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error resizing for 1:1 pixel ratio: {ex.Message}");
             }
         }
+
 
         private void ResizeToHalfScreenSize_Click(object? sender, RoutedEventArgs e)
         {
@@ -1673,20 +1702,33 @@ namespace UnionMpvPlayer.Views
 
                 var extraHeight = topToolbarHeight + bottomToolbarHeight + SystemTitlebarHeight + SystemBorderHeight;
 
-                // Resize the window to 50% of the screen size
-                Width = halfWidth / RenderScaling;
-                Height = (halfHeight + extraHeight) / RenderScaling;
+                // Calculate new window dimensions
+                var newWidth = halfWidth;
+                var newHeight = halfHeight + extraHeight;
+
+                // Calculate center position
+                var screenCenterX = screenWidth / 2;
+                var screenCenterY = screenHeight / 2;
+
+                var newLeft = screenCenterX - (newWidth / 2);
+                var newTop = screenCenterY - (newHeight / 2);
+
+                // Apply new size and position
+                Width = newWidth / RenderScaling;
+                Height = newHeight / RenderScaling;
+                Position = new PixelPoint((int)newLeft, (int)newTop);
 
                 // Update video container bounds
                 UpdateChildWindowBounds();
 
-                Debug.WriteLine($"Resized window to 50% of screen size: {Width}x{Height}");
+                Debug.WriteLine($"Resized window to 50% of screen size: {Width}x{Height}, Centered at ({newLeft}, {newTop})");
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error resizing to 50% of screen size: {ex.Message}");
             }
         }
+
 
 
         private async void ImageSeq_Click(object sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -2636,14 +2678,14 @@ namespace UnionMpvPlayer.Views
                 {
                     while (!token.IsCancellationRequested && mpvHandle != IntPtr.Zero)
                     {
-                        var evPtr = MPVInterop.mpv_wait_event(mpvHandle, 0.1);
+                        var evPtr = MPVInterop.mpv_wait_event(mpvHandle, 0.3);
                         if (evPtr != IntPtr.Zero)
                         {
                             var evt = Marshal.PtrToStructure<MPVInterop.mpv_event>(evPtr);
                             //Debug.WriteLine($"MPV Event received: {evt.event_id}");  // Add this line
                             await HandleMpvEvent(evt);
                         }
-                        await Task.Delay(1, token);
+                        await Task.Delay(6, token);
                     }
                 }
                 catch (OperationCanceledException)
