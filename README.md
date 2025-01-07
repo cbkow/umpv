@@ -1,6 +1,6 @@
 # umpv
 
-![umpv main image](images/umpv_001.jpg)
+![umpv main image](images/umpv_001b.jpg)
 
 **umpv** is a user-friendly interface for **mpv** on Windows, specifically designed as a simple video player for postproduction. No installation is necessary—just download the latest release and launch umpv.exe.
 
@@ -25,7 +25,7 @@ Download the latest release, unzip, and open umpv.exe. (Keep all the files inclu
 
 ## Advanced Installation (experimental)
 
-![registry installation](images/umpv_002.jpg)
+![registry installation](images/umpv_002b.jpg)
 
 This app function will run a Powershell script that adds the necessary registry entries to include umpv in the Window "Open With" menu. It also adds legacy Windows 10 file associations for .mp4, .mov, .mxf, .gif, .mkv, and .avi files.
 
@@ -40,7 +40,7 @@ This app function will run a Powershell script that adds the necessary registry 
 ![umpv usage screenshot 3](images/umpv_005b.jpg)
 ![umpv usage screenshot 3](images/umpv_006b.jpg)
 
-## Contributing and Disclaimers.
+## Contributing and Disclaimers
 
 The app is fully functional, but the source code could be much cleaner. Although I have experience in scripting, I don't have much experience in app development, so I leaned heavily on several LLMs for guidance. The main page view is a testament to that—it reads like a giant, messy script. I plan to clean that up in later versions with more regard to the MVVM app structure—breaking off much of the functionality into separate controls and helpers. 
 
