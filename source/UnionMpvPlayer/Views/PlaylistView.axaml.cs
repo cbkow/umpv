@@ -14,6 +14,7 @@ using Avalonia.Media;
 using Avalonia.Styling;
 using UnionMpvPlayer.Views;
 using ShapePath = Avalonia.Controls.Shapes.Path;
+using System.Diagnostics;
 
 namespace UnionMpvPlayer.Views
 {
@@ -24,7 +25,7 @@ namespace UnionMpvPlayer.Views
     public partial class PlaylistView : UserControl
     {
         private readonly ObservableCollection<PlaylistItem> _playlistItems = new();
-        private Action<string>? _playCallback;
+        private Action<string, bool>? _playCallback;
         private Action? _togglePlayPauseCallback;
         private int _currentPlayingIndex = -1;
         private bool _isCurrentlyPlaying;
@@ -41,10 +42,11 @@ namespace UnionMpvPlayer.Views
                 if (_isCurrentlyPlaying != value)
                 {
                     _isCurrentlyPlaying = value;
-                    UpdatePlayingIcons();
+                    UpdatePlayingState(); 
                 }
             }
         }
+
         private bool _isPlaylistModeActive = true;
         public bool IsPlaylistModeActive
         {
@@ -58,6 +60,23 @@ namespace UnionMpvPlayer.Views
                 }
             }
         }
+
+        public bool IsPlaylistMode { get; set; }
+        public string KeepOpenValue { get; set; }
+
+        public class PlaylistModeChangedEventArgs : EventArgs
+        {
+            public bool IsPlaylistMode { get; set; }
+            public string KeepOpenValue { get; set; }
+
+            public PlaylistModeChangedEventArgs(bool isPlaylistMode)
+            {
+                IsPlaylistMode = isPlaylistMode;
+                KeepOpenValue = isPlaylistMode ? "no" : "always";
+            }
+        }
+
+        public event EventHandler<PlaylistModeChangedEventArgs>? PlaylistModeStateChanged;
 
         public PlaylistView()
         {
@@ -87,7 +106,7 @@ namespace UnionMpvPlayer.Views
             AddHandler(DragDrop.DropEvent, OnDrop);
         }
 
-        public void SetCallbacks(Action<string> playCallback, Action togglePlayPauseCallback)
+        public void SetCallbacks(Action<string, bool> playCallback, Action togglePlayPauseCallback)
         {
             _playCallback = playCallback;
             _togglePlayPauseCallback = togglePlayPauseCallback;
@@ -111,10 +130,22 @@ namespace UnionMpvPlayer.Views
             RemoveFromPlaylist_Click(this, null);
         }
 
-
         private void TogglePlaylistMode_Click(object? sender, RoutedEventArgs e)
         {
             IsPlaylistModeActive = !IsPlaylistModeActive;
+
+            if (IsPlaylistModeActive && _playlistItems.Any())
+            {
+                // If we're turning playlist mode back on, restore the playing state
+                var currentlyPlaying = _playlistItems.FirstOrDefault(x => x.IsPlaying);
+                if (currentlyPlaying != null)
+                {
+                    _currentPlayingIndex = _playlistItems.IndexOf(currentlyPlaying);
+                    _hasActivePlaylistItem = true; // Make sure this is set
+                    UpdateCurrentItemPlayState(_isCurrentlyPlaying); // Use the current play state
+                    UpdatePlayingState();
+                }
+            }
 
             // Get the parent window
             var window = TopLevel.GetTopLevel(this) as Window;
@@ -131,7 +162,7 @@ namespace UnionMpvPlayer.Views
                 }
             }
 
-            PlaylistModeChanged?.Invoke(this, IsPlaylistModeActive);
+            PlaylistModeStateChanged?.Invoke(this, new PlaylistModeChangedEventArgs(IsPlaylistModeActive));
         }
 
         public event EventHandler<bool>? PlaylistModeChanged;
@@ -210,7 +241,7 @@ namespace UnionMpvPlayer.Views
         {
             if (_currentPlayingIndex < 0 || _currentPlayingIndex >= _playlistItems.Count) return;
             var item = _playlistItems[_currentPlayingIndex];
-            _playCallback?.Invoke(item.FilePath);
+            _playCallback?.Invoke(item.FilePath, true);  // Always true since this is used for playlist navigation
             UpdatePlayingState();
         }
 
@@ -219,6 +250,16 @@ namespace UnionMpvPlayer.Views
             for (int i = 0; i < _playlistItems.Count; i++)
             {
                 _playlistItems[i].IsPlaying = (i == _currentPlayingIndex);
+                if (i == _currentPlayingIndex && App.Current?.Resources != null)
+                {
+                    // Set the icon based on the current play state
+                    var iconKey = _isCurrentlyPlaying ? "pause_regular" : "play_regular";
+                    if (App.Current.Resources.TryGetResource(iconKey, ThemeVariant.Default, out object? resource) &&
+                        resource is StreamGeometry geometry)
+                    {
+                        _playlistItems[i].PlayingIconData = geometry;
+                    }
+                }
             }
             PlaylistListBox.SelectedIndex = _currentPlayingIndex;
         }
@@ -236,26 +277,39 @@ namespace UnionMpvPlayer.Views
         {
             if (PlaylistListBox.SelectedItem is PlaylistItem selectedItem)
             {
-                // Enable playlist mode if it's not already active
-                if (!IsPlaylistModeActive)
+                if (IsPlaylistModeActive)
                 {
-                    IsPlaylistModeActive = true;  // This will trigger UpdatePlaylistModeIcon() through the property setter
+                    // Playlist mode behavior - maintains sequential playback
+                    _currentPlayingIndex = PlaylistListBox.SelectedIndex;
+                    _playCallback?.Invoke(selectedItem.FilePath, true);  // Playlist mode
+                    UpdatePlayingState();
+                }
+                else
+                {
+                    // Single file mode - just play the selected file
+                    _currentPlayingIndex = -1; // Reset the playing index
 
-                    // Show toast notification
-                    var window = TopLevel.GetTopLevel(this) as Window;
-                    if (window != null)
+                    // Update the visual state for all items
+                    foreach (var item in _playlistItems)
                     {
-                        var toast = new ToastView();
-                        toast.ShowToast("Success", "Playlist mode enabled.", window);
+                        item.IsPlaying = (item == selectedItem);
+                        if (item == selectedItem && App.Current?.Resources != null)
+                        {
+                            if (App.Current.Resources.TryGetResource("play_regular", ThemeVariant.Default, out object? resource) &&
+                                resource is StreamGeometry geometry)
+                            {
+                                item.PlayingIconData = geometry;
+                            }
+                        }
+                        else
+                        {
+                            item.PlayingIconData = null;
+                        }
                     }
 
-                    // Notify main window
-                    PlaylistModeChanged?.Invoke(this, true);
+                    PlaylistListBox.SelectedIndex = _playlistItems.IndexOf(selectedItem);
+                    _playCallback?.Invoke(selectedItem.FilePath, false);  // Single file mode
                 }
-
-                _currentPlayingIndex = PlaylistListBox.SelectedIndex;
-                _playCallback?.Invoke(selectedItem.FilePath);
-                UpdatePlayingState();
             }
         }
 
@@ -264,12 +318,14 @@ namespace UnionMpvPlayer.Views
             if (!_hasActivePlaylistItem) return;
             var currentItem = _playlistItems.FirstOrDefault(x => x.IsPlaying);
             if (currentItem == null || App.Current?.Resources == null) return;
-            var iconKey = isPlaying ? "play_regular" : "pause_regular";
+
+            var iconKey = isPlaying ? "pause_regular" : "play_regular";
             if (App.Current.Resources.TryGetResource(iconKey, ThemeVariant.Default, out object? resource) &&
                 resource is StreamGeometry geometry)
             {
                 currentItem.PlayingIconData = geometry;
             }
+            _isCurrentlyPlaying = isPlaying; // Make sure we track the state
         }
 
         private void UpdatePlayingIcons() => UpdateCurrentItemPlayState(_isCurrentlyPlaying);
@@ -411,7 +467,7 @@ namespace UnionMpvPlayer.Views
             }
         }
 
-        public PlaylistItem(string filePath, Action<string> playCallback, Action<PlaylistItem> removeCallback)
+        public PlaylistItem(string filePath, Action<string, bool> playCallback, Action<PlaylistItem> removeCallback)
         {
             FilePath = filePath;
             DisplayName = Path.GetFileName(filePath);
@@ -423,7 +479,7 @@ namespace UnionMpvPlayer.Views
                 PlayingIconData = geometry;
             }
 
-            PlayCommand = new RelayCommand(() => playCallback(FilePath));
+            PlayCommand = new RelayCommand(() => playCallback(FilePath, true)); // Default to playlist mode
             RemoveCommand = new RelayCommand(() => removeCallback(this));
         }
 

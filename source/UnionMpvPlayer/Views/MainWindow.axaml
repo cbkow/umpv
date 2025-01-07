@@ -275,24 +275,51 @@
 
 					<MenuItem Header="_Video" Padding="10,2,10,2" CornerRadius="2"
 								Foreground="{DynamicResource SystemBaseMediumHighColor}" FontSize="12">
-						<MenuItem Header="_Size" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" 
-									Foreground="{DynamicResource SystemBaseMediumHighColor}" FontSize="12">
-							<MenuItem x:Name="Trigger1to1mode" Header="_1:1 Video Size" Padding="10,8,10,8"
+						<MenuItem x:Name="Trigger1to1mode" Header="_1:1 Video Size" Padding="10,8,10,8"
 										CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
 										Click="ResizeToPixelRatio_Click" />
-							<MenuItem x:Name="Trigger50percentMode" Header="_50% of Screen Size" Padding="10,8,10,8"
-										CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-										Click="ResizeToHalfScreenSize_Click" />
-						</MenuItem>
-						<MenuItem Header="_Safety Guides" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}" FontSize="12">
-							<MenuItem x:Name="TitleSafetyMenuButton" Header="_Toggle 16:9 Title/Action Safety" Padding="10,8,10,8"
-										CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-										Click="SafetyButton_Click" />
-						</MenuItem>
+						<MenuItem x:Name="Trigger50percentMode" Header="_50% of Screen Size" Padding="10,8,10,8"
+									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+									Click="ResizeToHalfScreenSize_Click" />
 					</MenuItem>
 
+					<MenuItem Header="_Safety Guides" Padding="10,2,10,2" CornerRadius="2"
+							  Foreground="{DynamicResource SystemBaseMediumHighColor}" FontSize="12">
+						<MenuItem x:Name="TitleSafetyMenuButton" Header="_16:9 Broadcast" Padding="10,8,10,8"
+									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+									Click="SafetyButton_Click" />
+						<MenuItem x:Name="TitleSafetyMenuButtonMetaReel9x16" Header="_9:16 Meta Reel" Padding="10,8,10,8"
+									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+									Click="SafetyButton_MetaReel9x16_Click" />
+						<MenuItem x:Name="TitleSafetyMenuButtonMetaStory9x16" Header="_9:16 Meta Story" Padding="10,8,10,8"
+									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+									Click="SafetyButton_MetaStory9x16_Click" />
+						<MenuItem x:Name="TitleSafetyMenuButtonPinterest9x16" Header="_9:16 Pinterest" Padding="10,8,10,8"
+									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+									Click="SafetyButton_Pinterest9x16_Click" />
+						<MenuItem x:Name="TitleSafetyMenuButtonPinterest1x1" Header="_1:1 Pinterest Premium Spotlight" Padding="10,8,10,8"
+									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+									Click="SafetyButton_Pinterest1x1PremiumSpotlight_Click" />
+						<MenuItem x:Name="TitleSafetyMenuButtonSnapChat9x16" Header="_9:16 Snapchat" Padding="10,8,10,8"
+									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+									Click="SafetyButton_Snapchat9x16_Click" />
+						<MenuItem x:Name="TitleSafetyMenuButtonTikTok9x16" Header="_9:16 TikTok" Padding="10,8,10,8"
+									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+									Click="SafetyButton_TikTok9x16_Click" />
+						<MenuItem x:Name="TitleSafetyMenuButtonYoutube1x1" Header="_1:1 Youtube" Padding="10,8,10,8"
+									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+									Click="SafetyButton_Youtube1x1_Click" />
+						<MenuItem x:Name="TitleSafetyMenuButtonYoutub9x16" Header="_9:16 Youtube" Padding="10,8,10,8"
+									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+									Click="SafetyButton_Youtube9x16_Click" />
+						<MenuItem x:Name="TitleSafetyMenuButtonYoutub16x9" Header="_16:9 Youtube" Padding="10,8,10,8"
+									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+									Click="SafetyButton_Youtube16x9_Click" />
+						<MenuItem x:Name="TitleSafetyMenuButtonYoutubMasthead16x9" Header="_16:9 Youtube Masthead" Padding="10,8,10,8"
+									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+									Click="SafetyButton_Youtube16x9MastHead_Click" />
+					</MenuItem>
+					
 					<MenuItem Header="_App" Padding="10,2,10,2" CornerRadius="2"
 								Foreground="{DynamicResource SystemBaseMediumHighColor}" FontSize="12">
 						<MenuItem x:Name="SettingsMenuButton" Header="_Keyboard Bindings" Padding="10,8,10,8"
