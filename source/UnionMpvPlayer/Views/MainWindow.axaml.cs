@@ -109,8 +109,7 @@ namespace UnionMpvPlayer.Views
         private int _rampIndex = 0; // Tracks the current ramp step
         private readonly double[] SpeedRamp = { 0.5, 1.0, 1.5, 2.0, 3.0, 5.0 }; // Speed progression
 
-        private PingPongController? _pingPongController;
-        private bool isPingPongActive = false;
+        private string currentActiveFilter = string.Empty;
 
         public MainWindow()
         {
@@ -126,17 +125,17 @@ namespace UnionMpvPlayer.Views
             if (_playlistView != null)
             {
                 _playlistView.SetCallbacks(
-                    filePath =>
+                    (filePath, isPlaylistItem) =>  // Updated signature
                     {
                         Dispatcher.UIThread.InvokeAsync(async () =>
                         {
                             try
                             {
-                                await LoadVideo(filePath, true);
+                                await LoadVideo(filePath, isPlaylistItem);
                             }
                             catch (Exception ex)
                             {
-                                //Debug.WriteLine($"MainWindow: Error in LoadVideo: {ex.Message}");
+                                Debug.WriteLine($"MainWindow: Error in LoadVideo: {ex.Message}");
                             }
                         });
                     },
@@ -155,12 +154,15 @@ namespace UnionMpvPlayer.Views
             }
             if (_playlistView != null)
             {
-                _playlistView.PlaylistModeChanged += (s, isActive) =>
+                _playlistView.PlaylistModeStateChanged += (s, args) =>
                 {
-                    _isPlaylistMode = isActive;
+                    _isPlaylistMode = args.IsPlaylistMode;
+                    var keepOpenValue = args.KeepOpenValue;
+                    Debug.WriteLine($"MainWindow received playlist mode change: {_isPlaylistMode}, setting keep-open to: {keepOpenValue}");
+
                     // Update MPV's keep-open state
-                    var keepOpenValue = isActive ? "no" : "always";
-                    MPVInterop.mpv_set_option_string(mpvHandle, "keep-open", keepOpenValue);
+                    var result = MPVInterop.mpv_set_option_string(mpvHandle, "keep-open", keepOpenValue);
+                    Debug.WriteLine($"MPV set_option_string result: {result}");
                 };
             }
 
@@ -192,7 +194,6 @@ namespace UnionMpvPlayer.Views
                     Debug.WriteLine("SpeedSlider is still null during Loaded event.");
                 }
             };
-            _pingPongController = new PingPongController(mpvHandle);
             EnsureCorrectWindowOrder();
         }
 
@@ -345,51 +346,6 @@ namespace UnionMpvPlayer.Views
                 });
             }
         }
-
-        // Ping Pong
-
-        //private async void PingPongButton_Click(object? sender, RoutedEventArgs e)
-        //{
-        //    try
-        //    {
-        //        if (_pingPongController == null) return;
-
-        //        isPingPongActive = !isPingPongActive;
-
-        //        // Update button icon
-        //        if (PingPongPath != null)
-        //        {
-        //            var iconKey = isPingPongActive ? "dismiss_regular" : "arrow_swap_regular";
-        //            if (App.Current?.Resources.TryGetResource(iconKey, ThemeVariant.Default, out object? resource) == true &&
-        //                resource is StreamGeometry geometry)
-        //            {
-        //                PingPongPath.Data = geometry;
-        //            }
-        //        }
-
-        //        if (isPingPongActive)
-        //        {
-        //            var currentPath = MPVInterop.GetStringProperty(mpvHandle, "path");
-        //            var currentPosition = MPVInterop.GetDoubleProperty(mpvHandle, "time-pos");
-
-        //            if (string.IsNullOrEmpty(currentPath) || !currentPosition.HasValue)
-        //            {
-        //                return;
-        //            }
-
-        //            await _pingPongController.StartPingPong(currentPath, currentPosition.Value);
-        //        }
-        //        else
-        //        {
-        //            await _pingPongController.StopPingPong();
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Debug.WriteLine($"Error in PingPongButton_Click: {ex.Message}");
-        //    }
-        //}
-
 
         // Sync playback in PlaylistView
         private async Task UpdatePlayState()
@@ -579,7 +535,6 @@ namespace UnionMpvPlayer.Views
             try
             {
 
-                _pingPongController?.Dispose();
                 _eventLoopCancellation?.Cancel();
                 await Task.Delay(100);
                 // Cleanup child window
@@ -1023,8 +978,8 @@ namespace UnionMpvPlayer.Views
                 var directory = Path.GetDirectoryName(imagePath);
                 var fileName = Path.GetFileNameWithoutExtension(imagePath);
                 var extension = Path.GetExtension(imagePath);
-                var fileNameWithoutNumericSequence = System.Text.RegularExpressions.Regex.Replace(fileName, @"_\d+$", "");
-                var sequencePath = $"mf://{directory}/{fileNameWithoutNumericSequence}_*{extension}";
+                var fileNameWithoutNumericSequence = System.Text.RegularExpressions.Regex.Replace(fileName, @"[\._]\d+$", "");
+                var sequencePath = $"mf://{directory}/{fileNameWithoutNumericSequence}*{extension}";
                 var newTitle = $"umpv - {fileNameWithoutNumericSequence}_*{extension}";
                 // Update UI elements
                 await Dispatcher.UIThread.InvokeAsync(() => {
@@ -2011,136 +1966,171 @@ namespace UnionMpvPlayer.Views
             }
         }
 
-
-        // Old Screenshot method with Powershell
-        //private async Task HandleScreenshot()
-        //{
-        //    try
-        //    {
-        //        if (mpvHandle == IntPtr.Zero)
-        //        {
-        //            //Debug.WriteLine("MPV handle is not initialized");
-        //            return;
-        //        }
-        //        var tempDir = Path.Combine(Path.GetTempPath(), "umpv");
-        //        Directory.CreateDirectory(tempDir);
-        //        var screenshotPath = Path.Combine(tempDir, $"screenshot_{DateTime.Now:yyyyMMddHHmmss}.png");
-        //        //Debug.WriteLine($"Attempting to take screenshot to: {screenshotPath}");
-        //        var result = MPVInterop.mpv_command(mpvHandle, new[]
-        //        {
-        //            "screenshot-to-file",
-        //            screenshotPath
-        //        });
-        //        if (result < 0)
-        //        {
-        //            //Debug.WriteLine($"Screenshot command failed: {MPVInterop.GetError(result)}");
-        //            var toast = new ToastView();
-        //            toast.ShowToast("Warning", "Screenshot command failed.", this);
-        //            return;
-        //        }
-        //        // Wait for file with timeout
-        //        var waitStart = DateTime.Now;
-        //        while (!File.Exists(screenshotPath))
-        //        {
-        //            if ((DateTime.Now - waitStart).TotalSeconds > 5)
-        //            {
-        //                throw new Exception("Timed out waiting for screenshot file");
-        //            }
-        //            await Task.Delay(100);
-        //        }
-        //        await Task.Delay(200); // Give file time to be written
-        //        var command = $"-command \"Add-Type -AssemblyName System.Windows.Forms; Add-Type -AssemblyName System.Drawing; $bmp = New-Object System.Drawing.Bitmap('{screenshotPath}'); [System.Windows.Forms.Clipboard]::SetImage($bmp)\"";
-        //        //Debug.WriteLine($"PowerShell command: {command}");
-        //        var startInfo = new ProcessStartInfo
-        //        {
-        //            FileName = "powershell",
-        //            Arguments = command,
-        //            UseShellExecute = false,
-        //            RedirectStandardOutput = true,
-        //            RedirectStandardError = true,
-        //            CreateNoWindow = true
-        //        };
-        //        using (var process = Process.Start(startInfo))
-        //        {
-        //            if (process != null)
-        //            {
-        //                var output = await process.StandardOutput.ReadToEndAsync();
-        //                var error = await process.StandardError.ReadToEndAsync();
-        //                await process.WaitForExitAsync();
-
-        //                //Debug.WriteLine($"PowerShell output: {output}");
-        //                //Debug.WriteLine($"PowerShell error: {error}");
-        //                //Debug.WriteLine($"PowerShell exit code: {process.ExitCode}");
-
-        //                var toast = new ToastView();
-        //                toast.ShowToast("Success", "Screenshot saved to clipboard.", this);
-        //            }
-        //        }
-        //        // Clean up the temp file
-        //        try
-        //        {
-        //            File.Delete(screenshotPath);
-        //            //Debug.WriteLine("Temporary screenshot file deleted");
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            //Debug.WriteLine($"Failed to delete temporary file: {ex.Message}");
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        //Debug.WriteLine($"Screenshot failed: {ex.Message}");
-        //        //Debug.WriteLine($"Stack trace: {ex.StackTrace}");
-        //        var toast = new ToastView();
-        //        toast.ShowToast("Warning", "Screenshot failed.", this);
-        //    }
-        //}
-
         private void CameraButton_Click(object sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
             _ = HandleScreenshot();
         }
 
-        private void SafetyButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        private void ApplyFilter(string filterCommand, string filterIdentifier)
         {
             if (mpvHandle == IntPtr.Zero)
             {
-                //Debug.WriteLine("MPV handle is not initialized");
                 return;
             }
+
             try
             {
-                // Toggle the filter state
-                isFilterActive = !isFilterActive;
-                string filterCommand;
-                if (isFilterActive)
+                // If clicking the same button that's currently active, toggle it off
+                if (currentActiveFilter == filterIdentifier)
                 {
-                    // Apply the filter
-                    filterCommand = "lavfi=[drawbox=x=(iw-((iw*0.9)))/2:y=(ih-((ih*0.9)))/2:w=iw*.9:h=ih*.9:color=Thistle@1,drawbox=x=(iw-((iw*0.93)))/2:y=(ih-((ih*0.93)))/2:w=iw*.93:h=ih*.93:color=Orchid@1]";
+                    filterCommand = "";
+                    currentActiveFilter = string.Empty;
                 }
                 else
                 {
-                    // Remove the filter
-                    filterCommand = "";
+                    // Switching to a new filter
+                    currentActiveFilter = filterIdentifier;
                 }
-                // Send the command to MPV
+
                 var args = new[] { "vf", "set", filterCommand };
                 int result = MPVInterop.mpv_command(mpvHandle, args);
-                if (result < 0)
-                {
-                    //Debug.WriteLine($"Failed to toggle filter: {MPVInterop.GetError(result)}");
-                }
-                else
-                {
-                    //Debug.WriteLine(isFilterActive
-                    //    ? "Filter enabled successfully."
-                    //    : "Filter removed successfully.");
-                }
             }
             catch (Exception ex)
             {
-                //Debug.WriteLine($"Error toggling filter: {ex.Message}");
+                //Debug.WriteLine($"Error applying filter: {ex.Message}");
             }
+        }
+
+        private void SafetyButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        {
+            string filterCommand = @"lavfi=[
+                                    drawbox=x=(iw-((iw*0.9)))/2:y=(ih-((ih*0.9)))/2:w=iw*.9:h=ih*.9:color=Gold@1:t=2,
+                                    drawbox=x=(iw-((iw*0.93)))/2:y=(ih-((ih*0.93)))/2:w=iw*.93:h=ih*.93:color=Gold@1:t=1
+                                ]";
+
+            ApplyFilter(filterCommand, "Broadcast16x9");
+        }
+
+        private void SafetyButton_MetaReel9x16_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        {
+            string filterCommand = @"lavfi=[
+                                    drawbox=x=(iw-((iw*0.88)))/2:y=ih*0.14:w=iw*0.88:h=4:color=Gold@1:t=2, 
+                                    drawbox=x=(iw-((iw*0.88)))/2:y=ih*0.14:w=4:h=ih*0.51:color=Gold@1:t=2, 
+                                    drawbox=x=(iw-((iw*0.88)))/2:y=ih*0.65:w=iw*0.73:h=4:color=Gold@1:t=2, 
+                                    drawbox=x=iw*0.79:y=ih*0.6:w=4:h=ih*0.05:color=Gold@1:t=2, 
+                                    drawbox=x=iw*0.94:y=ih*0.14:w=4:h=ih*0.46:color=Gold@1:t=2, 
+                                    drawbox=x=iw*0.79:y=ih*0.6:w=4:h=ih*0.05:color=Gold@1:t=2, 
+                                    drawbox=x=iw*0.79:y=ih*0.60:w=iw*0.15:h=4:color=Gold@1:t=2
+                                ]";
+
+            ApplyFilter(filterCommand, "MetaReel9x16");
+        }
+
+        private void SafetyButton_MetaStory9x16_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        {
+            string filterCommand = @"lavfi=[
+                                    drawbox=x=(iw*0.0604):y=(ih*0.1302):w=iw*0.8796:h=ih*0.6700:color=Gold@1:t=2
+                                ]";
+            ApplyFilter(filterCommand, "MetaStory9x16");
+        }
+
+        private void SafetyButton_Pinterest9x16_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        {
+            string filterCommand = @"lavfi=[
+                                    drawbox=x=(iw*0.0603):y=(ih*0.1406):w=iw*0.7589:h=ih*0.4478:color=Gold@1:t=2
+                                ]";
+            ApplyFilter(filterCommand, "Pinterest9x16");
+        }
+
+        private void SafetyButton_Pinterest1x1PremiumSpotlight_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        {
+            string filterCommand = @"lavfi=[
+                                    drawbox=x=0:y=0:w=iw:h=ih*0.0981:color=Gold@1:t=2,                
+                                    drawbox=x=iw*0.0111:y=ih*0.1278:w=iw*0.9778:h=ih*0.1389:color=Gold@1:t=2,  
+                                    drawbox=x=iw*0.8815:y=ih*0.3093:w=iw*0.0741:h=ih*0.0537:color=Gold@1:t=2,   
+                                    drawbox=x=iw*0.0750:y=ih*0.6324:w=iw*0.8500:h=ih*0.1972:color=Gold@1:t=2,   
+                                    drawbox=x=iw*0.3824:y=ih*0.8296:w=iw*0.2352:h=ih*0.1380:color=Gold@1:t=2     
+                                ]";
+
+            ApplyFilter(filterCommand, "Pinterest1x1PremiumSpotlight");
+        }
+
+        private void SafetyButton_Snapchat9x16_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        {
+            string filterCommand = @"lavfi=[
+                                    drawbox=x=(iw*0.0104):y=(ih*0.0835):w=iw*0.9793:h=ih*0.8662:color=Gold@1:t=2
+                                ]";
+
+            ApplyFilter(filterCommand, "Snapchat9x16");
+        }
+
+        private void SafetyButton_TikTok9x16_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        {
+            string filterCommand = @"lavfi=[
+                                    drawbox=x=iw*0.1102:y=ih*0.1305:w=iw*0.7786:h=ih*0.0019:color=Gold@1:t=2,         
+                                    drawbox=x=iw*0.1102:y=ih*0.1305:w=iw*0.0019:h=ih*0.5369791666666667:color=Gold@1:t=2,              
+                                    drawbox=x=iw*0.7752:y=ih*0.1865:w=iw*0.1126:h=ih*0.0019:color=Gold@1:t=2, 
+                                    drawbox=x=iw*0.7752:y=ih*0.1865:w=iw*0.0019:h=ih*0.48046875:color=Gold@1:t=2, 
+                                    drawbox=x=iw*0.1099:y=ih*0.6657:w=iw*0.6681:h=ih*0.0019:color=Gold@1:t=2,   
+                                    drawbox=x=iw*0.8888888888888889:y=ih*0.1305:w=iw*0.0019:h=ih*0.05796875:color=Gold@1:t=2   
+                                ]";
+
+            ApplyFilter(filterCommand, "TikTok9x16");
+        }
+
+        private void SafetyButton_Youtube1x1_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        {
+            string filterCommand = @"lavfi=[
+                                    drawbox=x=iw*0.0444444444444444:y=ih*0.0444097222222222:w=iw*0.450017037037037:h=ih*0.0019:color=Gold@1:t=2,         
+                                    drawbox=x=iw*0.0444444444444444:y=ih*0.0444097222222222:w=iw*0.0019:h=ih*0.5947575:color=Gold@1:t=2,   
+                                    drawbox=x=iw*0.4944672222222222:y=ih*0.0444097222222222:w=iw*0.0019:h=ih*0.0528353703703704:color=Gold@1:t=2, 
+                                    drawbox=x=iw*0.4944672222222222:y=ih*0.0972450925925926:w=iw*0.4120569444444444:h=ih*0.0019:color=Gold@1:t=2,
+                                    drawbox=x=iw*0.9065078703703704:y=ih*0.0972450925925926:w=iw*0.0019:h=ih*0.5424561111111111:color=Gold@1:t=2,
+                                    drawbox=x=iw*0.0444444444444444:y=ih*0.638867962962963:w=iw*0.8621408333333333:h=ih*0.0019:color=Gold@1:t=2, 
+                                ]";
+
+            ApplyFilter(filterCommand, "Youtube1x1");
+        }
+
+        private void SafetyButton_Youtube9x16_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        {
+            string filterCommand = @"lavfi=[
+                                    drawbox=x=(iw*0.0454):y=(ih*0.15):w=iw*0.7769:h=ih*0.4995:color=Gold@1:t=2
+                                ]";
+
+            ApplyFilter(filterCommand, "Youtube9x16");
+        }
+
+        private void SafetyButton_Youtube16x9_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        {
+            string filterCommand = @"lavfi=[
+                                    drawbox=x=iw*0.019796875:y=ih*0.1522222222222222:w=iw*0.1635364583333333:h=ih*0.0019:color=Gold@1:t=2,  
+                                    drawbox=x=iw*0.019796875:y=ih*0.1522222222222222:w=iw*0.0019:h=ih*0.5342013888888889:color=Gold@1:t=2,  
+                                    drawbox=x=iw*0.1833333333333333:y=ih*0.0336111111111111:w=iw*0.591140625:h=ih*0.0019:color=Gold@1:t=2,  
+                                    drawbox=x=iw*0.1833333333333333:y=ih*0.0336111111111111:w=iw*0.0019:h=ih*0.1186111111111111:color=Gold@1:t=2,
+                                    drawbox=x=iw*0.01984375:y=ih*0.6864259259259259:w=iw*0.4259791666666667:h=ih*0.0019:color=Gold@1:t=2,
+                                    drawbox=x=iw*0.4458138020833333:y=ih*0.6864259259259259:w=iw*0.0019:h=ih*0.1791203703703704:color=Gold@1:t=2,
+                                    drawbox=x=iw*0.4458125:y=ih*0.8655462962962963:w=iw*0.2115104166666667:h=ih*0.0019:color=Gold@1:t=2,
+		                            drawbox=x=iw*0.6572864583333333:y=ih*0.8226111111111111:w=iw*0.1015364583333333:h=ih*0.0019:color=Gold@1:t=2,
+                                    drawbox=x=iw*0.6572864583333333:y=ih*0.8226111111111111:w=iw*0.0019:h=ih*0.0435126851851852:color=Gold@1:t=2,
+		                            drawbox=x=iw*0.7588229166666667:y=ih*0.7121851851851852:w=iw*0.1620416666666667:h=ih*0.0019:color=Gold@1:t=2,
+                                    drawbox=x=iw*0.7588229166666667:y=ih*0.7121851851851852:w=iw*0.0019:h=ih*0.1104225:color=Gold@1:t=2,
+		                            drawbox=x=iw*0.7744739583333333:y=ih*0.1213981481481481:w=iw*0.1463177083333333:h=ih*0.0019:color=Gold@1:t=2,
+                                    drawbox=x=iw*0.9208691666666667:y=ih*0.1213981481481481:w=iw*0.0019:h=ih*0.5893055555555556:color=Gold@1:t=2,
+                                    drawbox=x=iw*0.7744739583333333:y=ih*0.0336111111111111:w=iw*0.0019:h=ih*0.0877893518518519:color=Gold@1:t=2,
+                                    ]";
+
+            ApplyFilter(filterCommand, "Youtube16x9");
+        }
+
+        private void SafetyButton_Youtube16x9MastHead_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        {
+            string filterCommand = @"lavfi=[
+                                    drawbox=x=0:y=0:w=1920:h=270:color=Gold@1:t=2,
+                                    drawbox=x=0:y=810:w=1920:h=270:color=Gold@1:t=2
+                                ]";
+
+            ApplyFilter(filterCommand, "Youtube16x9MastHead");
         }
 
         private void FullScreenButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -2510,6 +2500,9 @@ namespace UnionMpvPlayer.Views
                     case "Screenshot to Clipboard":
                         CameraButton_Click(null, null);
                         break;
+                    case "Screenshot to Desktop":
+                        ScreenShotDesktop_Click(null, null);
+                        break;
                     case "Seek Backward 1 sec":
                         SeekBackward_Click(null, null);
                         break;
@@ -2731,14 +2724,16 @@ namespace UnionMpvPlayer.Views
                         if (evt.data != IntPtr.Zero)
                         {
                             var endFile = Marshal.PtrToStructure<MPVInterop.mpv_end_file_event>(evt.data);
-                            //Debug.WriteLine($"End file event received with reason: {endFile.reason}");
-                            // Only process END_FILE if we're not loading and the current video is initialized
                             if (!_isLoadingVideo && _currentVideoInitialized &&
                                 endFile.reason == MPVInterop.mpv_end_file_reason.MPV_END_FILE_REASON_EOF)
                             {
                                 await Dispatcher.UIThread.InvokeAsync(() =>
                                 {
-                                    _playlistView?.PlayNext();
+                                    // Only advance if playlist view exists and playlist mode is active
+                                    if (_playlistView?.IsPlaylistModeActive == true)
+                                    {
+                                        _playlistView.PlayNext();
+                                    }
                                 });
                             }
                         }

@@ -123,6 +123,7 @@ namespace UnionMpvPlayer.Views
             target.Add(new KeyBindingItem("Q", "Previous Frame"));
             target.Add(new KeyBindingItem("E", "Next Frame"));
             target.Add(new KeyBindingItem("S", "Screenshot to Clipboard"));
+            target.Add(new KeyBindingItem("X", "Screenshot to Desktop"));
             target.Add(new KeyBindingItem("A", "Seek Backward 1 sec"));
             target.Add(new KeyBindingItem("J", "Progressive Backward Speed (Key Hold)"));
             target.Add(new KeyBindingItem("D", "Seek Forward 1 sec"));
@@ -149,6 +150,7 @@ namespace UnionMpvPlayer.Views
             KeyBindings.Add(new KeyBindingItem("Q", "Previous Frame"));
             KeyBindings.Add(new KeyBindingItem("E", "Next Frame"));
             KeyBindings.Add(new KeyBindingItem("S", "Screenshot to Clipboard"));
+            KeyBindings.Add(new KeyBindingItem("X", "Screenshot to Desktop"));
             KeyBindings.Add(new KeyBindingItem("A", "Seek Backward 1 sec"));
             KeyBindings.Add(new KeyBindingItem("J", "Progressive Backward Speed (Key Hold)"));
             KeyBindings.Add(new KeyBindingItem("D", "Seek Forward 1 sec"));
