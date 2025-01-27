@@ -3056,14 +3056,14 @@ namespace UnionMpvPlayer.Views
                 {
                     while (!token.IsCancellationRequested && mpvHandle != IntPtr.Zero)
                     {
-                        var evPtr = MPVInterop.mpv_wait_event(mpvHandle, 0.3);
+                        var evPtr = MPVInterop.mpv_wait_event(mpvHandle, 0.1);
                         if (evPtr != IntPtr.Zero)
                         {
                             var evt = Marshal.PtrToStructure<MPVInterop.mpv_event>(evPtr);
                             //Debug.WriteLine($"MPV Event received: {evt.event_id}");  // Add this line
                             await HandleMpvEvent(evt);
                         }
-                        await Task.Delay(6, token);
+                        await Task.Delay(1, token);
                     }
                 }
                 catch (OperationCanceledException)
