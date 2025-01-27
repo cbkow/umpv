@@ -120,15 +120,6 @@ namespace UnionMpvPlayer.Views
                 }
             }
 
-            // Always add a "Base Color" entry
-            items.Add(new LayerListItem
-            {
-                Name = "Base Color",
-                Channels = new List<string> { "R", "G", "B", "A" }, // Link to RGB channels
-                HasRGB = false,
-                HasRGBA = true
-            });
-
             // Sort the items alphabetically
             items = items.OrderBy(l => l.Name).ToList();
 

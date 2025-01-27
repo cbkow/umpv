@@ -105,12 +105,14 @@ namespace UnionMpvPlayer.Views
         private bool _isProcessingSequence;
         private string _currentTargetTRC = "auto"; // Default state
         private bool _isBaseColorSequence = false;
+        private readonly EXRSequenceHandler _sequenceHandler;
 
 
         public MainWindow()
         {
             InitializeComponent();
             DataContext = new MainWindowViewModel();
+            _sequenceHandler = new EXRSequenceHandler();
             InitializeKeyBindings();
             // Assign ticks to the specific slider
             this.Loaded += (s, e) =>
@@ -345,7 +347,7 @@ namespace UnionMpvPlayer.Views
             // Bring the window to the top
             this.Topmost = true; // Temporarily make the window topmost
             this.Topmost = false; // Restore to normal state
-
+            EnsureCorrectWindowOrder();
             // Set focus to the window
             this.Focus();
 
@@ -407,7 +409,7 @@ namespace UnionMpvPlayer.Views
             if (change.Property.Name == nameof(WindowState))
             {
                 // Small delay to let the window state change complete
-                Task.Delay(50).ContinueWith(_ =>
+                Task.Delay(10).ContinueWith(_ =>
                 {
                     Dispatcher.UIThread.InvokeAsync(() =>
                     {
@@ -784,8 +786,19 @@ namespace UnionMpvPlayer.Views
                         }
                         else if (exrExtensions.Contains(fileExtension))
                         {
-                            // Handle EXR sequence files
-                            await HandleEXRSequenceFromFile(validFile);
+                            // Check for EXR layers
+                            var layers = await _sequenceHandler.AnalyzeEXRFile(validFile);
+
+                            if (layers == null || !layers.Any())
+                            {
+                                // No layers found, treat as an image sequence
+                                await HandleImageSequence(validFile);
+                            }
+                            else
+                            {
+                                // Layers found, handle as an EXR sequence
+                                await HandleEXRSequenceFromFile(validFile);
+                            }
                         }
                     }
                     catch (Exception ex)
@@ -795,6 +808,7 @@ namespace UnionMpvPlayer.Views
                 }
             }
         }
+
 
 
         public async Task HandleImageSequence(string selectedFile)

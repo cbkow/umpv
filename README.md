@@ -51,7 +51,7 @@ The color space transforms are luts made with OCIOtools, using ACES and Blender 
 
 Timecode is currently zero-based for all videos, but I plan on eventually extracting actual timecodes and providing an option to load that instead. 
 
-I am certainly open to suggestions and contributions, but remember that this app is created for personal use. Hence, you are better off forking it and making changes for yourself. But if you do fork it and do something clever or fix something janky, please let me know. I am particularly interested in a MacOS Arm port--which is theoretically possible with a few changes to the window positioning/tracking (Windows-specific implementation), screenshot functions (Also currently Windows-specific), and a few things I am forgetting.
+I am certainly open to suggestions and contributions, but remember that this app is created for personal use. Hence, you are better off forking it and making changes for yourself. But if you do fork it and do something clever or fix something janky, please let me know.
 
 Another thing: The app loads slowly the first time you use it but fast in subsequent runs. 
 

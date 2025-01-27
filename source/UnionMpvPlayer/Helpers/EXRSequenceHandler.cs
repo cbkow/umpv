@@ -344,6 +344,9 @@ namespace UnionMpvPlayer.Helpers
 
                             Debug.WriteLine($"Processing frame {frameNum}: {file} -> {outFile}");
 
+                            var quotedLayer = selectedLayer.Contains(" ") ? $"\"{selectedLayer}\"" : selectedLayer;
+
+
                             using var process = new Process
                             {
                                 StartInfo = new ProcessStartInfo
@@ -352,7 +355,7 @@ namespace UnionMpvPlayer.Helpers
                                     Arguments = new StringBuilder()
                                         .Append("--threads 2 --scanline --native ")
                                         .Append($"\"{file}\" ")
-                                        .Append($"--ch {selectedLayer}.R,{selectedLayer}.G,{selectedLayer}.B ")
+                                        .Append($"--ch {quotedLayer}.R,{quotedLayer}.G,{quotedLayer}.B ")
                                         .Append("--chnames R,G,B ")
                                         .Append($"-o \"{outFile}\"")
                                         .ToString(),
