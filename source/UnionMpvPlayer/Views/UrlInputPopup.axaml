@@ -71,7 +71,10 @@
 		<StackPanel Grid.Row="1" Margin="10">
 			<TextBlock Text="Enter the URL to play:" FontSize="12" 
 					   Foreground="{DynamicResource SystemBaseMediumHighColor}" Margin="0,4,0,10"/>
-			<TextBox x:Name="UrlTextBox" Width="384" SelectionBrush="{DynamicResource SystemChromeMediumLowColor}" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+			<TextBox x:Name="UrlTextBox" Width="384" 
+					 SelectionBrush="{DynamicResource SystemChromeMediumLowColor}" 
+					 BorderBrush="{DynamicResource SystemBaseLowColor}"
+					 HorizontalAlignment="Center" Margin="0,0,0,10"/>
 			<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="6">
 				<Button x:Name="OkButton" FontSize="13" Content="OK" Width="186" 
                                         Margin="0" HorizontalContentAlignment="Center"/>

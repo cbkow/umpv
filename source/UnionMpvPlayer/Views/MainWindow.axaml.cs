@@ -1,40 +1,31 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Reactive;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Controls.Chrome;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
-using Avalonia.Media.Imaging;
 using Avalonia.Platform;
-using Avalonia.Platform.Storage;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using DynamicData;
-using ReactiveUI;
 using UnionMpvPlayer.ViewModels;
 using UnionMpvPlayer.Helpers;
 using DrawingImage = System.Drawing.Image;
-using DrawingPoint = System.Drawing.Point;
 using AvaloniaPath = Avalonia.Controls.Shapes.Path;
 using System.Collections.ObjectModel;
 using Avalonia.Collections;
+using static UnionMpvPlayer.Helpers.EXRSequenceHandler;
+using static UnionMpvPlayer.Views.EXRLayerSelectionDialog;
 
 namespace UnionMpvPlayer.Views
 {
@@ -110,6 +101,11 @@ namespace UnionMpvPlayer.Views
         private readonly double[] SpeedRamp = { 0.5, 1.0, 1.5, 2.0, 3.0, 5.0 }; // Speed progression
 
         private string currentActiveFilter = string.Empty;
+        private CancellationTokenSource _processingCts;
+        private bool _isProcessingSequence;
+        private string _currentTargetTRC = "auto"; // Default state
+        private bool _isBaseColorSequence = false;
+
 
         public MainWindow()
         {
@@ -167,6 +163,7 @@ namespace UnionMpvPlayer.Views
             }
 
             InitializeMPV();
+            EnsureCorrectWindowOrder();
 
             // Check for a passed file or load blank.mp4
             string[] args = Environment.GetCommandLineArgs();
@@ -176,7 +173,7 @@ namespace UnionMpvPlayer.Views
             }
             else
             {
-                LoadBlankVideo();
+
             }
     
             this.Loaded += (s, e) =>
@@ -193,6 +190,9 @@ namespace UnionMpvPlayer.Views
                 {
                     Debug.WriteLine("SpeedSlider is still null during Loaded event.");
                 }
+                playbackSlider.Value = 0;
+                InitializePlaybackControl();
+                ChangeCancelButtonBackground();
             };
             EnsureCorrectWindowOrder();
         }
@@ -217,6 +217,8 @@ namespace UnionMpvPlayer.Views
             CurrentFrameTextBlock = this.FindControl<TextBlock>("CurrentFrameTextBlock");
             LoopingPath = this.FindControl<Avalonia.Controls.Shapes.Path>("LoopingPath");
             PhotoFilterIcon = this.FindControl<Avalonia.Controls.Shapes.Path>("PhotoFilterIcon");
+            ProcessingOverlay = this.FindControl<Grid>("ProcessingOverlay"); // Add this line
+            ProcessingProgressBar = this.FindControl<ProgressBar>("ProcessingProgressBar"); // Add this line
             playButton.Click += PlayButton_Click;
             prevFrameButton.Click += PrevFrameButton_Click;
             nextFrameButton.Click += NextFrameButton_Click;
@@ -253,6 +255,7 @@ namespace UnionMpvPlayer.Views
             };
         }
 
+
         private void SpeedSlider_PropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
         {
             if (e.Property == IsEnabledProperty)
@@ -264,6 +267,74 @@ namespace UnionMpvPlayer.Views
                 }
             }
         }
+
+        // Linear Toggles
+
+        public void SetLinearTRC(IntPtr mpvHandle)
+        {
+            MPVInterop.mpv_set_option_string(mpvHandle, "target-trc", "linear");
+            _currentTargetTRC = "linear"; // Update the variable
+            Console.WriteLine("target-trc set to linear");
+        }
+
+        public void SetAutoTRC(IntPtr mpvHandle)
+        {
+            MPVInterop.mpv_set_option_string(mpvHandle, "target-trc", "auto");
+            _currentTargetTRC = "auto"; // Update the variable
+            Console.WriteLine("target-trc set to auto");
+        }
+
+        private void ChangeCancelButtonBackground()
+        {
+            // Find the Button
+            var button = this.FindControl<Button>("CancelProcessingButton");
+            if (button != null)
+            {
+                button.Background = new SolidColorBrush(Color.FromArgb(255, 24, 24, 24));
+
+                // Find the Path within the Button
+                var cancelIcon = button.FindControl<Avalonia.Controls.Shapes.Path>("CancelProcessingIcon");
+                if (cancelIcon != null)
+                {
+                    cancelIcon.Fill = new SolidColorBrush(Color.FromArgb(255, 45, 45, 45));
+                }
+                else
+                {
+                    Console.WriteLine("CancelProcessingIcon is not found within CancelProcessingButton.");
+                }
+            }
+            else
+            {
+                Console.WriteLine("CancelProcessingButton is not found.");
+            }
+        }
+
+        private void ResetCancelButtonBackground()
+        {
+            // Find the Button
+            var button = this.FindControl<Button>("CancelProcessingButton");
+            if (button != null)
+            {
+                button.Background = new SolidColorBrush(Color.FromArgb(255, 68, 68, 68)); // #FF444444
+
+                // Find the Path within the Button
+                var cancelIcon = button.FindControl<Avalonia.Controls.Shapes.Path>("CancelProcessingIcon");
+                if (cancelIcon != null)
+                {
+                    cancelIcon.Fill = new SolidColorBrush(Color.FromArgb(255, 186, 186, 186)); // #FFBABABA
+                }
+                else
+                {
+                    Console.WriteLine("CancelProcessingIcon is not found within CancelProcessingButton.");
+                }
+            }
+            else
+            {
+                Console.WriteLine("CancelProcessingButton is not found.");
+            }
+        }
+
+
 
         // Background Window
 
@@ -346,6 +417,184 @@ namespace UnionMpvPlayer.Views
                 });
             }
         }
+
+        // EXR progress
+
+        public async Task HandleEXRSequence(string firstFrame, string selectedLayer, string frameRate)
+        {
+            Debug.WriteLine("HandleEXRSequence called");
+
+            if (_isProcessingSequence)
+            {
+                Debug.WriteLine("Sequence processing already in progress");
+                return;
+            }
+
+            _processingCts = new CancellationTokenSource();
+            _isProcessingSequence = true;
+
+            try
+            {
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    ProcessingOverlay.IsVisible = true;
+                    ProcessingProgressBar.Value = 0;
+                });
+
+                var handler = new EXRSequenceHandler();
+                var progress = new Progress<ProgressInfo>(info =>
+                {
+                    Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        ProcessingProgressBar.Value = info.ProgressPercentage;
+                    });
+                });
+
+                // Process the sequence
+                var cachePath = handler.GetCachePath(firstFrame, selectedLayer);
+                if (cachePath == null)
+                {
+                    Debug.WriteLine("cachePath is null");
+                    return;
+                }
+
+                ResetCancelButtonBackground();
+                await handler.ProcessSequence(firstFrame, selectedLayer, cachePath, progress, _processingCts.Token);
+
+                // Play the cached sequence
+                await Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    if (firstFrame == null || selectedLayer == null || frameRate == null)
+                    {
+                        Debug.WriteLine("One of the parameters is null: firstFrame, selectedLayer, or frameRate");
+                        return;
+                    }
+
+                    await PlayCachedSequence(firstFrame, selectedLayer, frameRate);
+                });
+            }
+            catch (OperationCanceledException)
+            {
+                var toast = new ToastView();
+                toast.ShowToast("Info", "EXR sequence processing cancelled", this);
+            }
+            catch (Exception ex)
+            {
+                var toast = new ToastView();
+                toast.ShowToast("Error", $"Error processing EXR sequence: {ex.Message}", this);
+            }
+            finally
+            {
+                //await Dispatcher.UIThread.InvokeAsync(() =>
+                //{
+                //    ProcessingOverlay.IsVisible = false;
+                //});
+                _isProcessingSequence = false;
+                _processingCts?.Dispose();
+                _processingCts = null;
+                Debug.WriteLine("HandleEXRSequence completed");
+            }
+        }
+
+
+
+        private async Task PlayCachedSequence(string originalFile, string layerName, string frameRate)
+        {
+            try
+            {
+                if (mpvHandle == IntPtr.Zero)
+                {
+                    Debug.WriteLine("MPV handle is not initialized");
+                    return;
+                }
+
+                var handler = new EXRSequenceHandler();
+                var cachePattern = handler.GetCachePattern(originalFile, layerName);
+
+                // Validate cached files
+                if (!Directory.EnumerateFiles(Path.GetDirectoryName(cachePattern), "*.exr").Any())
+                {
+                    Debug.WriteLine("No cached files found for playback.");
+                    var toast = new ToastView();
+                    toast.ShowToast("Error", "No cached files found for playback.", this);
+                    return;
+                }
+
+                Debug.WriteLine($"Cache pattern for MPV: {cachePattern}");
+
+                // Set the framerate for the sequence
+                MPVInterop.mpv_set_option_string(mpvHandle, "mf-fps", frameRate);
+
+                // Create the mf:// path for MPV
+                var mfPath = $"mf://{cachePattern}";
+
+                // Load the sequence
+                var args = new[] { "loadfile", mfPath, "replace" };
+                int result = MPVInterop.mpv_command(mpvHandle, args);
+
+                if (result < 0)
+                {
+                    Debug.WriteLine($"Failed to load cached sequence: error code {result}");
+                    var toast = new ToastView();
+                    toast.ShowToast("Error", "Failed to load cached sequence.", this);
+                    return;
+                }
+
+                // Wait for MPV to initialize the duration
+                if (await WaitForDurationAndInitialize())
+                {
+                    Debug.WriteLine("Cached sequence loaded successfully, starting playback");
+                    _ = UpdateTimecodeAsync(); // Start updating the timecode
+
+                    // Start playback
+                    var playArgs = new[] { "set", "pause", "no" };
+                    int playResult = MPVInterop.mpv_command(mpvHandle, playArgs);
+
+                    if (playResult < 0)
+                    {
+                        Debug.WriteLine($"Failed to start playback: {MPVInterop.GetError(playResult)}");
+                    }
+                    else
+                    {
+                        Debug.WriteLine("Successfully started playback of cached sequence");
+                        _ = UpdatePlayPauseIcon();
+                        _ = UpdatePlayState();
+                    }
+                }
+                else
+                {
+                    Debug.WriteLine("Failed to initialize cached sequence");
+                    var toast = new ToastView();
+                    toast.ShowToast("Error", "Failed to initialize cached sequence.", this);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error in PlayCachedSequence: {ex.Message}");
+                var toast = new ToastView();
+                toast.ShowToast("Error", "Failed to play cached sequence.", this);
+            }
+        }
+
+
+
+        private void CancelProcessing_Click(object sender, RoutedEventArgs e)
+        {
+            if (_isProcessingSequence)
+            {
+                _processingCts?.Cancel(); // Cancel the processing sequence
+            }
+
+            // Unload the current video
+            MPVInterop.mpv_command(mpvHandle, new[] { "loadfile", "" }); // Unload the video
+            Task.Delay(10);
+            LoadVideo(null); // Pass null or an empty string to indicate no video should be loaded
+
+            // Empty the cache
+            CacheSettingsPopup.EmptyCache(this);
+        }
+
+
 
         // Sync playback in PlaylistView
         private async Task UpdatePlayState()
@@ -475,7 +724,7 @@ namespace UnionMpvPlayer.Views
             var files = e.Data.GetFileNames();
             if (files != null)
             {
-                var acceptedExtensions = new[] { ".mp4", ".mov", ".mxf", ".gif", ".mkv", ".avi" };
+                var acceptedExtensions = new[] { ".mp4", ".mov", ".mxf", ".gif", ".mkv", ".avi", ".jpg", ".tif", ".tiff", ".png", ".dpx", ".tga", ".exr" };
                 if (files.Any(file => acceptedExtensions.Contains(Path.GetExtension(file).ToLower())))
                 {
                     e.DragEffects = DragDropEffects.Copy;
@@ -492,7 +741,7 @@ namespace UnionMpvPlayer.Views
             var files = e.Data.GetFileNames();
             if (files != null)
             {
-                var acceptedExtensions = new[] { ".mp4", ".mov", ".mxf", ".gif", ".mkv", ".avi" };
+                var acceptedExtensions = new[] { ".mp4", ".mov", ".mxf", ".gif", ".mkv", ".avi", ".jpg", ".tif", ".tiff", ".png", ".dpx", ".tga", ".exr" };
                 e.DragEffects = files.Any(file => acceptedExtensions.Contains(Path.GetExtension(file).ToLower()))
                     ? DragDropEffects.Copy
                     : DragDropEffects.None;
@@ -508,23 +757,88 @@ namespace UnionMpvPlayer.Views
             var files = e.Data.GetFileNames()?.ToList();
             if (files != null && files.Any())
             {
-                var acceptedExtensions = new[] { ".mp4", ".mov", ".mxf", ".gif", ".mkv", ".avi" };
-                var validFile = files.FirstOrDefault(file => acceptedExtensions.Contains(Path.GetExtension(file).ToLower()));
+                var videoExtensions = new[] { ".mp4", ".mov", ".mxf", ".gif", ".mkv", ".avi" };
+                var imageSeqExtensions = new[] { ".jpg", ".tif", ".tiff", ".png", ".dpx", ".tga" };
+                var exrExtensions = new[] { ".exr" };
+
+                var validFile = files.FirstOrDefault(file =>
+                    videoExtensions.Contains(Path.GetExtension(file).ToLower()) ||
+                    imageSeqExtensions.Contains(Path.GetExtension(file).ToLower()) ||
+                    exrExtensions.Contains(Path.GetExtension(file).ToLower()));
 
                 if (validFile != null)
                 {
-                    //Debug.WriteLine($"Valid video file dropped: {validFile}");
+                    var fileExtension = Path.GetExtension(validFile).ToLower();
+
                     try
                     {
-                        await LoadVideo(validFile, false);  // Single file mode
+                        if (videoExtensions.Contains(fileExtension))
+                        {
+                            // Handle video files
+                            await LoadVideo(validFile, false); // Call your existing video-loading logic
+                        }
+                        else if (imageSeqExtensions.Contains(fileExtension))
+                        {
+                            // Handle image sequence files
+                            await HandleImageSequence(validFile);
+                        }
+                        else if (exrExtensions.Contains(fileExtension))
+                        {
+                            // Handle EXR sequence files
+                            await HandleEXRSequenceFromFile(validFile);
+                        }
                     }
                     catch (Exception ex)
                     {
-                        //Debug.WriteLine($"Error loading video: {ex.Message}");
+                        Console.WriteLine($"Error handling file drop: {ex.Message}");
                     }
                 }
             }
         }
+
+
+        public async Task HandleImageSequence(string selectedFile)
+        {
+            var frameRatePopup = new FrameRatePopup
+            {
+                OnFrameRateSelected = (frameRate) => { PlayImageSequence(selectedFile, frameRate); },
+                WindowStartupLocation = WindowStartupLocation.CenterOwner
+            };
+            await frameRatePopup.ShowDialog(this); // Set 'this' as Owner
+        }
+
+        public async Task HandleImageSequenceFromEXR(string filePath, string frameRate)
+        {
+            _isBaseColorSequence = true;
+            Console.WriteLine($"Handling EXR Base Color sequence for {filePath} at {frameRate} fps");
+            PlayImageSequence(filePath, frameRate);
+        }
+
+
+
+        private async Task HandleEXRSequenceFromFile(string selectedFile)
+        {
+            try
+            {
+                var layerDialog = new EXRLayerSelectionDialog(selectedFile)
+                {
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner
+                };
+                var result = await layerDialog.ShowDialog<bool>(this);
+
+                if (result && layerDialog.SelectedLayer != null)
+                {
+                    var frameRate = layerDialog.FrameRateInput.Text;
+                    await HandleEXRSequence(selectedFile, layerDialog.SelectedLayer, frameRate);
+                }
+            }
+            catch (Exception ex)
+            {
+                var toast = new ToastView();
+                toast.ShowToast("Error", $"Failed to process sequence: {ex.Message}", this);
+            }
+        }
+
 
         // A graceful exit
         private async Task CleanupMpv()
@@ -775,122 +1089,146 @@ namespace UnionMpvPlayer.Views
         private async void noColor_Click(object? sender, RoutedEventArgs e)
         {
             RemoveLut();
+            SetAutoTRC(mpvHandle);
         }
 
         private async void sRGB_rec709_Click(object? sender, RoutedEventArgs e)
         {
             await ApplyLut("709_sRGB.cube");
+            SetAutoTRC(mpvHandle);
         }
 
         private async void sRGB_ACES2065_1_Click(object? sender, RoutedEventArgs e)
         {
             await ApplyLut("ACES2065_1_to_sRGB.cube");
+            SetLinearTRC(mpvHandle);
         }
 
         private async void sRGB_ACEScg_Click(object? sender, RoutedEventArgs e)
         {
             await ApplyLut("ACEScg_to_sRGB.cube");
+            SetLinearTRC(mpvHandle);
         }
 
         private async void sRGB_AGX_Click(object? sender, RoutedEventArgs e)
         {
             await ApplyLut("AGX_to_sRGB.cube");
+            SetLinearTRC(mpvHandle);
         }
 
         private async void sRGB_Linear_Click(object? sender, RoutedEventArgs e)
         {
             await ApplyLut("Linear_to_sRGB.cube");
+            SetLinearTRC(mpvHandle);
         }
 
         private async void sRGB_ArriLogc3_Click(object? sender, RoutedEventArgs e)
         {
             await ApplyLut("ArriLogC3_to_sRGB.cube");
+            SetLinearTRC(mpvHandle);
         }
 
         private async void sRGB_ArriLogc4_Click(object? sender, RoutedEventArgs e)
         {
             await ApplyLut("ArriLogC4_to_sRGB.cube");
+            SetLinearTRC(mpvHandle);
         }
 
         private async void sRGB_CanonLog3_Click(object? sender, RoutedEventArgs e)
         {
             await ApplyLut("CanonLog3_to_sRGB.cube");
+            SetLinearTRC(mpvHandle);
         }
 
         private async void sRGB_PanasonicVlog_Click(object? sender, RoutedEventArgs e)
         {
             await ApplyLut("PanasonicVlog_to_sRGB.cube");
+            SetLinearTRC(mpvHandle);
         }
 
         private async void sRGB_RedLog3G10_Click(object? sender, RoutedEventArgs e)
         {
             await ApplyLut("RedLog3G10_to_sRGB.cube");
+            SetLinearTRC(mpvHandle);
         }
 
         private async void sRGB_SonySlog3_Click(object? sender, RoutedEventArgs e)
         {
             await ApplyLut("SonySlog3_to_sRGB.cube");
+            SetLinearTRC(mpvHandle);
         }
 
         private async void sRGB_SonyVeniceSlog3_Click(object? sender, RoutedEventArgs e)
         {
             await ApplyLut("SonySlog3Venice_to_sRGB.cube");
+            SetLinearTRC(mpvHandle);
         }
 
         // Rec709 conversion handlers
         private async void rec709_ACES2065_1_Click(object? sender, RoutedEventArgs e)
         {
             await ApplyLut("ACES2065_1_to_rec709.cube");
+            SetLinearTRC(mpvHandle);
         }
 
         private async void rec709_ACEScg_Click(object? sender, RoutedEventArgs e)
         {
             await ApplyLut("ACEScg_to_rec709.cube");
+            SetLinearTRC(mpvHandle);
         }
 
         private async void rec709_AGX_Click(object? sender, RoutedEventArgs e)
         {
             await ApplyLut("AGX_to_bt1886.cube");
+            SetLinearTRC(mpvHandle);
         }
 
         private async void rec709_Linear_Click(object? sender, RoutedEventArgs e)
         {
             await ApplyLut("Linear_to_Rec1886.cube");
+            SetLinearTRC(mpvHandle);
         }
 
         private async void rec709_ArriLogc3_Click(object? sender, RoutedEventArgs e)
         {
             await ApplyLut("ArriLogC3_to_rec709.cube");
+            SetLinearTRC(mpvHandle);
         }
 
         private async void rec709_ArriLogc4_Click(object? sender, RoutedEventArgs e)
         {
             await ApplyLut("ArriLogC4_to_rec709.cube");
+            SetLinearTRC(mpvHandle);
         }
 
         private async void rec709_CanonLog3_Click(object? sender, RoutedEventArgs e)
         {
             await ApplyLut("CanonLog3_to_rec709.cube");
+            SetLinearTRC(mpvHandle);
         }
 
         private async void rec709_PanasonicVlog_Click(object? sender, RoutedEventArgs e)
         {
             await ApplyLut("PanasonicVlog_to_rec709.cube");
+            SetLinearTRC(mpvHandle);
         }
 
         private async void rec709_RedLog3G10_Click(object? sender, RoutedEventArgs e)
         {
             await ApplyLut("RedLog3G10_to_rec709.cube");
+            SetLinearTRC(mpvHandle);
         }
 
         private async void rec709_SonySlog3_Click(object? sender, RoutedEventArgs e)
         {
             await ApplyLut("SonySlog3_to_rec709.cube");
+            SetLinearTRC(mpvHandle);
         }
 
         private async void rec709_SonyVeniceSlog3_Click(object? sender, RoutedEventArgs e)
         {
             await ApplyLut("SonySlog3Venice_to_rec709.cube");
+            SetLinearTRC(mpvHandle);
         }
 
         // File Menu
@@ -965,6 +1303,11 @@ namespace UnionMpvPlayer.Views
         {
             try
             {
+                await Dispatcher.UIThread.InvokeAsync(() => {
+                    ProcessingProgressBar.Value = 0;
+                });
+                ChangeCancelButtonBackground();
+
                 if (mpvHandle == IntPtr.Zero)
                 {
                     //Debug.WriteLine("MPV handle is not initialized");
@@ -1527,7 +1870,33 @@ namespace UnionMpvPlayer.Views
 
         // Buttons
 
-        
+        private void OpenCacheSettings_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        {
+            var popup = new CacheSettingsPopup
+            {
+                WindowStartupLocation = WindowStartupLocation.CenterOwner
+            };
+            popup.ShowDialog(this);
+        }
+
+        private async void OpenEXRSequence_Click(object sender, RoutedEventArgs e)
+        {
+            var openFileDialog = new OpenFileDialog
+            {
+                Title = "Select First EXR Frame",
+                Filters = new List<FileDialogFilter>
+        {
+            new FileDialogFilter { Name = "EXR Files", Extensions = { "exr" } }
+        }
+            };
+
+            var filePaths = await openFileDialog.ShowAsync(this);
+            if (filePaths is { Length: > 0 })
+            {
+                await HandleEXRSequenceFromFile(filePaths[0]);
+            }
+        }
+
 
         private void RemovePlaylistButton_Click(object? sender, RoutedEventArgs e)
         {
@@ -1581,7 +1950,7 @@ namespace UnionMpvPlayer.Views
 
                 // Add fixed padding if necessary
                 const int SystemTitlebarHeight = 30; // Adjust for platform-specific titlebars
-                const int SystemBorderHeight = 5;    // Optional: borders
+                const int SystemBorderHeight = 8;    // Optional: borders
                 chromeHeight = Math.Max(chromeHeight, SystemTitlebarHeight + SystemBorderHeight);
 
                 // Calculate offsets
@@ -1686,29 +2055,23 @@ namespace UnionMpvPlayer.Views
 
 
 
-        private async void ImageSeq_Click(object sender, Avalonia.Interactivity.RoutedEventArgs e)
+        private async void ImageSeq_Click(object sender, RoutedEventArgs e)
         {
             var openFileDialog = new OpenFileDialog
             {
                 Title = "Select an Image",
                 Filters = new List<FileDialogFilter>
-                {
-                    new FileDialogFilter { Name = "Images", Extensions = { "jpg", "tif", "tiff", "png", "exr" } }
-                }
+        {
+            new FileDialogFilter { Name = "Images", Extensions = { "jpg", "tif", "tiff", "png", "tga", "dpx", "exr" } }
+        }
             };
             var filePaths = await openFileDialog.ShowAsync(this);
             if (filePaths is { Length: > 0 })
             {
-                var selectedFile = filePaths[0];
-                var frameRatePopup = new FrameRatePopup
-                {
-                    OnFrameRateSelected = (frameRate) => { PlayImageSequence(selectedFile, frameRate); },
-                    WindowStartupLocation = WindowStartupLocation.CenterOwner
-                };
-                await frameRatePopup.ShowDialog(this); // Set 'this' as Owner
-
+                await HandleImageSequence(filePaths[0]);
             }
         }
+
 
         private async void PhotoFilter_Click(object? sender, RoutedEventArgs e)
         {
@@ -2126,9 +2489,11 @@ namespace UnionMpvPlayer.Views
         private void SafetyButton_Youtube16x9MastHead_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
             string filterCommand = @"lavfi=[
-                                    drawbox=x=0:y=0:w=1920:h=270:color=Gold@1:t=2,
-                                    drawbox=x=0:y=810:w=1920:h=270:color=Gold@1:t=2
+                                    drawbox=x=0:y=0:w=iw:h=(ih*0.25):color=Gold@1:t=2,
+                                    drawbox=x=0:y=(ih*0.75):w=iw:h=(ih*0.25):color=Gold@1:t=2
                                 ]";
+
+
 
             ApplyFilter(filterCommand, "Youtube16x9MastHead");
         }
@@ -2534,6 +2899,12 @@ namespace UnionMpvPlayer.Views
                         FullScreenButton_Click(null, null);
                         break;
                     case "Exit Full-screen Mode":
+                        if (isFullScreen)
+                        {
+                            FullScreenButton_Click(null, null);
+                        }
+                        break;
+                    case "Exit Full-screen Mode Alt":
                         if (isFullScreen)
                         {
                             FullScreenButton_Click(null, null);
@@ -2950,6 +3321,11 @@ namespace UnionMpvPlayer.Views
         {
             try
             {
+                await Dispatcher.UIThread.InvokeAsync(() => {
+                    ProcessingProgressBar.Value = 0;
+                });
+                ChangeCancelButtonBackground();
+
                 if (mpvHandle == IntPtr.Zero)
                 {
                     //Debug.WriteLine("MPV handle is not initialized");
@@ -3129,56 +3505,6 @@ namespace UnionMpvPlayer.Views
             }
         }
 
-        private void LoadBlankVideo()
-        {
-            string assetsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets");
-            string videoPath = Path.Combine(assetsPath, "blank.mp4");
-            try
-            {
-                if (mpvHandle == IntPtr.Zero)
-                {
-                    //Debug.WriteLine("MPV handle is not initialized");
-                    return;
-                }
-                if (childWindowHandle == IntPtr.Zero)
-                {
-                    //Debug.WriteLine("Child window handle is not initialized");
-                    return;
-                }
-                // Set the child window handle (wid) to embed MPV rendering in the UI
-                SetMpvOption("wid", childWindowHandle.ToString());
-                SetMpvOption("volume", "100");
-                //Debug.WriteLine($"Attempting to load video: {videoPath}");
-                _isPlaylistMode = false;
-                MPVInterop.mpv_set_option_string(mpvHandle, "keep-open", "always");
-                var args = new[] { "loadfile", videoPath, "replace" };
-                int result = MPVInterop.mpv_command(mpvHandle, args);
-                if (result < 0)
-                {
-                    //Debug.WriteLine($"Failed to load file: error code {result}");
-                }
-                else
-                {
-                    //Debug.WriteLine("Video loaded successfully");
-                    playbackSlider.Value = 0;
-                    InitializePlaybackControl();
-                    _ = UpdatePlayPauseIcon();
-
-                    // Wait for video to load and set the timecode
-                    Task.Run(async () =>
-                    {
-                        await WaitForFileLoadedAndSeek();
-                        _ = UpdateTimecodeAsync();
-                    });
-                }
-            }
-            catch (Exception ex)
-            {
-                //Debug.WriteLine($"Error in LoadBlankVideo: {ex.Message}");
-                //Debug.WriteLine($"Stack trace: {ex.StackTrace}");
-            }
-        }
-
         private void InitializeMPV()
         {
             try
@@ -3194,13 +3520,15 @@ namespace UnionMpvPlayer.Views
                 // Set MPV options before initialization
                 SetMpvOption("terminal", "yes");
                 SetMpvOption("msg-level", "all=v");
-                SetMpvOption("background", "0.0,0.0,0.0,1.0");
+                SetMpvOption("background", "color");
+                SetMpvOption("background-color", "0/0/0");
                 SetMpvOption("vid-end-pause", "yes");
                 SetMpvOption("demuxer-readahead-secs", "2");
                 SetMpvOption("screenshot-high-bit-depth", "yes");
                 SetMpvOption("screenshot-jpeg-quality", "75");
                 SetMpvOption("gpu-clear-color", "0/0/0/255");
                 SetMpvOption("alpha", "no");
+                SetMpvOption("tone-mapping", "off");
                 SetMpvOption("force-window", "no");
                 SetMpvOption("keep-open", "always");
                 SetMpvOption("idle", "yes");
@@ -3256,7 +3584,6 @@ namespace UnionMpvPlayer.Views
                             }
                             SetMpvOption("wid", childWindowHandle.ToString());
                             UpdateChildWindowBounds();
-                            LoadBlankVideo();
                         }
                         else
                         {

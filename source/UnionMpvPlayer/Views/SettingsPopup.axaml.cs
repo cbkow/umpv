@@ -136,7 +136,7 @@ namespace UnionMpvPlayer.Views
             target.Add(new KeyBindingItem("H", "Play Video 50% Screen Size"));
             target.Add(new KeyBindingItem("T", "16:9 Title/Action Safety"));
             target.Add(new KeyBindingItem("F", "Toggle Full-screen Mode"));
-            target.Add(new KeyBindingItem("esc", "Exit Full-screen Mode"));
+            target.Add(new KeyBindingItem("Escape", "Exit Full-screen Mode Alt"));
             target.Add(new KeyBindingItem("Back", "Delete Playlist Item"));
         }
 
@@ -163,7 +163,7 @@ namespace UnionMpvPlayer.Views
             KeyBindings.Add(new KeyBindingItem("H", "Play Video 50% Screen Size"));
             KeyBindings.Add(new KeyBindingItem("T", "16:9 Title/Action Safety"));
             KeyBindings.Add(new KeyBindingItem("F", "Toggle Full-screen Mode"));
-            KeyBindings.Add(new KeyBindingItem("esc", "Exit Full-screen Mode"));
+            KeyBindings.Add(new KeyBindingItem("Escape", "Exit Full-screen Mode Alt"));
             KeyBindings.Add(new KeyBindingItem("Back", "Delete Playlist Item"));
         }
 

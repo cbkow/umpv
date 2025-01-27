@@ -3,7 +3,7 @@
              x:Class="UnionMpvPlayer.App"
              xmlns:local="using:UnionMpvPlayer"
 			 xmlns:conv="clr-namespace:UnionMpvPlayer.Converters"
-             RequestedThemeVariant="Default">
+             RequestedThemeVariant="Dark">
              <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
 
     <Application.DataTemplates>
@@ -41,7 +41,7 @@
 									   ListLow="#ffdbdbdb"
 									   ListMedium="#ffcccccc"
 									   RegionColor="White" />
-				<ColorPaletteResources x:Key="Dark" Accent="White"
+				<ColorPaletteResources x:Key="Dark" Accent="#ff8b8b8b"
 									   AltHigh="Black"
 									   AltLow="Black"
 									   AltMedium="Black"
@@ -63,7 +63,7 @@
 									   ChromeHigh="#ff8b8b8b"
 									   ChromeLow="#ff202020"
 									   ChromeMedium="#ff2b2b2b"
-									   ChromeMediumLow="#ff404040"
+									   ChromeMediumLow="#ff3a3a3a"
 									   ChromeWhite="White"
 									   ListLow="#ff272727"
 									   ListMedium="#ff444444"

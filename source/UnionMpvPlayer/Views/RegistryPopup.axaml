@@ -3,7 +3,7 @@
         x:Class="UnionMpvPlayer.Views.RegistryPopup"
         Title="File Type Association"
         Width="400"
-        Height="300"
+        Height="302"
 		ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="0"
         ExtendClientAreaChromeHints="NoChrome"
@@ -113,6 +113,7 @@
                                        Text="This will change the Windows Registry. Proceed with caution and be aware of the potential risks!"
                                        TextWrapping="Wrap"
                                        HorizontalAlignment="Left"
+									   Margin="0,5,0,0"
                                        FontSize="12"
                                        Foreground="{DynamicResource SystemBaseMediumHighColor}"/>
 					    </StackPanel>
@@ -122,9 +123,9 @@
 		</StackPanel>
 
 		<!-- Buttons -->
-		<StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10" Margin="10">
-			<Button Name="InstallButton" Content="Install" Width="185"  HorizontalContentAlignment="Center" Click="InstallButton_Click"/>
-			<Button Name="UninstallButton" Content="Uninstall" Width="185" HorizontalContentAlignment="Center" Click="UninstallButton_Click"/>
+		<StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10" Margin="10,0,10,16">
+			<Button Name="InstallButton" Content="Install" Width="176"  HorizontalContentAlignment="Center" Click="InstallButton_Click"/>
+			<Button Name="UninstallButton" Content="Uninstall" Width="176" HorizontalContentAlignment="Center" Click="UninstallButton_Click"/>
 		</StackPanel>
 	</Grid>
 </Window>

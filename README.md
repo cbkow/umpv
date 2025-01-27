@@ -1,6 +1,6 @@
 # umpv
 
-![umpv main image](images/umpv_001b.jpg)
+![umpv main image](images/umpv_001c.jpg)
 
 **umpv** is a user-friendly interface for **mpv** on Windows, specifically designed as a simple video player for postproduction. No installation is necessary—just download the latest release and launch umpv.exe.
 
@@ -25,20 +25,21 @@ Download the latest release, unzip, and open umpv.exe. (Keep all the files inclu
 
 ## Advanced Installation (experimental)
 
-![registry installation](images/umpv_002b.jpg)
+![registry installation](images/umpv_002c.jpg)
 
 This app function will run a Powershell script that adds the necessary registry entries to include umpv in the Window "Open With" menu. It also adds legacy Windows 10 file associations for .mp4, .mov, .mxf, .gif, .mkv, and .avi files.
 
 ## Credits
 
-**umpv** is a UI built around [Shinchiro's build](https://github.com/shinchiro/mpv-winbuild-cmake) of [libmpv](https://mpv.io/). Phil Harvey's excellent [Exiftool](https://exiftool.org/) allows for metadata parsing and, more importantly (for us), the ability to find Adobe metadata and open projects.
+**umpv** is a UI built around [Shinchiro's build](https://github.com/shinchiro/mpv-winbuild-cmake) of [libmpv](https://mpv.io/). Phil Harvey's excellent [Exiftool](https://exiftool.org/) allows for metadata parsing and, more importantly (for us), the ability to find Adobe metadata and open projects. I am using [OpenEXR](https://openexr.com/en/latest/index.html) to parse layers and channels in multi-layer EXRs and (for now) [OpenImageIO](https://github.com/AcademySoftwareFoundation/OpenImageIO) to extract a single layer EXR for playback in [libmpv](https://mpv.io/).
 
 ## Basic Usage
 
-![umpv usage screenshot 1](images/umpv_003b.jpg)
-![umpv usage screenshot 2](images/umpv_004b.jpg)
-![umpv usage screenshot 3](images/umpv_005b.jpg)
-![umpv usage screenshot 3](images/umpv_006b.jpg)
+![umpv usage screenshot 1](images/umpv_003c.jpg)
+![umpv usage screenshot 2](images/umpv_004c.jpg)
+![umpv usage screenshot 3](images/umpv_005c.jpg)
+![umpv usage screenshot 4](images/umpv_005d.jpg)
+![umpv usage screenshot 5](images/umpv_006c.jpg)
 
 ## Contributing and Disclaimers
 

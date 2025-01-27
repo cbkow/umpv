@@ -12,7 +12,7 @@
         WindowStartupLocation="CenterScreen"
         Title="{Binding TopTitle}"
         Width="1130"
-        Height="766"
+        Height="787"
 		Focusable="True"
 		KeyDown="MainWindow_KeyDown"
         KeyUp="MainWindow_KeyUp">
@@ -21,18 +21,45 @@
 		<Style Selector="Slider.thickslider">
 			<Setter Property="MinWidth" Value="40" />
 			<Setter Property="MinHeight" Value="20" />
+			<Setter Property="Background" Value="{DynamicResource SystemBaseLowColor}"/>
+			
 			<Style Selector="^ Track">
-				<Style Selector="^ RepeatButton Border">
-					<Setter Property="CornerRadius" Value="0"/>
+				<!-- Track styling -->
+				<Style Selector="^ RepeatButton#PART_DecreaseButton Border">
+					<Setter Property="Background" Value="{DynamicResource SystemBaseMediumHighColor}"/>
 					<Setter Property="Height" Value="10"/>
+					<Setter Property="CornerRadius" Value="6"/>
 				</Style>
+				
+				<Style Selector="^ RepeatButton#PART_IncreaseButton Border">
+					<Setter Property="Background" Value="{DynamicResource SystemBaseLowColor}"/>
+					<Setter Property="Height" Value="10"/>
+					<Setter Property="CornerRadius" Value="6"/>
+				</Style>
+				
 				<Style Selector="^ Thumb">
-					<Setter Property="Height" Value="8"/>
-					<Setter Property="Width" Value="0"/>
-					<Setter Property="Margin" Value="0"/>
+					<Setter Property="Height" Value="10"/>
+					<Setter Property="Width" Value="2"/>
+					<Setter Property="Margin" Value="-1"/>
 					<Setter Property="CornerRadius" Value="0"/>
-					<Setter Property="Background" Value="{DynamicResource SystemChromeHighColor}"/>
+					<Setter Property="Background" Value="{DynamicResource SystemBaseHighColor}"/>
 				</Style>
+			</Style>
+		</Style>
+		<Style Selector="ProgressBar">
+			<Setter Property="Height" Value="8"/>
+			<Setter Property="Background" Value="{DynamicResource SystemRegionColor}"/>
+			<Setter Property="Foreground" Value="{DynamicResource SystemBaseLowColor}"/>
+			<Setter Property="CornerRadius" Value="2"/>
+			
+			<Style Selector="^ /template/ Border#PART_Track">
+				<Setter Property="Background" Value="{DynamicResource SystemRegionColor}"/>
+				<Setter Property="CornerRadius" Value="2"/>
+			</Style>
+			
+			<Style Selector="^ /template/ Border#PART_Indicator">
+				<Setter Property="Background" Value="{DynamicResource SystemBaseLowColor}"/>
+				<Setter Property="CornerRadius" Value="2"/>
 			</Style>
 		</Style>
 		<Style Selector="Button.menuButton">
@@ -61,16 +88,16 @@
 				<Style Selector="^ RepeatButton Border">
 					<Setter Property="CornerRadius" Value="0" />
 					<Setter Property="Height" Value="10" />
-					<Setter Property="Background" Value="{DynamicResource SystemBaseLowColor}" />
+					<Setter Property="Background" Value="{DynamicResource SystemBaseHighColor}" />
 				</Style>
 
 				<!-- Thumb Style -->
 				<Style Selector="^ Thumb">
-					<Setter Property="Height" Value="13" />
-					<Setter Property="Width" Value="13" />
-					<Setter Property="Margin" Value="0" />
+					<Setter Property="Height" Value="10" />
+					<Setter Property="Width" Value="2" />
+					<Setter Property="Margin" Value="-1,0" />
 					<Setter Property="CornerRadius" Value="8" />
-					<Setter Property="Background" Value="{DynamicResource SystemAccentColor}" />
+					<Setter Property="Background" Value="{DynamicResource SystemBaseHighColor}" />
 				</Style>
 			</Style>
 
@@ -132,6 +159,10 @@
 									CornerRadius="1" Margin="4,0,4,0"
 									Foreground="{DynamicResource SystemBaseMediumHighColor}"
 									Click="ImageSeq_Click" />
+						<MenuItem x:Name="OpenEXRSeq" Header="_Open EXR (Multi) Seq" Padding="10,8,10,8"
+									CornerRadius="1" Margin="4,0,4,0"
+									Foreground="{DynamicResource SystemBaseMediumHighColor}"
+									Click="OpenEXRSequence_Click" />
 						<MenuItem x:Name="InfoMenuButton" Header="_Info" Padding="10,8,10,8"
 									CornerRadius="1" Margin="4,0,4,0"
 									Foreground="{DynamicResource SystemBaseMediumHighColor}"
@@ -273,7 +304,7 @@
 									Click="PlaylistButton_Click" />
 					</MenuItem>
 
-					<MenuItem Header="_Video" Padding="10,2,10,2" CornerRadius="2"
+					<MenuItem Header="_Size" Padding="10,2,10,2" CornerRadius="2"
 								Foreground="{DynamicResource SystemBaseMediumHighColor}" FontSize="12">
 						<MenuItem x:Name="Trigger1to1mode" Header="_1:1 Video Size" Padding="10,8,10,8"
 										CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
@@ -281,6 +312,9 @@
 						<MenuItem x:Name="Trigger50percentMode" Header="_50% of Screen Size" Padding="10,8,10,8"
 									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
 									Click="ResizeToHalfScreenSize_Click" />
+						<MenuItem x:Name="TriggerFullScreen" Header="_FullScreen" Padding="10,8,10,8"
+									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+									Click="FullScreenButton_Click" />
 					</MenuItem>
 
 					<MenuItem Header="_Safety Guides" Padding="10,2,10,2" CornerRadius="2"
@@ -330,6 +364,10 @@
 									CornerRadius="1" Margin="4,0,4,0"
 									Foreground="{DynamicResource SystemBaseMediumHighColor}"
 									Click="RegistryButton_Click" />
+						<MenuItem x:Name="EXRsettingsMenuButton" Header="_EXR Cache Settings" Padding="10,8,10,8"
+									CornerRadius="1" Margin="4,0,4,0"
+									Foreground="{DynamicResource SystemBaseMediumHighColor}"
+									Click="OpenCacheSettings_Click" />
 						<MenuItem Header="_Exit" Padding="10,5,10,5"
 									CornerRadius="1"
 									Foreground="{DynamicResource SystemBaseMediumHighColor}"
@@ -348,8 +386,9 @@
 				
 				<Grid VerticalAlignment="Center" Margin="0,10,0,0">
 					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="Auto"/>
 						<ColumnDefinition Width="*"/>
-						<ColumnDefinition Width="*"/>
+						<ColumnDefinition Width="Auto"/>
 					</Grid.ColumnDefinitions>
 					<StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Spacing="5">
 						<TextBlock Text="T"
@@ -364,7 +403,8 @@
 									FontFamily="Courier New, Consolas, Monospace"
 									VerticalAlignment="Center" />
 					</StackPanel>
-					<StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="5">
+
+					<StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="5">
 						<TextBlock Name="CurrentFrameTextBlock"
 									FontSize="12"
 									Foreground="{DynamicResource SystemBaseMediumHighColor}"
@@ -377,6 +417,40 @@
 									Margin="3,0,16,0"
 									VerticalAlignment="Center" />
 					</StackPanel>
+				</Grid>
+
+				<Grid x:Name="ProcessingOverlay"
+						  IsVisible="True"
+						  VerticalAlignment="Bottom"
+						  Margin="10,3,10,0">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="Auto"/>
+						</Grid.ColumnDefinitions>
+
+						<ProgressBar x:Name="ProcessingProgressBar"
+									 Margin="0,0,-2,0"/>
+
+						<Button x:Name="CancelProcessingButton"
+								Grid.Column="1"
+								Height="18"
+								Padding="11,5"
+								CornerRadius="9"
+								Background="{DynamicResource SystemBaseLowColor}"
+								Foreground="{DynamicResource SystemBaseMediumHighColor}"
+								Cursor="Hand"
+								ToolTip.Tip="Cancel caching / playing"
+								IsEnabled="True"
+								HorizontalContentAlignment="Center"
+								VerticalContentAlignment="Center"
+								Click="CancelProcessing_Click">
+							<Path Data="{DynamicResource dismiss_regular}"
+								  x:Name="CancelProcessingIcon"
+									Width="10"
+									Height="10"
+									Fill="{DynamicResource SystemBaseMediumHighColor}"
+									Stretch="Uniform"/>
+						</Button>
 				</Grid>
 
 				<Slider x:Name="PlaybackSlider"

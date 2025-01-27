@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Version>0.1.5</Version>
+    <Version>0.2.1</Version>
     <OutputType>WinExe</OutputType>
 	<PlatformTarget>x64</PlatformTarget>
     <TargetFramework>net8.0</TargetFramework>
@@ -17,16 +17,78 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Models\" />
     <AvaloniaResource Include="Assets\**" />
   </ItemGroup>
 
   <ItemGroup>
-    <AvaloniaResource Remove="Assets\blank.mp4" />
     <AvaloniaResource Remove="Assets\bouncing-loop.lua" />
     <AvaloniaResource Remove="Assets\exiftool.zip" />
     <AvaloniaResource Remove="Assets\libmpv-2.dll" />
     <AvaloniaResource Remove="Assets\luts.zip" />
+    <AvaloniaResource Remove="Assets\OCIO\ACES\config.ocio" />
+    <AvaloniaResource Remove="Assets\OCIO\AGX\config.ocio" />
+    <AvaloniaResource Remove="Assets\OCIO\AGX\filmic\filmic_desat_33.cube" />
+    <AvaloniaResource Remove="Assets\OCIO\AGX\filmic\filmic_to_0-35_1-30.spi1d" />
+    <AvaloniaResource Remove="Assets\OCIO\AGX\filmic\filmic_to_0-48_1-09.spi1d" />
+    <AvaloniaResource Remove="Assets\OCIO\AGX\filmic\filmic_to_0-60_1-04.spi1d" />
+    <AvaloniaResource Remove="Assets\OCIO\AGX\filmic\filmic_to_0-70_1-03.spi1d" />
+    <AvaloniaResource Remove="Assets\OCIO\AGX\filmic\filmic_to_0-85_1-011.spi1d" />
+    <AvaloniaResource Remove="Assets\OCIO\AGX\filmic\filmic_to_0.99_1-0075.spi1d" />
+    <AvaloniaResource Remove="Assets\OCIO\AGX\filmic\filmic_to_1.20_1-00.spi1d" />
+    <AvaloniaResource Remove="Assets\OCIO\AGX\luts\AgX_Base_P3.cube" />
+    <AvaloniaResource Remove="Assets\OCIO\AGX\luts\AgX_Base_Rec2020.cube" />
+    <AvaloniaResource Remove="Assets\OCIO\AGX\luts\AgX_Base_sRGB.cube" />
+    <AvaloniaResource Remove="Assets\OCIO\AGX\luts\AgX_False_Color.spi1d" />
+    <AvaloniaResource Remove="Assets\OCIO\AGX\luts\Guard_Rail_Shaper_EOTF.spi1d" />
+    <AvaloniaResource Remove="Assets\OCIO\AGX\luts\Inverse_AgX_Base_Rec2020.cube" />
+    <AvaloniaResource Remove="Assets\OCIO\AGX\luts\luminance_compensation_bt2020.cube" />
+    <AvaloniaResource Remove="Assets\OCIO\AGX\luts\luminance_compensation_p3.cube" />
+    <AvaloniaResource Remove="Assets\OCIO\AGX\luts\luminance_compensation_srgb.cube" />
+    <AvaloniaResource Remove="Assets\OCIO\AGX\luts\pbrNeutral.cube" />
+    <AvaloniaResource Remove="Assets\OCIO\AGX\luts\xyz_E_to_D65.spimtx" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\avcodec-61.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\avformat-61.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\avutil-59.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\brotlicommon.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\brotlidec.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\bz2.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\deflate.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\freetype.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\gif.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\iconvert.exe" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\idiff.exe" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\Iex-3_3.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\igrep.exe" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\iinfo.exe" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\IlmThread-3_3.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\Imath-3_1.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\jpeg62.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\lcms2-2.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\libexpat.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\liblzma.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\libpng16.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\libsharpyuv.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\libwebp.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\libwebpdecoder.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\maketx.exe" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\oiiotool.exe" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\OpenColorIO_2_2.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\opencv_core4.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\opencv_imgcodecs4.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\opencv_imgproc4.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\opencv_videoio4.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\OpenEXR-3_3.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\OpenEXRCore-3_3.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\OpenImageIO.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\OpenImageIO_Util.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\openjp2.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\raw_r.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\swresample-5.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\swscale-8.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\tiff.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\yaml-cpp.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\zlib1.dll" />
+    <AvaloniaResource Remove="Assets\OpenImageIO\zstd.dll" />
     <AvaloniaResource Remove="Assets\registry.ps1" />
     <AvaloniaResource Remove="Assets\umpv.ico" />
   </ItemGroup>
@@ -51,6 +113,9 @@
     <PackageReference Include="ReactiveUI" Version="20.1.63" />
     <PackageReference Include="System.Drawing.Common" Version="9.0.0" />
     <PackageReference Include="System.Reactive" Version="6.0.1" />
+    <PackageReference Include="TinyEXR.NET" Version="0.3.8" />
+    <PackageReference Include="Vortice.Direct3D11" Version="3.6.2" />
+    <PackageReference Include="Vortice.DXGI" Version="3.6.2" />
   </ItemGroup>
 
   <ItemGroup>
@@ -76,13 +141,202 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Assets\blank.mp4">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Update="Assets\bouncing-loop.lua">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Assets\libmpv-2.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OCIO\ACES\config.ocio">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OCIO\AGX\config.ocio">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OCIO\AGX\filmic\filmic_desat_33.cube">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OCIO\AGX\filmic\filmic_to_0-35_1-30.spi1d">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OCIO\AGX\filmic\filmic_to_0-48_1-09.spi1d">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OCIO\AGX\filmic\filmic_to_0-60_1-04.spi1d">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OCIO\AGX\filmic\filmic_to_0-70_1-03.spi1d">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OCIO\AGX\filmic\filmic_to_0-85_1-011.spi1d">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OCIO\AGX\filmic\filmic_to_0.99_1-0075.spi1d">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OCIO\AGX\filmic\filmic_to_1.20_1-00.spi1d">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OCIO\AGX\luts\AgX_Base_P3.cube">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OCIO\AGX\luts\AgX_Base_Rec2020.cube">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OCIO\AGX\luts\AgX_Base_sRGB.cube">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OCIO\AGX\luts\AgX_False_Color.spi1d">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OCIO\AGX\luts\Guard_Rail_Shaper_EOTF.spi1d">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OCIO\AGX\luts\Inverse_AgX_Base_Rec2020.cube">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OCIO\AGX\luts\luminance_compensation_bt2020.cube">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OCIO\AGX\luts\luminance_compensation_p3.cube">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OCIO\AGX\luts\luminance_compensation_srgb.cube">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OCIO\AGX\luts\pbrNeutral.cube">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OCIO\AGX\luts\xyz_E_to_D65.spimtx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\avcodec-61.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\avformat-61.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\avutil-59.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\brotlicommon.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\brotlidec.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\bz2.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\deflate.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\freetype.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\gif.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\iconvert.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\idiff.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\Iex-3_3.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\igrep.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\iinfo.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\IlmThread-3_3.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\Imath-3_1.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\jpeg62.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\lcms2-2.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\libexpat.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\liblzma.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\libpng16.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\libsharpyuv.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\libwebp.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\libwebpdecoder.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\maketx.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\oiiotool.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\OpenColorIO_2_2.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\opencv_core4.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\opencv_imgcodecs4.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\opencv_imgproc4.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\opencv_videoio4.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\OpenEXR-3_3.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\OpenEXRCore-3_3.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\OpenImageIO.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\OpenImageIO_Util.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\openjp2.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\raw_r.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\swresample-5.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\swscale-8.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\tiff.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\yaml-cpp.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\zlib1.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\OpenImageIO\zstd.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Assets\umpv.ico">

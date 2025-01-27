@@ -9,4 +9,22 @@
         CanResize="False"
         Title="background"
         WindowStartupLocation="Manual">
+
+
+    <Grid Margin="10">
+		<Border BorderThickness="0"
+				VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+			<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+				<TextBlock Text="-umpv-"
+									FontSize="20"
+									Foreground="{DynamicResource SystemBaseMediumHighColor}"
+									VerticalAlignment="Center" HorizontalAlignment="Center" />
+				<TextBlock Text="drag in a video or the first frame of an image sequence"
+									FontSize="12" TextWrapping="Wrap" TextAlignment="Center"
+									Foreground="{DynamicResource SystemBaseMediumHighColor}"
+									VerticalAlignment="Center" HorizontalAlignment="Center"/>
+			</StackPanel>
+		</Border>
+    </Grid>
+	 
 </Window>
