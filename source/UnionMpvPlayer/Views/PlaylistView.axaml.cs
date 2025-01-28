@@ -18,9 +18,6 @@ using System.Diagnostics;
 
 namespace UnionMpvPlayer.Views
 {
-    /// <summary>
-    /// View component for managing video playlist functionality
-    /// </summary>
 
     public partial class PlaylistView : UserControl
     {
@@ -30,9 +27,10 @@ namespace UnionMpvPlayer.Views
         private int _currentPlayingIndex = -1;
         private bool _isCurrentlyPlaying;
         private bool _hasActivePlaylistItem;
-        // Accepted video file extensions
         private static readonly string[] AcceptedExtensions = { ".mp4", ".mov", ".mxf", ".gif", ".mkv", ".avi" };
         public event EventHandler<PlaylistItem>? PlaylistItemSelected;
+        public MainWindow? ParentWindow { get; set; }
+
 
         public bool IsCurrentlyPlaying
         {
@@ -125,6 +123,11 @@ namespace UnionMpvPlayer.Views
             }
         }
 
+        private void viewPlaylistButton_Click(object sender, RoutedEventArgs e)
+        {
+            ParentWindow?.PlaylistButton_Click(sender, e);
+        }
+
         public void TriggerRemoveFromPlaylist()
         {
             RemoveFromPlaylist_Click(this, null);
@@ -136,18 +139,16 @@ namespace UnionMpvPlayer.Views
 
             if (IsPlaylistModeActive && _playlistItems.Any())
             {
-                // If we're turning playlist mode back on, restore the playing state
                 var currentlyPlaying = _playlistItems.FirstOrDefault(x => x.IsPlaying);
                 if (currentlyPlaying != null)
                 {
                     _currentPlayingIndex = _playlistItems.IndexOf(currentlyPlaying);
-                    _hasActivePlaylistItem = true; // Make sure this is set
-                    UpdateCurrentItemPlayState(_isCurrentlyPlaying); // Use the current play state
+                    _hasActivePlaylistItem = true;
+                    UpdateCurrentItemPlayState(_isCurrentlyPlaying);
                     UpdatePlayingState();
                 }
             }
 
-            // Get the parent window
             var window = TopLevel.GetTopLevel(this) as Window;
             if (window != null)
             {
@@ -241,7 +242,7 @@ namespace UnionMpvPlayer.Views
         {
             if (_currentPlayingIndex < 0 || _currentPlayingIndex >= _playlistItems.Count) return;
             var item = _playlistItems[_currentPlayingIndex];
-            _playCallback?.Invoke(item.FilePath, true);  // Always true since this is used for playlist navigation
+            _playCallback?.Invoke(item.FilePath, true);  
             UpdatePlayingState();
         }
 
@@ -252,7 +253,7 @@ namespace UnionMpvPlayer.Views
                 _playlistItems[i].IsPlaying = (i == _currentPlayingIndex);
                 if (i == _currentPlayingIndex && App.Current?.Resources != null)
                 {
-                    // Set the icon based on the current play state
+                   
                     var iconKey = _isCurrentlyPlaying ? "pause_regular" : "play_regular";
                     if (App.Current.Resources.TryGetResource(iconKey, ThemeVariant.Default, out object? resource) &&
                         resource is StreamGeometry geometry)
@@ -279,9 +280,8 @@ namespace UnionMpvPlayer.Views
             {
                 if (IsPlaylistModeActive)
                 {
-                    // Playlist mode behavior - maintains sequential playback
                     _currentPlayingIndex = PlaylistListBox.SelectedIndex;
-                    _playCallback?.Invoke(selectedItem.FilePath, true);  // Playlist mode
+                    _playCallback?.Invoke(selectedItem.FilePath, true); 
                     UpdatePlayingState();
                 }
                 else
@@ -325,7 +325,7 @@ namespace UnionMpvPlayer.Views
             {
                 currentItem.PlayingIconData = geometry;
             }
-            _isCurrentlyPlaying = isPlaying; // Make sure we track the state
+            _isCurrentlyPlaying = isPlaying;
         }
 
         private void UpdatePlayingIcons() => UpdateCurrentItemPlayState(_isCurrentlyPlaying);
@@ -362,7 +362,7 @@ namespace UnionMpvPlayer.Views
         {
             _playlistItems.Clear();
 
-            // Show toast notification
+
             var window = TopLevel.GetTopLevel(this) as Window;
             if (window != null)
             {

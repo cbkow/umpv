@@ -1,6 +1,8 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Platform;
+using Avalonia.Animation;
+using Avalonia.Media;
+using Avalonia.Styling;
 using System;
 using System.Runtime.InteropServices;
 using UnionMpvPlayer.Helpers;
@@ -15,6 +17,7 @@ namespace UnionMpvPlayer.Views
         public BackgroundWindow()
         {
             InitializeComponent();
+            
             IsHitTestVisible = false; // Make it non-interactive
         }
 

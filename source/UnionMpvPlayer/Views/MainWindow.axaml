@@ -120,20 +120,32 @@
 
 	</Window.Styles>
 	
-	<Grid>
+	<Grid x:Name="MainGrid">
 		<Grid.ColumnDefinitions>
 			<!-- Playlist Panel -->
-			<ColumnDefinition Width="Auto"/>
+			<ColumnDefinition Width="0"/>
+			<ColumnDefinition Width="1"/>
 			<!-- Main Content -->
 			<ColumnDefinition Width="*"/>
 		</Grid.ColumnDefinitions>
 
 		<views:PlaylistView x:Name="PlaylistView"
-						Grid.Column="0"
-						Width="300"
-						IsVisible="False"/>
+							Grid.Column="0"
+							MinWidth="60"
+							HorizontalAlignment="Stretch"
+							IsVisible="False"/>
 
-		<Grid Grid.Column="1">
+		<GridSplitter x:Name="PlaylistSplitter"
+					  Grid.Column="1"
+					  Width="1"
+					  Background="{DynamicResource SystemChromeLowColor}"
+					  ResizeDirection="Columns"
+					  IsEnabled="False"
+					  IsVisible="False"
+					  DragDelta="PlaylistSplitter_DragDelta"
+					  DragCompleted="PlaylistSplitter_DragCompleted" />
+		
+		<Grid Grid.Column="2">
 			<Grid.RowDefinitions>
 				<RowDefinition Height="Auto"/>
 				<RowDefinition Height="*"/>
@@ -486,8 +498,9 @@
 								Margin="10,0,0,10"
 								Padding="8,8,8,8"
 								VerticalContentAlignment="Center"
+								IsVisible="True"
 								Click="PlaylistButton_Click">
-							<Path Data="{DynamicResource slide_text_regular}"
+							<Path Data="{DynamicResource list_regular}"
 									Fill="{DynamicResource SystemBaseHighColor}"
 									Stretch="Uniform" />
 						</Button>
@@ -553,7 +566,7 @@
 								Padding="8,8"
 								VerticalContentAlignment="Center"
 								Click="SafetyButton_Click">
-							<Path Data="{DynamicResource screenshot_regular}"
+							<Path Data="{DynamicResource resize_regular}"
 									Fill="{DynamicResource SystemBaseHighColor}"
 									Stretch="Uniform" />
 						</Button>
@@ -739,7 +752,7 @@
 								VerticalContentAlignment="Center"
 								Padding="8,8"
 								Click="ResizeToPixelRatio_Click">
-							<Path Data="{DynamicResource slide_size_regular}"
+							<Path Data="{DynamicResource arrow_maximize_regular}"
 									Fill="{DynamicResource SystemBaseHighColor}"
 									Stretch="Uniform" />
 						</Button>
