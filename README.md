@@ -35,7 +35,7 @@ This app function will run a Powershell script that adds the necessary registry 
 
 ## Basic Usage
 
-![umpv usage screenshot 1](images/umpv_003d.jpg)
+![umpv usage screenshot 1](images/umpv_003e.jpg)
 ![umpv usage screenshot 4](images/umpv_005d.jpg)
 ![umpv usage screenshot 5](images/umpv_006c.jpg)
 
