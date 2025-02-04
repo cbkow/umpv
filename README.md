@@ -59,6 +59,7 @@ This app function will run a Powershell script that adds the necessary registry 
 ### Sidebars and annotations
 
 ![full interface](images/umpv012.jpg)
+>Video notes and annotations work by creating a hidden `.umpv` folder next to the video to store screenshots and jsons for each note. Deleting the note will empty the folder. If you reveal hidden files in Windows Explorer, you can navigate the note structure manually.
 
 ![annotation](images/umpv011.jpg)
 Adjust line width, Select colors (before you select the tool), Pen, Erase, Arrow, Textbox, Undo, Redo, Revert to original image, Save edits/annotations, Close.
