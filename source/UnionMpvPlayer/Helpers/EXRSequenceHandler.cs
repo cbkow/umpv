@@ -166,14 +166,13 @@ namespace UnionMpvPlayer.Helpers
                 }
             }
         
-            // Create layers from channel sets
             foreach (var set in channelSets)
             {
                 var components = set.Value.Select(x => x.component).ToHashSet();
                 bool hasRGB = components.Contains("R") && components.Contains("G") && components.Contains("B");
                 bool hasRGBA = hasRGB && components.Contains("A");
                 
-                if (hasRGB || hasRGBA)  // Only create layers with complete RGB/RGBA sets
+                if (hasRGB || hasRGBA)  
                 {
                     var layer = new EXRLayer { Name = set.Key };
                     layer.Channels.AddRange(set.Value.Select(x => x.path));
@@ -193,7 +192,6 @@ namespace UnionMpvPlayer.Helpers
         {
             var fileName = Path.GetFileNameWithoutExtension(filePath);
 
-            // Match frame number surrounded by non-digit characters (e.g., "_####.", ".####-", "-####_")
             var match = System.Text.RegularExpressions.Regex.Match(fileName, @"[^\d]*(\d+)[^\d]*$");
 
             if (match.Success && int.TryParse(match.Groups[1].Value, out int frameNumber))
@@ -212,7 +210,6 @@ namespace UnionMpvPlayer.Helpers
             var sequenceDir = Path.Combine(cacheDir, Path.GetFileNameWithoutExtension(originalFile));
             var layerDir = Path.Combine(sequenceDir, layerName);
 
-            // Ensure all directories exist
             Directory.CreateDirectory(layerDir);
 
             return Path.Combine(layerDir, $"{Path.GetFileNameWithoutExtension(originalFile)}_{layerName}.exr");
@@ -224,13 +221,12 @@ namespace UnionMpvPlayer.Helpers
         {
             var fileName = Path.GetFileName(firstFrame);
 
-            // Match frame number with various separators
             var match = System.Text.RegularExpressions.Regex.Match(fileName, @"[_.-](\d+)[_.-]");
 
             if (match.Success)
             {
                 var frameNumber = match.Groups[1].Value;
-                var separator = fileName[match.Index]; // Get the separator character
+                var separator = fileName[match.Index]; 
                 return fileName.Replace($"{separator}{frameNumber}", $"{separator}*");
             }
 
@@ -244,7 +240,6 @@ namespace UnionMpvPlayer.Helpers
             var sequenceDir = Path.Combine(cacheDir, Path.GetFileNameWithoutExtension(originalFile));
             var layerDir = Path.Combine(sequenceDir, layerName);
 
-            // Ensure the directory exists (optional, depends on when this is called)
             Directory.CreateDirectory(layerDir);
 
             return Path.Combine(layerDir, $"{Path.GetFileNameWithoutExtension(originalFile)}_*.exr");
@@ -313,7 +308,6 @@ namespace UnionMpvPlayer.Helpers
                 var sequenceDir = Path.Combine(cacheDir, Path.GetFileNameWithoutExtension(firstFrame));
                 var layerDir = Path.Combine(sequenceDir, selectedLayer);
 
-                // Ensure cache directories exist
                 Directory.CreateDirectory(layerDir);
 
                 var totalFrames = files.Count;
@@ -413,7 +407,6 @@ namespace UnionMpvPlayer.Helpers
         {
             _firstFramePath = firstFramePath;
             
-            // Create sequence pattern (e.g., "name.*.exr")
             var fileName = Path.GetFileName(firstFramePath);
             var frameNumber = Path.GetFileNameWithoutExtension(fileName).Split('.').Last();
             _sequencePattern = fileName.Replace(frameNumber, "*");

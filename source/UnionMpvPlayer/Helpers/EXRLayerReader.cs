@@ -38,7 +38,6 @@ namespace UnionMpvPlayer.Helpers
             var channels = new Dictionary<string, ChannelInfo>();
             int pixelOffset = 0;
 
-            // Map channel offsets
             for (int i = 0; i < channelList.num_channels; i++)
             {
                 // ... channel mapping implementation ...

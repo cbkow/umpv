@@ -93,7 +93,6 @@ namespace UnionMpvPlayer.Views
 
             if (handle != null && parentHandle != null)
             {
-                // Position this window just behind the parent window
                 SetWindowPos(handle.Handle, parentHandle.Handle, 0, 0, 0, 0,
                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
             }
@@ -132,7 +131,7 @@ namespace UnionMpvPlayer.Views
                 Width = containerBounds.Width;
                 Height = containerBounds.Height;
 
-                EnsureZOrder();  // Add this call
+                EnsureZOrder(); 
             }
         }
 

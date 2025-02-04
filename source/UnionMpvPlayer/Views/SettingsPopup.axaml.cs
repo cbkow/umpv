@@ -102,6 +102,8 @@ namespace UnionMpvPlayer.Views
             // Create a dictionary for fast lookup of keys in user-defined bindings
             var userBindingsMap = KeyBindings.ToDictionary(k => k.Key, k => k);
 
+            bool changesMade = false;
+
             // Add missing default keybindings
             foreach (var defaultBinding in defaultBindings)
             {
@@ -109,7 +111,14 @@ namespace UnionMpvPlayer.Views
                 {
                     KeyBindings.Add(defaultBinding);
                     Debug.WriteLine($"Added missing keybinding: {defaultBinding.Key} - {defaultBinding.Bindings}");
+                    changesMade = true;
                 }
+            }
+
+            // Save if new keybindings were added
+            if (changesMade)
+            {
+                SaveKeyBindings();
             }
         }
 
@@ -138,6 +147,8 @@ namespace UnionMpvPlayer.Views
             target.Add(new KeyBindingItem("F", "Toggle Full-screen Mode"));
             target.Add(new KeyBindingItem("Escape", "Exit Full-screen Mode Alt"));
             target.Add(new KeyBindingItem("Back", "Delete Playlist Item"));
+            target.Add(new KeyBindingItem("N", "Toggle Notes"));
+            target.Add(new KeyBindingItem("M", "Add New Note"));
         }
 
         private void LoadDefaultKeyBindings()
@@ -165,6 +176,8 @@ namespace UnionMpvPlayer.Views
             KeyBindings.Add(new KeyBindingItem("F", "Toggle Full-screen Mode"));
             KeyBindings.Add(new KeyBindingItem("Escape", "Exit Full-screen Mode Alt"));
             KeyBindings.Add(new KeyBindingItem("Back", "Delete Playlist Item"));
+            KeyBindings.Add(new KeyBindingItem("N", "Toggle Notes"));
+            KeyBindings.Add(new KeyBindingItem("M", "Add New Note"));
         }
 
         private void CloseButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)

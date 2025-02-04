@@ -2,7 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 		xmlns:local="clr-namespace:UnionMpvPlayer.Views"
         x:Class="UnionMpvPlayer.Views.CacheSettingsPopup"
-		Title="EXR Cache Settings"
+		Title="EXR cache settings"
         Width="400" Height="320"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="0"
@@ -35,7 +35,7 @@
                            Width="18" Height="18"
                            VerticalAlignment="Center"
                            Margin="12,0,0,0"/>
-					<TextBlock Text="EXR Cache Settings"
+					<TextBlock Text="EXR cache settings"
                                VerticalAlignment="Center"
                                Margin="10,0"
                                FontSize="13"

@@ -26,7 +26,7 @@
 					 FontSize="12"
                      Foreground="{DynamicResource SystemBaseMediumLowColor}"/>
 
-			<Border BorderBrush="{DynamicResource SystemChromeLowColor}" BorderThickness="0,0,0,1">
+			<Border BorderBrush="{DynamicResource SystemChromeLowColor}" BorderThickness="0,0,0,1" Margin="0,0,3,0">
 				<StackPanel Grid.Column="1"
 							Background="{DynamicResource SystemRegionColor}"
 						    Orientation="Horizontal"
@@ -76,18 +76,8 @@
 			<ListBox.Styles>
 				<!-- Base Style -->
 				<Style Selector="ListBoxItem">
-					<Setter Property="Padding" Value="1"/>
+					<Setter Property="Padding" Value="0"/>
 					<Setter Property="Cursor" Value="Hand"/>
-				</Style>
-
-				<!-- Hover State -->
-				<Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
-					<Setter Property="Background" Value="{DynamicResource SystemChromeLowColor}" />
-				</Style>
-
-				<!-- Selected State -->
-				<Style Selector="ListBoxItem:selected /template/ ContentPresenter">
-					<Setter Property="Background" Value="{DynamicResource SystemChromeMediumLowColor}" />
 				</Style>
 			</ListBox.Styles>
 

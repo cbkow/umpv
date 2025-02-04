@@ -58,7 +58,8 @@ namespace UnionMpvPlayer.Views
         private Slider volumeSlider;
         private Slider playbackSlider;
         private MenuItem openMenuItem;
-        private Panel videoContainer;
+        public Panel videoContainer;
+        public Image overlayImage;
         private DateTime _lastDragEventTime = DateTime.MinValue;
         private CancellationTokenSource? _eventLoopCancellation;
         private TaskCompletionSource<bool> _cleanupComplete = new();
@@ -98,8 +99,8 @@ namespace UnionMpvPlayer.Views
         private DispatcherTimer? _progressiveTimer;
         private double _currentSpeedStep = 0.0; 
         private int _rampIndex = 0; 
-        private readonly double[] SpeedRamp = { 0.5, 1.0, 1.5, 2.0, 3.0, 5.0 }; 
-
+        private readonly double[] SpeedRamp = { 0.5, 1.0, 1.5, 2.0, 3.0, 5.0 };
+        private ProcessingPopup _processingPopup;
         private string currentActiveFilter = string.Empty;
         private CancellationTokenSource _processingCts;
         private bool _isProcessingSequence;
@@ -110,9 +111,16 @@ namespace UnionMpvPlayer.Views
         private ColumnDefinition? PlaylistColumn;
         private double _lastVolume = 100;
         private bool _isMuted = false;
+        private NotesView? _notesView;
+        private ColumnDefinition? NotesColumn;
+        private Button? _notesToggleButton;
+        public static MainWindow Current { get; private set; }
+        public event EventHandler PlaybackStarted;
+        private bool _mpvHidden;
 
         public MainWindow()
         {
+            Current = this;
             InitializeComponent();
             DataContext = new MainWindowViewModel();
             _sequenceHandler = new EXRSequenceHandler();
@@ -162,7 +170,6 @@ namespace UnionMpvPlayer.Views
             }
 
             InitializeMPV();
-            EnsureCorrectWindowOrder();
 
             string[] args = Environment.GetCommandLineArgs();
             if (args.Length > 1 && File.Exists(args[1]))
@@ -173,23 +180,16 @@ namespace UnionMpvPlayer.Views
     
             this.Loaded += (s, e) =>
             {
-                var slider = this.GetVisualDescendants().OfType<Slider>().FirstOrDefault(s => s.Name == "SpeedSlider");
-                if (slider != null)
-                {
-                    slider.Ticks = new AvaloniaList<double> { -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6 };
-                    slider.IsSnapToTickEnabled = true;
-                    slider.PropertyChanged += SpeedSlider_PropertyChanged;
-                    //Debug.WriteLine("SpeedSlider found during Loaded event.");
-                }
-                else
-                {
-                    //Debug.WriteLine("SpeedSlider is still null during Loaded event.");
-                }
-                playbackSlider.Value = 0;
                 InitializePlaybackControl();
                 ChangeCancelButtonBackground();
+                Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    var focusTarget = this.FindControl<Control>("YourControlName");
+                    focusTarget?.Focus();
+                }, Avalonia.Threading.DispatcherPriority.Background);
+                EnsureCorrectWindowOrder();
             };
-            EnsureCorrectWindowOrder();
+            
         }
 
         private void InitializeComponent()
@@ -206,14 +206,13 @@ namespace UnionMpvPlayer.Views
             playbackSlider = this.FindControl<Slider>("PlaybackSlider");
             volumeSlider = this.FindControl<Slider>("VolumeSlider");
             videoContainer = this.FindControl<Panel>("VideoContainer");
+            overlayImage = this.FindControl<Image>("OverlayImage");
             videoContainer.Background = Avalonia.Media.Brushes.Black;
             UpdateVolumeIcon(false); 
             CurrentTimeTextBlock = this.FindControl<TextBlock>("CurrentTimeTextBlock");
             CurrentFrameTextBlock = this.FindControl<TextBlock>("CurrentFrameTextBlock");
             LoopingPath = this.FindControl<Avalonia.Controls.Shapes.Path>("LoopingPath");
             PhotoFilterIcon = this.FindControl<Avalonia.Controls.Shapes.Path>("PhotoFilterIcon");
-            ProcessingOverlay = this.FindControl<Grid>("ProcessingOverlay");
-            ProcessingProgressBar = this.FindControl<ProgressBar>("ProcessingProgressBar"); 
             playButton.Click += PlayButton_Click;
             prevFrameButton.Click += PrevFrameButton_Click;
             nextFrameButton.Click += NextFrameButton_Click;
@@ -253,20 +252,35 @@ namespace UnionMpvPlayer.Views
                     UpdateChildWindowBounds();
                 }
             };
-        }
 
+            _notesView = this.FindControl<NotesView>("NotesView");
+            _notesToggleButton = this.FindControl<Button>("NotesToggleButton");
+            NotesSplitter = this.FindControl<GridSplitter>("NotesSplitter");
+            var grid = this.FindControl<Grid>("MainGrid");
+            NotesColumn = grid?.ColumnDefinitions[4];
 
-        private void SpeedSlider_PropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
-        {
-            if (e.Property == IsEnabledProperty)
+            if (_notesView != null)
             {
-                if (SpeedButton != null)
-                {
-                    SpeedButton.Opacity = SpeedSlider.IsEnabled ? 0.3 : 1.0;
-                    //Debug.WriteLine($"SpeedButton Opacity updated: {SpeedButton.Opacity}");
-                }
+                _notesView.NotesToggleClicked += NotesView_ToggleClicked;
+                _notesView.Initialize(this);
             }
+            EnsureCorrectWindowOrder();
         }
+
+        // Hiding MPV
+
+        public void HideMpvWindow()
+        {
+            _mpvHidden = true;
+            UpdateChildWindowBounds();
+        }
+
+        public void ShowMpvWindow()
+        {
+            _mpvHidden = false;
+            UpdateChildWindowBounds();
+        }
+
 
         // Linear and Cache Toggles
 
@@ -281,7 +295,7 @@ namespace UnionMpvPlayer.Views
         {
             MPVInterop.mpv_set_option_string(mpvHandle, "target-trc", "auto");
             _currentTargetTRC = "auto"; // Update the variable
-            //Console.WriteLine("target-trc set to auto");
+            //Debug.WriteLine("target-trc set to auto");
         }
 
         private void ChangeCancelButtonBackground()
@@ -300,12 +314,12 @@ namespace UnionMpvPlayer.Views
                 }
                 else
                 {
-                    //Console.WriteLine("CancelProcessingIcon is not found within CancelProcessingButton.");
+                    //Debug.WriteLine("CancelProcessingIcon is not found within CancelProcessingButton.");
                 }
             }
             else
             {
-                //Console.WriteLine("CancelProcessingButton is not found.");
+                //Debug.WriteLine("CancelProcessingButton is not found.");
             }
         }
 
@@ -323,12 +337,12 @@ namespace UnionMpvPlayer.Views
                 }
                 else
                 {
-                    //Console.WriteLine("CancelProcessingIcon is not found within CancelProcessingButton.");
+                    //Debug.WriteLine("CancelProcessingIcon is not found within CancelProcessingButton.");
                 }
             }
             else
             {
-                //Console.WriteLine("CancelProcessingButton is not found.");
+                //Debug.WriteLine("CancelProcessingButton is not found.");
             }
         }
 
@@ -410,12 +424,63 @@ namespace UnionMpvPlayer.Views
             }
         }
 
+        // Notes View
+
+        private void DisableNotesForImageSequence()
+        {
+            if (_notesView != null)
+            {
+                _notesView.DisableForImageSequence();
+                if (_notesView.IsVisible)
+                {
+                    ToggleNotesPanel();
+                }
+            }
+        }
+
+        public IntPtr? GetMpvHandle()
+        {
+            return mpvHandle != IntPtr.Zero ? mpvHandle : null;
+        }
+
+        public string? GetCurrentVideoPath()
+        {
+            return MPVInterop.GetStringProperty(mpvHandle, "path");
+        }
+
+        public double GetCurrentTimecode()
+        {
+            var timecode = MPVInterop.GetDoubleProperty(mpvHandle, "time-pos");
+            return timecode ?? 0.0;
+        }
+
+        public string GetCurrentTimecodeString()
+        {
+            return CurrentTimeTextBlock.Text;
+        }
+
+        public async Task CaptureScreenshot(string outputPath)
+        {
+            var args = new[] { "screenshot-to-file", outputPath };
+            int result = MPVInterop.mpv_command(mpvHandle, args);
+            if (result < 0)
+            {
+                throw new Exception($"Screenshot failed: {MPVInterop.GetError(result)}");
+            }
+
+            int attempts = 0;
+            while (!File.Exists(outputPath) && attempts < 50)
+            {
+                await Task.Delay(100);
+                attempts++;
+            }
+        }
+
         // EXR progress
+
 
         public async Task HandleEXRSequence(string firstFrame, string selectedLayer, string frameRate)
         {
-            Debug.WriteLine("HandleEXRSequence called");
-
             if (_isProcessingSequence)
             {
                 Debug.WriteLine("Sequence processing already in progress");
@@ -427,18 +492,20 @@ namespace UnionMpvPlayer.Views
 
             try
             {
-                await Dispatcher.UIThread.InvokeAsync(() =>
+                _processingPopup = new ProcessingPopup();
+                _processingPopup.CancelClicked += (s, e) =>
                 {
-                    ProcessingOverlay.IsVisible = true;
-                    ProcessingProgressBar.Value = 0;
-                });
+                    _processingCts?.Cancel();
+                    _processingPopup?.Close();
+                };
+                _processingPopup.Show(this);
 
                 var handler = new EXRSequenceHandler();
                 var progress = new Progress<ProgressInfo>(info =>
                 {
                     Dispatcher.UIThread.InvokeAsync(() =>
                     {
-                        ProcessingProgressBar.Value = info.ProgressPercentage;
+                        _processingPopup?.UpdateProgress(info.ProgressPercentage);
                     });
                 });
 
@@ -449,14 +516,14 @@ namespace UnionMpvPlayer.Views
                     return;
                 }
 
-                ResetCancelButtonBackground();
                 await handler.ProcessSequence(firstFrame, selectedLayer, cachePath, progress, _processingCts.Token);
 
                 await Dispatcher.UIThread.InvokeAsync(async () =>
                 {
+                    _processingPopup?.Close();
                     if (firstFrame == null || selectedLayer == null || frameRate == null)
                     {
-                        Debug.WriteLine("One of the parameters is null: firstFrame, selectedLayer, or frameRate");
+                        Debug.WriteLine("One of the parameters is null");
                         return;
                     }
 
@@ -478,11 +545,10 @@ namespace UnionMpvPlayer.Views
                 _isProcessingSequence = false;
                 _processingCts?.Dispose();
                 _processingCts = null;
-                Debug.WriteLine("HandleEXRSequence completed");
+                _processingPopup?.Close();
+                _processingPopup = null;
             }
         }
-
-
 
         private async Task PlayCachedSequence(string originalFile, string layerName, string frameRate)
         {
@@ -518,12 +584,12 @@ namespace UnionMpvPlayer.Views
                     toast.ShowToast("Error", "Failed to load cached sequence.", this);
                     return;
                 }
-
+                
                 if (await WaitForDurationAndInitialize())
                 {
                     Debug.WriteLine("Cached sequence loaded successfully, starting playback");
-                    _ = UpdateTimecodeAsync(); 
-
+                    _ = UpdateTimecodeAsync();
+                    SeekToStart();
                     var playArgs = new[] { "set", "pause", "no" };
                     int playResult = MPVInterop.mpv_command(mpvHandle, playArgs);
 
@@ -566,7 +632,6 @@ namespace UnionMpvPlayer.Views
             LoadVideo(null); 
             CacheSettingsPopup.EmptyCache(this);
         }
-
 
         // Sync playback in PlaylistView
         private async Task UpdatePlayState()
@@ -775,20 +840,22 @@ namespace UnionMpvPlayer.Views
         {
             var frameRatePopup = new FrameRatePopup
             {
-                OnFrameRateSelected = (frameRate) => { PlayImageSequence(selectedFile, frameRate); },
+                OnFrameRateSelected = (frameRate) => {
+                    DisableNotesForImageSequence();  // Call after user confirms frame rate
+                    PlayImageSequence(selectedFile, frameRate);
+                },
                 WindowStartupLocation = WindowStartupLocation.CenterOwner
             };
-            await frameRatePopup.ShowDialog(this); 
+            await frameRatePopup.ShowDialog(this);
         }
 
         public async Task HandleImageSequenceFromEXR(string filePath, string frameRate)
         {
             _isBaseColorSequence = true;
-            Console.WriteLine($"Handling EXR Base Color sequence for {filePath} at {frameRate} fps");
+            DisableNotesForImageSequence();  // Call just before playing the sequence
+            Debug.WriteLine($"Handling EXR Base Color sequence for {filePath} at {frameRate} fps");
             PlayImageSequence(filePath, frameRate);
         }
-
-
 
         private async Task HandleEXRSequenceFromFile(string selectedFile)
         {
@@ -803,6 +870,7 @@ namespace UnionMpvPlayer.Views
                 if (result && layerDialog.SelectedLayer != null)
                 {
                     var frameRate = layerDialog.FrameRateInput.Text;
+                    DisableNotesForImageSequence();
                     await HandleEXRSequence(selectedFile, layerDialog.SelectedLayer, frameRate);
                 }
             }
@@ -1263,9 +1331,11 @@ namespace UnionMpvPlayer.Views
         {
             try
             {
-                await Dispatcher.UIThread.InvokeAsync(() => {
-                    ProcessingProgressBar.Value = 0;
-                });
+                Debug.WriteLine("PlayImageSequence started");
+                DisableNotesForImageSequence();
+                //await Dispatcher.UIThread.InvokeAsync(() => {
+                //    ProcessingProgressBar.Value = 0;
+                //});
                 ChangeCancelButtonBackground();
 
                 if (mpvHandle == IntPtr.Zero)
@@ -1314,6 +1384,7 @@ namespace UnionMpvPlayer.Views
                     //Debug.WriteLine($"Failed to load image sequence: error code {result}");
                     return;
                 }
+                SeekToStart();
                 bool success = await WaitForDurationAndInitialize();
                 if (success)
                 {
@@ -1330,6 +1401,7 @@ namespace UnionMpvPlayer.Views
                         //Debug.WriteLine("Successfully started playback of image sequence");
                         _ = UpdatePlayPauseIcon();
                     }
+                    
                 }
                 else
                 {
@@ -1716,149 +1788,72 @@ namespace UnionMpvPlayer.Views
         }
 
 
-        // Handle Slider Movement
-        private void SpeedSlider_PointerMoved(object? sender, PointerEventArgs e)
-        {
-            if (sender is Slider slider)
-            {
-                double sliderValue = slider.Value;
-                //Debug.WriteLine($"Slider Value: {sliderValue}");
+        // Note Panel Buttons
 
-                if (sliderValue == 0)
+        public void NotesButton_Click(object? sender, RoutedEventArgs e)
+        {
+            ToggleNotesPanel();
+        }
+
+        private void NotesView_ToggleClicked(object? sender, EventArgs e)
+        {
+            ToggleNotesPanel();
+        }
+
+        private void ToggleNotesPanel()
+        {
+            if (_notesView != null && NotesColumn != null)
+            {
+                bool isVisible = !_notesView.IsVisible;
+
+                // Update NotesView
+                _notesView.IsVisible = isVisible;
+                _notesView.UpdateToggleButtonIcon(isVisible);
+
+                // Update column width
+                NotesColumn.Width = isVisible
+                    ? new GridLength(400)
+                    : new GridLength(0);
+
+                // Update toggle button visibility
+                if (_notesToggleButton != null)
                 {
-                    // Neutral (Zero state), stop seeking
-                    StopSliderActions();
+                    _notesToggleButton.IsVisible = !isVisible;
                 }
-                else
+
+                if (NotesSplitter != null)
                 {
-                    // Determine speed step based on slider value
-                    double speedStep = GetSpeedStep(sliderValue);
-                    StartSliderActions(speedStep);
+                    NotesSplitter.IsEnabled = isVisible;
+                    NotesSplitter.IsVisible = isVisible;
                 }
+
+                Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    await Task.Delay(0);
+                    UpdateChildWindowBounds();
+                    OnVideoModeChanged();
+                });
             }
         }
 
-        // Handle Slider Release
-        private void SpeedSlider_PointerReleased(object? sender, PointerReleasedEventArgs e)
+        private void NotesSplitter_DragDelta(object? sender, VectorEventArgs e)
         {
-            if (sender is Slider slider)
+            ThrottleDispatcher.Throttle(200, () =>
             {
-                slider.Value = 0; // Reset slider to neutral position
-                StopSliderActions();
-            }
-        }
-
-
-        // Start Slider Actions
-
-        private double GetSpeedStep(double sliderValue)
-        {
-
-            return sliderValue switch
-            {
-                0 => 0,                  
-                > 0 => sliderValue / 6, 
-                < 0 => sliderValue / 6,  
-                _ => 0                    
-            };
-        }
-
-        private void StartSliderActions(double sliderValue)
-        {
-            StopSliderActions();
-
-            if (sliderValue == 0) return; 
-
-            if (originalPausedState == null)
-            {
-                originalPausedState = MPVInterop.GetStringProperty(mpvHandle, "pause");
-                //Debug.WriteLine($"Saved original paused state: {originalPausedState}");
-
-                if (originalPausedState == "no")
+                Dispatcher.UIThread.InvokeAsync(() =>
                 {
-                    MPVInterop.mpv_command(mpvHandle, new[] { "set", "pause", "yes" }); 
-                    //Debug.WriteLine("Paused MPV for seeking.");
-                }
-            }
-
-            double speedStep = GetSpeedStep(sliderValue);
-
-            _speedTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromMilliseconds(10) // Adjust for smoothness
-            };
-
-            _speedTimer.Tick += (s, e) =>
-            {
-                MPVInterop.mpv_command(mpvHandle, new[] { "seek", speedStep.ToString("F6"), "relative" });
-                //Debug.WriteLine($"Seeking with Speed Step: {speedStep}");
-            };
-
-            _speedTimer.Start();
+                    OnVideoModeChanged();
+                });
+            });
         }
 
-        private void SpeedEnable_Click(object? sender, RoutedEventArgs e)
+        private void NotesSplitter_DragCompleted(object? sender, VectorEventArgs e)
         {
-            var speedSlider = this.FindControl<Slider>("SpeedSlider");
-            var speedButton = this.FindControl<Button>("SpeedButton"); 
-            if (speedSlider != null)
+            Dispatcher.UIThread.InvokeAsync(() =>
             {
-                speedSlider.IsEnabled = !speedSlider.IsEnabled;
-                speedSlider.Value = 0;
-
-                if (!speedSlider.IsEnabled)
-                {
-                    StopSliderActions();
-                }
-
-                //Debug.WriteLine($"SpeedSlider is now {(speedSlider.IsEnabled ? "enabled" : "disabled")}");
-
-                if (speedButton != null)
-                {
-                    speedButton.Opacity = speedSlider.IsEnabled ? 1.0 : 0.3;
-                    //Debug.WriteLine($"SpeedButton Opacity updated: {speedButton.Opacity}");
-                }
-                else
-                {
-                   // Debug.WriteLine("SpeedButton not found");
-                }
-            }
-            else
-            {
-                //Debug.WriteLine("SpeedSlider not found");
-            }
+                OnVideoModeChanged();
+            });
         }
-
-        // Stop Slider Actions
-
-        private void StopSliderActions()
-        {
-            _speedTimer?.Stop();
-            _speedTimer = null;
-
-            _progressiveTimer?.Stop();
-            _progressiveTimer = null;
-
-            if (originalPausedState != null)
-            {
-                MPVInterop.mpv_command(mpvHandle, new[] { "set", "pause", originalPausedState });
-                //Debug.WriteLine($"Restored original paused state: {originalPausedState}");
-                originalPausedState = null;
-            }
-
-            //Debug.WriteLine("Stopped slider actions.");
-        }
-
-
-        private void StopSliderActionsNoCheck()
-        {
-            _speedTimer?.Stop();
-            _speedTimer = null;
-
-
-            Debug.WriteLine("Stopped slider actions.");
-        }
-
 
         // Buttons
 
@@ -1938,7 +1933,7 @@ namespace UnionMpvPlayer.Views
 
                 // Add fixed padding if necessary
                 const int SystemTitlebarHeight = 30; // Adjust for platform-specific titlebars
-                const int SystemBorderHeight = 8;    // Optional: borders
+                const int SystemBorderHeight = 2;    // Optional: borders
                 chromeHeight = Math.Max(chromeHeight, SystemTitlebarHeight + SystemBorderHeight);
 
                 // Calculate offsets
@@ -1992,7 +1987,6 @@ namespace UnionMpvPlayer.Views
             }
         }
 
-
         private void ResizeToHalfScreenSize_Click(object? sender, RoutedEventArgs e)
         {
             try
@@ -2042,7 +2036,6 @@ namespace UnionMpvPlayer.Views
         }
 
 
-
         private async void ImageSeq_Click(object sender, RoutedEventArgs e)
         {
             var openFileDialog = new OpenFileDialog
@@ -2059,7 +2052,6 @@ namespace UnionMpvPlayer.Views
                 await HandleImageSequence(filePaths[0]);
             }
         }
-
 
         private async void PhotoFilter_Click(object? sender, RoutedEventArgs e)
         {
@@ -2108,56 +2100,49 @@ namespace UnionMpvPlayer.Views
             popup.ShowDialog(this);
         }
 
-        private void PlayButton_Click(object sender, Avalonia.Interactivity.RoutedEventArgs e)
+        private async void PlayButton_Click(object sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
             try
             {
                 if (mpvHandle == IntPtr.Zero)
                 {
-                    Debug.WriteLine("MPV handle is not initialized");
+                    //Debug.WriteLine("MPV handle is not initialized");
                     return;
                 }
 
-                // Cycle pause state in MPV
+                bool wasPaused = (MPVInterop.GetStringProperty(mpvHandle, "pause") == "yes");
+                var currentPosition = MPVInterop.GetDoubleProperty(mpvHandle, "time-pos");
+
+                // Cycle mpv's pause state (toggle play/pause)
                 var args = new[] { "cycle", "pause" };
                 int result = MPVInterop.mpv_command(mpvHandle, args);
 
                 if (result < 0)
                 {
-                    Debug.WriteLine($"MPV Error: {MPVInterop.GetError(result)}");
+                    //Debug.WriteLine($"MPV Error: {MPVInterop.GetError(result)}");
                     EnsureCorrectWindowOrder();
                 }
-                else
-                {
-                    // Check if SpeedSlider is enabled
-                    var speedSlider = this.FindControl<Slider>("SpeedSlider");
-                    if (speedSlider != null)
-                    {
-                        if (speedSlider.IsEnabled)
-                        {
-                            Debug.WriteLine("SpeedSlider is enabled. Toggling with SpeedEnable_Click.");
-                            SpeedEnable_Click(speedSlider, new Avalonia.Interactivity.RoutedEventArgs());
-                        }
-                        else
-                        {
-                            Debug.WriteLine("SpeedSlider is already disabled.");
-                        }
-                    }
-                    else
-                    {
-                        Debug.WriteLine("SpeedSlider not found");
-                    }
-                }
+                //else if (wasPaused)
+                //{
+                //    PlaybackStarted?.Invoke(this, EventArgs.Empty);
+
+                //    if (_notesView?.IsOverlayActive() == true && currentPosition.HasValue)
+                //    {
+                //        _notesView.ApplyImageOverlay(null, false);
+
+                //        ShowMpvWindow();
+                //    }
+                //}
+                ShowMpvWindow();
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error in PlayButton_Click: {ex.Message}");
+                //Debug.WriteLine($"Error in PlayButton_Click: {ex.Message}");
             }
         }
 
 
-
-        private async Task UpdatePlayPauseIcon()
+        public async Task UpdatePlayPauseIcon()
         {
             var isPaused = GetPropertyAsInt("pause");
             if (isPaused.HasValue && playButton?.Content is AvaloniaPath playPausePath)
@@ -2206,22 +2191,25 @@ namespace UnionMpvPlayer.Views
             }
         }
 
-        private void ToStartButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs? e)
+        private void SeekToStart()
         {
             if (mpvHandle != IntPtr.Zero)
             {
-                var args = new[] { "seek", "0", "absolute" }; // Seek to the beginning
-                int result = MPVInterop.mpv_command(mpvHandle, args);
+                var result = MPVInterop.mpv_command(mpvHandle, new[] { "seek", "0", "absolute" });
                 if (result < 0)
                 {
-                    //Debug.WriteLine($"Seek to start failed with error: {MPVInterop.GetError(result)}");
-                }
-                else
-                {
-                    //Debug.WriteLine("Successfully navigated to the beginning of the video.");
-                    _ = UpdatePlayPauseIcon();
+                    Debug.WriteLine($"Failed to seek to start: {result}");
                 }
             }
+            else
+            {
+                Debug.WriteLine("mpvHandle is not initialized.");
+            }
+        }
+
+        private void ToStartButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs? e)
+        {
+            SeekToStart();
         }
 
         private void ToEndButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs? e)
@@ -2823,6 +2811,11 @@ namespace UnionMpvPlayer.Views
 
         private void MainWindow_KeyDown(object? sender, KeyEventArgs e)
         {
+            if (_notesView != null && _notesView.IsEditingNote())
+            {
+                return;
+            }
+
             var keyBinding = KeyBindings.FirstOrDefault(kb => kb.Key.Equals(e.Key.ToString(), StringComparison.OrdinalIgnoreCase));
             if (keyBinding != null)
             {
@@ -2898,6 +2891,18 @@ namespace UnionMpvPlayer.Views
                         if (_playlistView != null)
                         {
                             RemovePlaylistButton_Click(null, null);
+                        }
+                        break;
+                    case "Toggle Notes":
+                        if (_notesView != null)
+                        {
+                            NotesButton_Click(null, null);
+                        }
+                        break;
+                    case "Add New Note":
+                        if (_notesView != null && _notesView.IsVisible && !_notesView.IsDisabledForImageSequence())
+                        {
+                            Dispatcher.UIThread.InvokeAsync(() => _notesView.AddNewNote());
                         }
                         break;
                     case "Progressive Backward Speed (Key Hold)":
@@ -3305,9 +3310,14 @@ namespace UnionMpvPlayer.Views
         {
             try
             {
-                await Dispatcher.UIThread.InvokeAsync(() => {
-                    ProcessingProgressBar.Value = 0;
-                });
+                if (_notesView != null)
+                {
+                    _notesView.EnableNotes();
+                }
+
+                //await Dispatcher.UIThread.InvokeAsync(() => {
+                //    ProcessingProgressBar.Value = 0;
+                //});
                 ChangeCancelButtonBackground();
 
                 if (mpvHandle == IntPtr.Zero)
@@ -3401,6 +3411,10 @@ namespace UnionMpvPlayer.Views
                 {
                     //Debug.WriteLine("Failed to initialize duration");
                 }
+                if (_notesView != null && _notesView.IsVisible)
+                {
+                    await _notesView.LoadExistingNotes();
+                }
             }
             catch (Exception ex)
             {
@@ -3447,7 +3461,7 @@ namespace UnionMpvPlayer.Views
             }
         }
 
-        private async Task WaitForFileLoadedAndSeek()
+        public async Task WaitForFileLoadedAndSeek()
         {
             try
             {
@@ -3524,7 +3538,7 @@ namespace UnionMpvPlayer.Views
                 SetMpvOption("input-default-bindings", "no");
                 SetMpvOption("cursor-autohide", "no");
                 SetMpvOption("keepaspect", "yes");
-                SetMpvOption("volume", "100");
+                SetMpvOption("volume", "80");
                 //Debug.WriteLine("MPV options set successfully");
 
                 int result = MPVInterop.mpv_initialize(mpvHandle);
@@ -3617,12 +3631,19 @@ namespace UnionMpvPlayer.Views
             {
                 if (videoContainer.GetVisualRoot() is Window window)
                 {
+                    var scaling = window.RenderScaling;
+
+                    if (_mpvHidden)
+                    {
+                        MoveWindow(childWindowHandle, 0, 0, 1, 1, true);
+                        return;
+                    }
+
                     var containerBounds = videoContainer.Bounds;
                     var containerPosition = videoContainer.TranslatePoint(new Avalonia.Point(0, 0), window);
 
                     if (containerPosition.HasValue)
                     {
-                        var scaling = window.RenderScaling;
                         var x = (int)(containerPosition.Value.X * scaling);
                         var y = (int)(containerPosition.Value.Y * scaling);
                         var width = (int)(containerBounds.Width * scaling);
@@ -3670,5 +3691,6 @@ namespace UnionMpvPlayer.Views
 
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool DestroyWindow(IntPtr hWnd);
+
     }
 }

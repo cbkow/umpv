@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core;
 using Avalonia.Data.Core.Plugins;
+using Avalonia.ReactiveUI;
 using Avalonia.Markup.Xaml;
 using UnionMpvPlayer.ViewModels;
 using UnionMpvPlayer.Views;

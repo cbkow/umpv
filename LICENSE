@@ -19,6 +19,14 @@ This application is licensed under the GNU General Public License v3.0 (GPL-3.0)
 4. **OpenImageIO**
    - License:  Apache 2.0
    - Used as an external tool and distributed alongside this application.
+
+5. **Pandoc**
+   - License:  GPL v3
+   - Used as an external tool and distributed alongside this application.
+
+6. **wkhtmltopdf**
+   - License:  GPL v3
+   - Used as an external tool and distributed alongside this application.
  
 
 Full license texts are available in the `licenses/` folder.

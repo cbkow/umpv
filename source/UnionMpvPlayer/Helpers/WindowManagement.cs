@@ -57,7 +57,7 @@ namespace UnionMpvPlayer.Helpers
         {
             SetWindowPos(
                 windowHandle,
-                IntPtr.Zero,   // Don't change Z-order
+                IntPtr.Zero,  
                 x, y,
                 width, height,
                 SWP_NOACTIVATE | SWP_SHOWWINDOW
