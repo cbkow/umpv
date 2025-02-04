@@ -58,7 +58,7 @@ This app function will run a Powershell script that adds the necessary registry 
 
 ### Sidebars and annotations
 
-![full interface](umpv012.jpg)
+![full interface](images/umpv012.jpg)
 
 ![annotation](images/umpv011.jpg)
 Adjust line width, Select colors (before you select the tool), Pen, Erase, Arrow, Textbox, Undo, Redo, Revert to original image, Save edits/annotations, Close.
