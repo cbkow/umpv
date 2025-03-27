@@ -16,7 +16,7 @@ namespace UnionMpvPlayer.Views
         public event EventHandler<string>? OpenFileRequested;
         public event EventHandler<string>? OpenFolderRequested;
 
-        public ExportCompletePopup()
+        public ExportCompletePopup(bool hideOpenButton = false)
         {
             Width = 370;
             Height = 105;
@@ -52,13 +52,24 @@ namespace UnionMpvPlayer.Views
                 Spacing = 10
             };
 
-            var openButton = new Button
+            if (!hideOpenButton)
             {
-                Content = "Open",
-                HorizontalContentAlignment = HorizontalAlignment.Center,
-                Width = 100,
-                Height = 30
-            };
+                var openButton = new Button
+                {
+                    Content = "Open",
+                    HorizontalContentAlignment = HorizontalAlignment.Center,
+                    Width = 100,
+                    Height = 30
+                };
+
+                openButton.Click += (s, e) =>
+                {
+                    OpenFileRequested?.Invoke(this, Tag as string ?? string.Empty);
+                    Close();
+                };
+
+                buttonStack.Children.Add(openButton);
+            }
 
             var openFolderButton = new Button
             {
@@ -70,16 +81,10 @@ namespace UnionMpvPlayer.Views
 
             var cancelButton = new Button
             {
-                Content = "Cancel",
+                Content = "Close",
                 HorizontalContentAlignment = HorizontalAlignment.Center,
                 Width = 100,
                 Height = 30
-            };
-
-            openButton.Click += (s, e) =>
-            {
-                OpenFileRequested?.Invoke(this, Tag as string ?? string.Empty);
-                Close();
             };
 
             openFolderButton.Click += (s, e) =>
@@ -90,13 +95,11 @@ namespace UnionMpvPlayer.Views
 
             cancelButton.Click += (s, e) => Close();
 
-            buttonStack.Children.Add(openButton);
             buttonStack.Children.Add(openFolderButton);
             buttonStack.Children.Add(cancelButton);
 
             Grid.SetRow(messageText, 0);
             Grid.SetRow(buttonStack, 1);
-
             grid.Children.Add(messageText);
             grid.Children.Add(buttonStack);
 

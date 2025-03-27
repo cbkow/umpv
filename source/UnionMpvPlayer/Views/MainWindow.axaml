@@ -1,21 +1,25 @@
-<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="using:UnionMpvPlayer.ViewModels"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:views="clr-namespace:UnionMpvPlayer.Views"
-        x:Class="UnionMpvPlayer.Views.MainWindow"
-        x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/union.ico"
-		TransparencyLevelHint="None"
-        Background="Black"
-        WindowStartupLocation="CenterScreen"
-        Title="{Binding TopTitle}"
-        Width="1130"
-        Height="764"
-		Focusable="True"
-		KeyDown="MainWindow_KeyDown"
-        KeyUp="MainWindow_KeyUp">
+<Window
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:UnionMpvPlayer.ViewModels"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:views="clr-namespace:UnionMpvPlayer.Views"
+    x:Class="UnionMpvPlayer.Views.MainWindow"
+    x:DataType="vm:MainWindowViewModel"
+    Icon="/Assets/union.ico"
+    TransparencyLevelHint="AcrylicBlur,Blur"
+    Background="Transparent"
+    WindowStartupLocation="CenterScreen"
+    ExtendClientAreaToDecorationsHint="True"
+    ExtendClientAreaChromeHints="NoChrome"
+    ExtendClientAreaTitleBarHeightHint="40"
+    Title="{Binding TopTitle}"
+    Width="1130"
+    Height="766"
+    Focusable="True"
+    KeyDown="MainWindow_KeyDown"
+    KeyUp="MainWindow_KeyUp">
 
 	<Window.Styles>
 		<Style Selector="Slider.thickslider">
@@ -121,652 +125,800 @@
 
 	</Window.Styles>
 
-	<Grid x:Name="MainGrid">
-		<Grid.ColumnDefinitions>
-			<!-- Playlist Panel -->
-			<ColumnDefinition Width="0"/>
-			<ColumnDefinition Width="1"/>
-			<!-- Main Content -->
-			<ColumnDefinition Width="*"/>
-			<!-- Notes Panel Splitter -->
-			<ColumnDefinition Width="1"/>
-			<!-- Notes Panel -->
-			<ColumnDefinition Width="0"/>
-		</Grid.ColumnDefinitions>
+	<Border x:Name="MainBorder" BorderThickness="2" CornerRadius="8" Padding="0,4" Background="{DynamicResource SystemChromeLowColor}">
 
-		<views:PlaylistView x:Name="PlaylistView"
-							Grid.Column="0"
-							MinWidth="60"
-							HorizontalAlignment="Stretch"
-							IsVisible="False"/>
-
-		<GridSplitter x:Name="PlaylistSplitter"
-					  Grid.Column="1"
-					  Width="1"
-					  Background="{DynamicResource SystemChromeLowColor}"
-					  ResizeDirection="Columns"
-					  IsEnabled="False"
-					  IsVisible="False"
-					  DragDelta="PlaylistSplitter_DragDelta"
-					  DragCompleted="PlaylistSplitter_DragCompleted" />
-		
-		<Grid Grid.Column="2">
+		<Grid>
 			<Grid.RowDefinitions>
-				<RowDefinition Height="Auto"/>
-				<RowDefinition Height="*"/>
-				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="35" />
+				<!-- Custom Title Bar -->
+				<RowDefinition Height="*" />
+				<!-- Main App Content -->
 			</Grid.RowDefinitions>
-			<!-- Top Menu -->
-			<Grid x:Name="Topmenu" VerticalAlignment="Center" Grid.Row="0" Background="{DynamicResource SystemChromeLowColor}" >
-				<Grid.ColumnDefinitions>
-					<ColumnDefinition Width="Auto"/>
-					<ColumnDefinition Width="*"/>
-				</Grid.ColumnDefinitions>
-				<Menu Grid.Column="0" Height="35" Padding="10,2,10,2" Background="{DynamicResource SystemChromeLowColor}">
-				
-					<MenuItem Header="_File" Padding="10,2,10,2" CornerRadius="2"
-								Foreground="{DynamicResource SystemBaseMediumHighColor}" FontSize="12">
-						<MenuItem x:Name="OpenMenuItem" Header="_Open Video" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"/>
-						<MenuItem x:Name="OpenURLMenuItem" Header="_Open URL" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0"
-									Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="OnOpenUrlPopupClick" />
-						<MenuItem x:Name="OpenImageSeq" Header="_Open Image Seq" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0"
-									Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="ImageSeq_Click" />
-						<MenuItem x:Name="OpenEXRSeq" Header="_Open EXR (Multi) Seq" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0"
-									Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="OpenEXRSequence_Click" />
-						<MenuItem x:Name="InfoMenuButton" Header="_Info" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0"
-									Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="InfoButton_Click" />
-					</MenuItem>
-				
-					<MenuItem Header="_Speed" Padding="10,2,10,2" CornerRadius="2"
-								Foreground="{DynamicResource SystemBaseMediumHighColor}" FontSize="12">
-						<MenuItem x:Name="FF40" Header="_5x" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="OnFF40Click" />
-						<MenuItem x:Name="FF20" Header="_3x" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="OnFF20Click" />
-						<MenuItem x:Name="FF05" Header="_1.5x" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="OnFF05Click" />
-						<MenuItem x:Name="FF025" Header="_1.25x" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="OnFF025Click" />
-						<MenuItem x:Name="speedReset" Header="_Normal" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="OnSpeedResetClick" />
-					</MenuItem>
 
-					<MenuItem Header="_Subtitles" Padding="10,2,10,2" CornerRadius="2"
-								Foreground="{DynamicResource SystemBaseMediumHighColor}" FontSize="12">
-						<MenuItem x:Name="ToggleSubtitle" Header="_Toggle" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="ToggleSubtitle_Click" />
-						<MenuItem x:Name="LoadSubtitle" Header="_Load" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="LoadSubtitle_Click" />
-						<MenuItem x:Name="DecreaseSubFont" Header="_Size [-]" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="DecreaseSubFont_Click" />
-						<MenuItem x:Name="IncreaseSubFont" Header="_Size [+]" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="IncreaseSubFont_Click" />
-					</MenuItem>
-				
-					<MenuItem Header="_Screenshot" Padding="10,2,10,2" CornerRadius="2"
-								Foreground="{DynamicResource SystemBaseMediumHighColor}" FontSize="12">
-						<MenuItem x:Name="ScreenShotClipboard" Header="_Clipboard" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="CameraButton_Click" />
-						<MenuItem x:Name="ScreenShotDesktop" Header="_Desktop" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="ScreenShotDesktop_Click" />
-					</MenuItem>
+			<!-- Custom Title Bar -->
+			<Border Grid.Row="0"
+					x:Name="CustomTitleBar"
+					Cursor="Hand"
+					Background="{DynamicResource SystemChromeLowColor}"
+					PointerPressed="TitleBar_PointerPressed">
+				<Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center" Margin="8,0,8,0">
+					<!-- App Icon -->
+					<Image Source="/Assets/union.ico"
+						   Width="20" Height="20"
+						   VerticalAlignment="Center"/>
 
-					<MenuItem Header="_Color" Padding="10,2,10,2" CornerRadius="2"
-								Foreground="{DynamicResource SystemBaseMediumHighColor}" FontSize="12">
-						<MenuItem x:Name="noColor" Header="_None/Reset" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="noColor_Click" />
-						<MenuItem x:Name="sRGBfolder" Header="_Convert to sRGB" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}">
-							<MenuItem x:Name="sRGB_rec709" Header="_rec.709" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="sRGB_rec709_Click" />
-							<MenuItem x:Name="sRGB_ACES2065_1" Header="_ACES2065-1" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="sRGB_ACES2065_1_Click" />
-							<MenuItem x:Name="sRGB_ACEScg" Header="_ACEScg" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="sRGB_ACEScg_Click" />
-							<MenuItem x:Name="sRGB_AGX" Header="_AGX" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="sRGB_AGX_Click" />
-							<MenuItem x:Name="sRGB_Linear" Header="_Linear(rec.709/sRGB)" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="sRGB_Linear_Click" />
-							<MenuItem x:Name="sRGB_ArriLogc3" Header="_Arri LogC3" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="sRGB_ArriLogc3_Click" />
-							<MenuItem x:Name="sRGB_ArriLogc4" Header="_Arri LogC4" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="sRGB_ArriLogc4_Click" />
-							<MenuItem x:Name="sRGB_CanonLog3" Header="_Canon Log3" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="sRGB_CanonLog3_Click" />
-							<MenuItem x:Name="sRGB_PanasonicVlog" Header="_Panasonic V-log" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="sRGB_PanasonicVlog_Click" />
-							<MenuItem x:Name="sRGB_RedLog3G10" Header="_Red Log3G10" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="sRGB_RedLog3G10_Click" />
-							<MenuItem x:Name="sRGB_SonySlog3" Header="_Sony S-log3" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="sRGB_SonySlog3_Click" />
-							<MenuItem x:Name="sRGB_SonyVeniceSlog3" Header="_Sony Venice S-log3" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="sRGB_SonyVeniceSlog3_Click" />
-						</MenuItem>
-					
-						<MenuItem x:Name="rec709folder" Header="_Convert to rec.709" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}">
-							<MenuItem x:Name="rec709_ACES2065_1" Header="_ACES2065-1" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="rec709_ACES2065_1_Click" />
-							<MenuItem x:Name="rec709_ACEScg" Header="_ACEScg" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="rec709_ACEScg_Click" />
-							<MenuItem x:Name="rec709_AGX" Header="_AGX" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="rec709_AGX_Click" />
-							<MenuItem x:Name="rec709_Linear" Header="_Linear(rec.709/sRGB)" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="rec709_Linear_Click" />
-							<MenuItem x:Name="rec709_ArriLogc3" Header="_Arri LogC3" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="rec709_ArriLogc3_Click" />
-							<MenuItem x:Name="rec709_ArriLogc4" Header="_Arri LogC4" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="rec709_ArriLogc4_Click" />
-							<MenuItem x:Name="rec709_CanonLog3" Header="_Canon Log3" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="rec709_CanonLog3_Click" />
-							<MenuItem x:Name="rec709_PanasonicVlog" Header="_Panasonic V-log" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="rec709_PanasonicVlog_Click" />
-							<MenuItem x:Name="rec709_RedLog3G10" Header="_Red Log3G10" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="rec709_RedLog3G10_Click" />
-							<MenuItem x:Name="rec709_SonySlog3" Header="_Sony S-log3" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="rec709_SonySlog3_Click" />
-							<MenuItem x:Name="rec709_SonyVeniceSlog3" Header="_Sony Venice S-log3" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="rec709_SonyVeniceSlog3_Click" />
-						</MenuItem>
-					</MenuItem>
-					
-					<MenuItem Header="_Sidebars" Padding="10,2,10,2" CornerRadius="2"
-								Foreground="{DynamicResource SystemBaseMediumHighColor}" FontSize="12">
-						<MenuItem x:Name="OpenPlaylistMenu" Header="_Playlist" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="PlaylistButton_Click" />
-						<MenuItem x:Name="OpenNotesMenu" Header="_Notes" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="NotesButton_Click" />
-					</MenuItem>
+					<!-- Title Text -->
+					<TextBlock Grid.Column="1"
+							   Text="{Binding TopTitle}"
+							   VerticalAlignment="Center"
+							   Foreground="{DynamicResource SystemBaseMediumColor}"
+							   FontSize="12"
+							   FontWeight="SemiBold"
+							   Margin="10,0"/>
 
-					<MenuItem Header="_Size" Padding="10,2,10,2" CornerRadius="2"
-								Foreground="{DynamicResource SystemBaseMediumHighColor}" FontSize="12">
-						<MenuItem x:Name="Trigger1to1mode" Header="_1:1 Video Size" Padding="10,8,10,8"
-										CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-										Click="ResizeToPixelRatio_Click" />
-						<MenuItem x:Name="Trigger50percentMode" Header="_50% of Screen Size" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="ResizeToHalfScreenSize_Click" />
-						<MenuItem x:Name="TriggerFullScreen" Header="_FullScreen" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="FullScreenButton_Click" />
-					</MenuItem>
-
-					<MenuItem Header="_Safety Guides" Padding="10,2,10,2" CornerRadius="2"
-							  Foreground="{DynamicResource SystemBaseMediumHighColor}" FontSize="12">
-						<MenuItem x:Name="TitleSafetyMenuButton" Header="_16:9 Broadcast" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="SafetyButton_Click" />
-						<MenuItem x:Name="TitleSafetyMenuButtonMetaReel9x16" Header="_9:16 Meta Reel" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="SafetyButton_MetaReel9x16_Click" />
-						<MenuItem x:Name="TitleSafetyMenuButtonMetaStory9x16" Header="_9:16 Meta Story" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="SafetyButton_MetaStory9x16_Click" />
-						<MenuItem x:Name="TitleSafetyMenuButtonPinterest9x16" Header="_9:16 Pinterest" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="SafetyButton_Pinterest9x16_Click" />
-						<MenuItem x:Name="TitleSafetyMenuButtonPinterest1x1" Header="_1:1 Pinterest Premium Spotlight" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="SafetyButton_Pinterest1x1PremiumSpotlight_Click" />
-						<MenuItem x:Name="TitleSafetyMenuButtonSnapChat9x16" Header="_9:16 Snapchat" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="SafetyButton_Snapchat9x16_Click" />
-						<MenuItem x:Name="TitleSafetyMenuButtonTikTok9x16" Header="_9:16 TikTok" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="SafetyButton_TikTok9x16_Click" />
-						<MenuItem x:Name="TitleSafetyMenuButtonYoutube1x1" Header="_1:1 Youtube" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="SafetyButton_Youtube1x1_Click" />
-						<MenuItem x:Name="TitleSafetyMenuButtonYoutub9x16" Header="_9:16 Youtube" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="SafetyButton_Youtube9x16_Click" />
-						<MenuItem x:Name="TitleSafetyMenuButtonYoutub16x9" Header="_16:9 Youtube" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="SafetyButton_Youtube16x9_Click" />
-						<MenuItem x:Name="TitleSafetyMenuButtonYoutubMasthead16x9" Header="_16:9 Youtube Masthead" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="SafetyButton_Youtube16x9MastHead_Click" />
-					</MenuItem>
-					
-					<MenuItem Header="_App" Padding="10,2,10,2" CornerRadius="2"
-								Foreground="{DynamicResource SystemBaseMediumHighColor}" FontSize="12">
-						<MenuItem x:Name="SettingsMenuButton" Header="_Keyboard Bindings" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0"
-									Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="SettingsButton_Click" />
-						<MenuItem x:Name="RegistryMenuButton" Header="_Install Registry" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0"
-									Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="RegistryButton_Click" />
-						<MenuItem x:Name="EXRsettingsMenuButton" Header="_EXR Cache Settings" Padding="10,8,10,8"
-									CornerRadius="1" Margin="4,0,4,0"
-									Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Click="OpenCacheSettings_Click" />
-						<MenuItem Header="_Exit" Padding="10,5,10,5"
-									CornerRadius="1"
-									Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Margin="4,0,4,0"
-									Click="OnExitMenuItemClick" />
-					</MenuItem>
-					<MenuItem Header="|" Padding="14,2,10,2" CornerRadius="2" FontSize="12" Foreground="{DynamicResource SystemBaseMediumLowColor}" IsEnabled="False"/>
-					<MenuItem Header="_Stop + Reset" Padding="10,2,10,2" CornerRadius="2" ToolTip.Tip="Clear cache + reset umpv"
-							  HorizontalAlignment="Right"
-								Foreground="{DynamicResource SystemBaseLowColor}" FontSize="12" Click="CancelProcessing_Click"/>
-
-				</Menu>
-
-			</Grid>
-		
-			<!-- Bottom Toolbar -->
-			<StackPanel Grid.Row="2"
-						x:Name="BottomToolbar"
-						Orientation="Vertical"
-						Spacing="0"
-						Background="{DynamicResource SystemChromeLowColor}">
-				
-				<Grid VerticalAlignment="Center" Margin="0,10,0,0">
-					<Grid.ColumnDefinitions>
-						<ColumnDefinition Width="Auto"/>
-						<ColumnDefinition Width="*"/>
-						<ColumnDefinition Width="Auto"/>
-					</Grid.ColumnDefinitions>
-					<StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Spacing="5">
-						<TextBlock Text="T"
-									FontSize="10"
-									Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Margin="16,0,5,0"
-									VerticalAlignment="Center" />
-						<TextBlock Name="CurrentTimeTextBlock"
-									FontSize="12"
-									Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Margin="0,1,0,0"
-									FontFamily="Courier New, Consolas, Monospace"
-									VerticalAlignment="Center" />
-					</StackPanel>
-
-					<StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="5">
-						<TextBlock Name="CurrentFrameTextBlock"
-									FontSize="12"
-									Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Margin="5,1,0,0"
-									FontFamily="Courier New, Consolas, Monospace"
-									VerticalAlignment="Center" />
-						<TextBlock Text="F"
-									FontSize="10"
-									Foreground="{DynamicResource SystemBaseMediumHighColor}"
-									Margin="3,0,16,0"
-									VerticalAlignment="Center" />
-					</StackPanel>
-				</Grid>
-
-				<Slider x:Name="PlaybackSlider"
-						Classes="thickslider"
-						Cursor="Hand"
-						Orientation="Horizontal"
-						HorizontalAlignment="Stretch"
-						Minimum="0"
-						Height="30"
-						Margin="10,-4,10,0"
-						IsSnapToTickEnabled="False"
-						SmallChange="0.042"
-						LargeChange="0.25"
-						TickFrequency="0.042"/>
-
-				<Grid>
-					<Grid.ColumnDefinitions>
-						<ColumnDefinition Width="*"/>
-						<ColumnDefinition Width="Auto"/>
-						<ColumnDefinition Width="*"/>
-					</Grid.ColumnDefinitions>
-
-					<!-- Left Column -->
-					<StackPanel Grid.Column="0" Margin="0,-3,0,-3" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
-
-						<!-- Playlist Toggle Button -->
-						<Button x:Name="PlaylistToggle"
-								ToolTip.Tip="Toggle Playlist"
-								Cursor="Hand"
-								Background="Transparent"
-								Width="33"
-								Height="33"
-								Margin="10,0,0,10"
-								Padding="8,8,8,8"
-								VerticalContentAlignment="Center"
-								IsVisible="True"
-								Click="PlaylistButton_Click">
-							<Path Data="{DynamicResource list_regular}"
-									Fill="{DynamicResource SystemBaseHighColor}"
-									Stretch="Uniform" />
-						</Button>
-
-						<!-- Looping Toggle Button -->
-						<Button x:Name="LoopingButton"
-								Background="Transparent"
-								Cursor="Hand"
-								Width="33"
-								Height="33"
-								Margin="8,0,0,10"
-								Padding="8,8"
-								ToolTip.Tip="Toggle Video Looping"
-								VerticalContentAlignment="Center"
-								Click="LoopingButton_Click">
-							<Path x:Name="LoopingPath"
-									Data="{DynamicResource arrow_repeat_all_off_regular}"
-									Fill="{DynamicResource SystemBaseHighColor}"
-									Stretch="Uniform" />
-						</Button>
-
-
-						<!-- Photo Filter Button -->
-						<Button x:Name="PhotoFilterButton"
-								Background="Transparent"
-								Cursor="Hand"
-								ToolTip.Tip="Toggle rec.709 to sRGB"
-								Width="33"
-								Height="33"
-								Margin="8,0,0,10"
-								Padding="8,8"
-								VerticalContentAlignment="Center"
-								Click="PhotoFilter_Click">
-							<Path x:Name="PhotoFilterIcon"
-									Data="{DynamicResource photo_filter_regular}"
-									Fill="{DynamicResource SystemBaseHighColor}"
-									Stretch="Uniform" />
-						</Button>
-
-						<!-- Safety Button -->
-						<Button x:Name="SafetyButton"
-								Background="Transparent"
-								Cursor="Hand"
-								ToolTip.Tip="Broadcast title/action safety"
-								Width="33"
-								Height="33"
-								Margin="8,0,0,10"
-								Padding="8,8"
-								VerticalContentAlignment="Center"
-								Click="SafetyButton_Click">
-							<Path Data="{DynamicResource resize_regular}"
-									Fill="{DynamicResource SystemBaseHighColor}"
-									Stretch="Uniform" />
-						</Button>
-
-						<Button x:Name="InfoButton"
-								Background="Transparent"
-								Cursor="Hand"
-								ToolTip.Tip="Info/metadata"
-								Width="33"
-								Height="33"
-								Margin="8,0,0,10"
-								VerticalContentAlignment="Center"
-								Padding="8,8"
-								Click="InfoButton_Click">
-							<Path Data="{DynamicResource info_regular}"
-									Fill="{DynamicResource SystemBaseHighColor}"
-									Stretch="Uniform" />
-						</Button>
-
-						<!-- Camera Button -->
-						<Button x:Name="CameraButton"
-								Background="Transparent"
-								Cursor="Hand"
-								ToolTip.Tip="Screenshot to clipboard"
-								Width="33"
-								Height="33"
-								Margin="8,0,0,10"
-								Padding="8,8"
-								Click="CameraButton_Click"
-								VerticalContentAlignment="Center">
-							<Path Data="{DynamicResource camera_regular}"
-									Fill="{DynamicResource SystemBaseHighColor}"
-									Stretch="Uniform" />
-						</Button>
-
-					</StackPanel>
-
-					<!--Middle Column-->
-					<StackPanel Margin="0,-3,0,-3" Background="{DynamicResource SystemChromeLowColor}" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-						<Button Name="ToStartButton"
-								Background="Transparent"
-								Width="30"
-								Height="30"
-								Margin="8,0,8,10"
-								Padding="8,8"
-								ToolTip.Tip="Go to beginning"
-								VerticalContentAlignment="Center"
-								Click="ToStartButton_Click">
-							<Path Data="{DynamicResource previous_regular}"
-									Fill="{DynamicResource SystemBaseHighColor}"
-									Stretch="Uniform" />
-						</Button>
-						
-						<Button Name="PrevFrameButton"
-								Background="Transparent"
-								Cursor="Hand"
-								Width="30"
-								Height="30"
-								Padding="8,8"
-								ToolTip.Tip="1 frame backward"
-								Margin="8,0,8,10" VerticalContentAlignment="Center"
-								HorizontalContentAlignment="Center">
-							<Path Data="{DynamicResource chevron_left_regular}"
-									Fill="{DynamicResource SystemBaseHighColor}"
-									Stretch="Uniform" />
-						</Button>
-
-						<Button Name="PlayButton"
-								Background="Transparent"
-								Cursor="Hand"
-								Width="40"
-								Height="40"
-								Padding="8,8"
-								ToolTip.Tip="Play / Pause"
-								Margin="8,0,8,10" VerticalContentAlignment="Center">
-							<Path Data="{DynamicResource play_regular}"
-									Fill="{DynamicResource SystemBaseHighColor}"
-									Stretch="Uniform" />
-						</Button>
-
-						<Button Name="NextFrameButton"
-								Background="Transparent"
-								Cursor="Hand"
-								Width="30"
-								Height="30"
-								Padding="8,8"
-								ToolTip.Tip="1 frame forward"
-								Margin="8,0,8,10" VerticalContentAlignment="Center"
-								HorizontalContentAlignment="Center">
-							<Path Data="{DynamicResource chevron_right_regular}"
-									Fill="{DynamicResource SystemBaseHighColor}"
-									Stretch="Uniform" />
-						</Button>
-	
-						<Button Name="ToEndButton"
-								Background="Transparent"
-								Cursor="Hand"
-								Width="30"
-								Height="30"
-								Margin="8,0,8,10"
-								Padding="8,8"
-								ToolTip.Tip="Go to end"
-								VerticalContentAlignment="Center"
-								Click="ToEndButton_Click">
-							<Path Data="{DynamicResource next_regular}"
-									Fill="{DynamicResource SystemBaseHighColor}"
-									Stretch="Uniform" />
-						</Button>
-						
-					</StackPanel>
-
-					<!--Right Column-->
+					<!-- Window Buttons -->
 					<StackPanel Grid.Column="2"
 								Orientation="Horizontal"
 								HorizontalAlignment="Right"
 								VerticalAlignment="Center"
-								Spacing="7"	
-								Margin="10,-3,10,-3">
+								Spacing="6">
 						
-						
-						<Button x:Name="VolumeButton"
-								ToolTip.Tip="Toggle Volume Mute"
+						<Button Click="MinimizeButton_Click"
+								Width="32" Height="32"
 								Background="Transparent"
 								Cursor="Hand"
-								Width="33"
-								Height="33"
-								Margin="10,0,6,10"
-								Padding="8,8"
+								Padding="0"
+								HorizontalContentAlignment="Center"
 								VerticalContentAlignment="Center">
-							<Path Data="{DynamicResource speaker_1_regular}"
-									Fill="{DynamicResource SystemBaseMediumHighhColor}"
-									Width="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Width, Converter={StaticResource SizeConverter}}"
-									Height="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Height, Converter={StaticResource SizeConverter}}"
-									HorizontalAlignment="Center"
-									VerticalAlignment="Center"
-									Stretch="Uniform" />
+							<Viewbox Width="12" Height="12">
+								<Path Data="{DynamicResource line_horizontal_1_regular}"
+									  Fill="{DynamicResource SystemBaseHighColor}"
+									  Stretch="Uniform"/>
+							</Viewbox>
 						</Button>
 
-						<Slider x:Name="VolumeSlider"
-								Classes="thickslider"
-								Cursor="Hand"
-								Width="100"
-								Minimum="0"
-								Maximum="100"
-								Value="100"
-								Margin="0,0,10,10"
-								IsSnapToTickEnabled="True"
-								TickFrequency="1"/>
-
-						
-
-						<Button x:Name="Toggle1to1Button"
+						<Button Click="MaximizeRestoreButton_Click"
+								Width="32" Height="32"
 								Background="Transparent"
 								Cursor="Hand"
-								ToolTip.Tip="Toggle Video 1:1"
-								Width="33"
-								Height="33"
-								Margin="0,0,0,10"
-								VerticalContentAlignment="Center"
-								Padding="8,8"
-								Click="ResizeToPixelRatio_Click">
-							<Path Data="{DynamicResource arrow_maximize_regular}"
-									Fill="{DynamicResource SystemBaseHighColor}"
-									Stretch="Uniform" />
+								Padding="0"
+								HorizontalContentAlignment="Center"
+								VerticalContentAlignment="Center">
+							<Viewbox Width="12" Height="12">
+								<Path Data="{DynamicResource checkbox_unchecked_regular}"
+									  Fill="{DynamicResource SystemBaseHighColor}"
+									  Stretch="Uniform"/>
+							</Viewbox>
 						</Button>
 
-						<!-- Full Screen Button -->
-						<Button x:Name="FullScreenButton"
-								ToolTip.Tip="Fullscreen"
-								Cursor="Hand"
+						<Button Click="CloseButton_Click"
+								Width="32" Height="32"
 								Background="Transparent"
-								Width="33"
-								Height="33"
-								Margin="0,0,0,10"
-								Padding="8,8"
-								VerticalContentAlignment="Center"
-								Click="FullScreenButton_Click">
-							<Path Data="{DynamicResource arrow_expand_regular}"
-									Fill="{DynamicResource SystemBaseHighColor}"
-									Stretch="Uniform" />
-						</Button>
-						<Button x:Name="NotesToggleButton"
-							Background="Transparent"
-							Width="33"
-							Height="33"
-							Margin="0,0,0,10"
-							Padding="8,8"
-							Cursor="Hand"
-							ToolTip.Tip="Toggle Notes"
-							VerticalContentAlignment="Center"
-							Click="NotesButton_Click">
-							<!-- This needs to match the method signature -->
-							<Path Data="{DynamicResource text_align_right_regular}"
-								  Fill="{DynamicResource SystemBaseHighColor}"
-								  Stretch="Uniform"/>
+								Cursor="Hand"
+								Padding="0"
+								HorizontalContentAlignment="Center"
+								VerticalContentAlignment="Center">
+							<Viewbox Width="12" Height="12">
+								<Path Data="{DynamicResource dismiss_regular}"
+									  Fill="{DynamicResource SystemBaseHighColor}"
+									  Stretch="Uniform"/>
+							</Viewbox>
 						</Button>
 
 					</StackPanel>
 				</Grid>
-			</StackPanel>
+			</Border>
+		
+			<Grid x:Name="MainGrid" Grid.Row="1">
+				<Grid.ColumnDefinitions>
+					<!-- Playlist Panel -->
+					<ColumnDefinition Width="0"/>
+					<ColumnDefinition Width="1"/>
+					<!-- Main Content -->
+					<ColumnDefinition Width="*"/>
+					<!-- Notes Panel Splitter -->
+					<ColumnDefinition Width="1"/>
+					<!-- Notes Panel -->
+					<ColumnDefinition Width="0"/>
+				</Grid.ColumnDefinitions>
 
-			<!-- MPV Host Container -->
-			<Grid Grid.Row="1">
-				<Panel Name="VideoContainer"
-						x:Name="VideoContainer"
-						DragDrop.AllowDrop="True"
-						DragDrop.DragEnter="MainGrid_DragEnter"
-						DragDrop.DragOver="MainGrid_DragOver"
-						DragDrop.Drop="MainGrid_Drop"
-						Background="Black"
-						ClipToBounds="True"
-					    IsVisible="True"
-						HorizontalAlignment="Stretch"
-						VerticalAlignment="Stretch">
-				</Panel>
-				<Image x:Name="OverlayImage"
-					   IsVisible="False"
-					   HorizontalAlignment="Stretch"
-					   VerticalAlignment="Stretch"
-					   Stretch="Uniform" />
+				<views:PlaylistView x:Name="PlaylistView"
+									Grid.Column="0"
+									MinWidth="60"
+									HorizontalAlignment="Stretch"
+									IsVisible="False"/>
+
+				<GridSplitter x:Name="PlaylistSplitter"
+							  Grid.Column="1"
+							  Width="0"
+							  Background="{DynamicResource SystemChromeLowColor}"
+							  ResizeDirection="Columns"
+							  IsEnabled="False"
+							  IsVisible="False"
+							  DragDelta="PlaylistSplitter_DragDelta"
+							  DragCompleted="PlaylistSplitter_DragCompleted" />
+		
+				<Grid Grid.Column="2">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
+						<RowDefinition Height="Auto"/>
+					</Grid.RowDefinitions>
+					<!-- Top Menu -->
+					<Border BorderThickness="0,0,0,1"
+							Grid.Row="0"
+							BorderBrush="{DynamicResource SystemListLowColor}">
+						<Grid x:Name="Topmenu" VerticalAlignment="Center" Background="{DynamicResource SystemChromeLowColor}" >
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="Auto"/>
+								<ColumnDefinition Width="*"/>
+							</Grid.ColumnDefinitions>
+							<Menu Grid.Column="0" Height="35" Padding="10,2,10,2" Background="{DynamicResource SystemChromeLowColor}">
+				
+								<MenuItem Header="_File" Padding="10,2,10,2" CornerRadius="2"
+											Foreground="{DynamicResource SystemBaseMediumHighColor}" FontSize="12">
+									<MenuItem x:Name="OpenMenuItem" Header="_Open Video" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"/>
+									<MenuItem x:Name="OpenURLMenuItem" Header="_Open URL" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0"
+												Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="OnOpenUrlPopupClick" />
+									<MenuItem x:Name="OpenImageSeq" Header="_Open Image Seq" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0"
+												Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="ImageSeq_Click" />
+									<MenuItem x:Name="OpenEXRSeq" Header="_Open EXR (Multi) Seq" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0"
+												Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="OpenEXRSequence_Click" />
+									<MenuItem x:Name="InfoMenuButton" Header="_Info" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0"
+												Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="InfoButton_Click" />
+								</MenuItem>
+				
+								<MenuItem Header="_Speed" Padding="10,2,10,2" CornerRadius="2"
+											Foreground="{DynamicResource SystemBaseMediumHighColor}" FontSize="12">
+									<MenuItem x:Name="FF40" Header="_5x" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="OnFF40Click" />
+									<MenuItem x:Name="FF20" Header="_3x" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="OnFF20Click" />
+									<MenuItem x:Name="FF05" Header="_1.5x" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="OnFF05Click" />
+									<MenuItem x:Name="FF025" Header="_1.25x" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="OnFF025Click" />
+									<MenuItem x:Name="speedReset" Header="_Normal" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="OnSpeedResetClick" />
+								</MenuItem>
+
+								<MenuItem Header="_Subtitles" Padding="10,2,10,2" CornerRadius="2"
+											Foreground="{DynamicResource SystemBaseMediumHighColor}" FontSize="12">
+									<MenuItem x:Name="ToggleSubtitle" Header="_Toggle" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="ToggleSubtitle_Click" />
+									<MenuItem x:Name="LoadSubtitle" Header="_Load" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="LoadSubtitle_Click" />
+									<MenuItem x:Name="DecreaseSubFont" Header="_Size [-]" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="DecreaseSubFont_Click" />
+									<MenuItem x:Name="IncreaseSubFont" Header="_Size [+]" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="IncreaseSubFont_Click" />
+								</MenuItem>
+				
+								<MenuItem Header="_Screenshot" Padding="10,2,10,2" CornerRadius="2"
+											Foreground="{DynamicResource SystemBaseMediumHighColor}" FontSize="12">
+									<MenuItem x:Name="ScreenShotClipboard" Header="_Clipboard" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="CameraButton_Click" />
+									<MenuItem x:Name="ScreenShotDesktop" Header="_Desktop" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="ScreenShotDesktop_Click" />
+								</MenuItem>
+
+								<MenuItem Header="_Color" Padding="10,2,10,2" CornerRadius="2"
+											Foreground="{DynamicResource SystemBaseMediumHighColor}" FontSize="12">
+									<MenuItem x:Name="noColor" Header="_None/Reset" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="noColor_Click" />
+									<MenuItem x:Name="sRGBfolder" Header="_Convert to sRGB" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}">
+										<MenuItem x:Name="sRGB_rec709" Header="_rec.709" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="sRGB_rec709_Click" />
+										<MenuItem x:Name="sRGB_ACES2065_1" Header="_ACES2065-1" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="sRGB_ACES2065_1_Click" />
+										<MenuItem x:Name="sRGB_ACEScg" Header="_ACEScg" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="sRGB_ACEScg_Click" />
+										<MenuItem x:Name="sRGB_AGX" Header="_AGX" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="sRGB_AGX_Click" />
+										<MenuItem x:Name="sRGB_Linear" Header="_Linear(rec.709/sRGB)" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="sRGB_Linear_Click" />
+										<MenuItem x:Name="sRGB_ArriLogc3" Header="_Arri LogC3" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="sRGB_ArriLogc3_Click" />
+										<MenuItem x:Name="sRGB_ArriLogc4" Header="_Arri LogC4" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="sRGB_ArriLogc4_Click" />
+										<MenuItem x:Name="sRGB_CanonLog3" Header="_Canon Log3" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="sRGB_CanonLog3_Click" />
+										<MenuItem x:Name="sRGB_PanasonicVlog" Header="_Panasonic V-log" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="sRGB_PanasonicVlog_Click" />
+										<MenuItem x:Name="sRGB_RedLog3G10" Header="_Red Log3G10" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="sRGB_RedLog3G10_Click" />
+										<MenuItem x:Name="sRGB_SonySlog3" Header="_Sony S-log3" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="sRGB_SonySlog3_Click" />
+										<MenuItem x:Name="sRGB_SonyVeniceSlog3" Header="_Sony Venice S-log3" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="sRGB_SonyVeniceSlog3_Click" />
+									</MenuItem>
+					
+									<MenuItem x:Name="rec709folder" Header="_Convert to rec.709" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}">
+										<MenuItem x:Name="rec709_ACES2065_1" Header="_ACES2065-1" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="rec709_ACES2065_1_Click" />
+										<MenuItem x:Name="rec709_ACEScg" Header="_ACEScg" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="rec709_ACEScg_Click" />
+										<MenuItem x:Name="rec709_AGX" Header="_AGX" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="rec709_AGX_Click" />
+										<MenuItem x:Name="rec709_Linear" Header="_Linear(rec.709/sRGB)" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="rec709_Linear_Click" />
+										<MenuItem x:Name="rec709_ArriLogc3" Header="_Arri LogC3" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="rec709_ArriLogc3_Click" />
+										<MenuItem x:Name="rec709_ArriLogc4" Header="_Arri LogC4" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="rec709_ArriLogc4_Click" />
+										<MenuItem x:Name="rec709_CanonLog3" Header="_Canon Log3" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="rec709_CanonLog3_Click" />
+										<MenuItem x:Name="rec709_PanasonicVlog" Header="_Panasonic V-log" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="rec709_PanasonicVlog_Click" />
+										<MenuItem x:Name="rec709_RedLog3G10" Header="_Red Log3G10" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="rec709_RedLog3G10_Click" />
+										<MenuItem x:Name="rec709_SonySlog3" Header="_Sony S-log3" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="rec709_SonySlog3_Click" />
+										<MenuItem x:Name="rec709_SonyVeniceSlog3" Header="_Sony Venice S-log3" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="rec709_SonyVeniceSlog3_Click" />
+									</MenuItem>
+								</MenuItem>
+					
+								<MenuItem Header="_Sidebars" Padding="10,2,10,2" CornerRadius="2"
+											Foreground="{DynamicResource SystemBaseMediumHighColor}" FontSize="12">
+									<MenuItem x:Name="OpenPlaylistMenu" Header="_Playlist" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="PlaylistButton_Click" />
+									<MenuItem x:Name="OpenNotesMenu" Header="_Notes" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="NotesButton_Click" />
+								</MenuItem>
+
+								<MenuItem Header="_Size" Padding="10,2,10,2" CornerRadius="2"
+											Foreground="{DynamicResource SystemBaseMediumHighColor}" FontSize="12">
+									<MenuItem x:Name="Trigger1to1mode" Header="_1:1 Video Size" Padding="10,8,10,8"
+													CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+													Click="ResizeToPixelRatio_Click" />
+									<MenuItem x:Name="Trigger50percentMode" Header="_50% of Screen Size" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="ResizeToHalfScreenSize_Click" />
+									<MenuItem x:Name="TriggerFullScreen" Header="_FullScreen" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="FullScreenButton_Click" />
+								</MenuItem>
+
+								<MenuItem Header="_Safety Guides" Padding="10,2,10,2" CornerRadius="2"
+										  Foreground="{DynamicResource SystemBaseMediumHighColor}" FontSize="12">
+									<MenuItem Header="_Safety Colors" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0"
+										  Foreground="{DynamicResource SystemBaseMediumHighColor}" FontSize="12">
+										<MenuItem x:Name="SafetyGold" Background="Gold" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" 
+												  Padding="20,8,20,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="OnSafetyColorClicked" />
+										<MenuItem x:Name="SafetyDarkOrange" Background="DarkOrange" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+												  Padding="20,8,20,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="OnSafetyColorClicked" />
+										<MenuItem x:Name="SafetyRed" Background="Red" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+												  Padding="20,8,20,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="OnSafetyColorClicked" />
+										<MenuItem x:Name="SafetyHotPink" Background="HotPink" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+												  Padding="20,8,20,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="OnSafetyColorClicked" />
+										<MenuItem x:Name="SafetyDarkMagenta" Background="DarkMagenta" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+												  Padding="20,8,20,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="OnSafetyColorClicked" />
+										<MenuItem x:Name="SafetyPaleGreen" Background="PaleGreen" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+												  Padding="20,8,20,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="OnSafetyColorClicked" />
+										<MenuItem x:Name="SafetyDarkGreen" Background="DarkGreen" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+												  Padding="20,8,20,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="OnSafetyColorClicked" />
+										<MenuItem x:Name="SafetyDeepSkyBlue" Background="DeepSkyBlue" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+												  Padding="20,8,20,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="OnSafetyColorClicked" />
+										<MenuItem x:Name="SafetyMediumBlue" Background="MediumBlue" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+												  Padding="20,8,20,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="OnSafetyColorClicked" />
+									</MenuItem>
+									<MenuItem x:Name="TitleSafetyMenuButton" Header="_16:9 Broadcast" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="SafetyButton_Click" />
+									<MenuItem x:Name="TitleSafetyMenuButtonMetaReel9x16" Header="_9:16 Meta Reel" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="SafetyButton_MetaReel9x16_Click" />
+									<MenuItem x:Name="TitleSafetyMenuButtonMetaStory9x16" Header="_9:16 Meta Story" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="SafetyButton_MetaStory9x16_Click" />
+									<MenuItem x:Name="TitleSafetyMenuButtonPinterest9x16" Header="_9:16 Pinterest" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="SafetyButton_Pinterest9x16_Click" />
+									<MenuItem x:Name="TitleSafetyMenuButtonPinterest1x1" Header="_1:1 Pinterest Premium Spotlight" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="SafetyButton_Pinterest1x1PremiumSpotlight_Click" />
+									<MenuItem x:Name="TitleSafetyMenuButtonSnapChat9x16" Header="_9:16 Snapchat" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="SafetyButton_Snapchat9x16_Click" />
+									<MenuItem x:Name="TitleSafetyMenuButtonTikTok9x16" Header="_9:16 TikTok" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="SafetyButton_TikTok9x16_Click" />
+									<MenuItem x:Name="TitleSafetyMenuButtonYoutube1x1" Header="_1:1 Youtube" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="SafetyButton_Youtube1x1_Click" />
+									<MenuItem x:Name="TitleSafetyMenuButtonYoutub9x16" Header="_9:16 Youtube" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="SafetyButton_Youtube9x16_Click" />
+									<MenuItem x:Name="TitleSafetyMenuButtonYoutub16x9" Header="_16:9 Youtube" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="SafetyButton_Youtube16x9_Click" />
+									<MenuItem x:Name="TitleSafetyMenuButtonYoutubMasthead16x9" Header="_16:9 Youtube Masthead" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="SafetyButton_Youtube16x9MastHead_Click" />
+								</MenuItem>
+					
+								<MenuItem Header="_App" Padding="10,2,10,2" CornerRadius="2"
+											Foreground="{DynamicResource SystemBaseMediumHighColor}" FontSize="12">
+									<MenuItem x:Name="SettingsCancelAllButton" Header="_Reset All" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0"
+												Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="CancelProcessing_Click" />
+									<MenuItem x:Name="SettingsMenuButton" Header="_Keyboard Bindings" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0"
+												Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="SettingsButton_Click" />
+									<MenuItem x:Name="RegistryMenuButton" Header="_Install Registry" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0"
+												Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="RegistryButton_Click" />
+									<MenuItem x:Name="EXRsettingsMenuButton" Header="_EXR Cache Settings" Padding="10,8,10,8"
+												CornerRadius="1" Margin="4,0,4,0"
+												Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Click="OpenCacheSettings_Click" />
+									<MenuItem Header="_Exit" Padding="10,5,10,5"
+												CornerRadius="1"
+												Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Margin="4,0,4,0"
+												Click="OnExitMenuItemClick" />
+								</MenuItem>
+							</Menu>
+
+						</Grid>
+					</Border>
+		
+					<!-- Bottom Toolbar -->
+					<Border BorderThickness="0,1,0,0"
+							Grid.Row="2"
+							BorderBrush="{DynamicResource SystemListLowColor}">
+						<StackPanel x:Name="BottomToolbar"
+									Orientation="Vertical"
+									Spacing="0"
+									Background="{DynamicResource SystemChromeLowColor}">
+				
+							<Grid VerticalAlignment="Center" Margin="0,10,0,0">
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition Width="Auto"/>
+									<ColumnDefinition Width="*"/>
+									<ColumnDefinition Width="Auto"/>
+								</Grid.ColumnDefinitions>
+								<StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Spacing="5">
+									<TextBlock Text="T"
+												FontSize="10"
+												Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Margin="16,0,5,0"
+												VerticalAlignment="Center" />
+									<TextBlock Name="CurrentTimeTextBlock"
+												FontSize="12"
+												Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Margin="0,1,0,0"
+												FontFamily="Courier New, Consolas, Monospace"
+												VerticalAlignment="Center" />
+								</StackPanel>
+
+								<StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="5">
+									<TextBlock Name="CurrentFrameTextBlock"
+												FontSize="12"
+												Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Margin="5,1,0,0"
+												FontFamily="Courier New, Consolas, Monospace"
+												VerticalAlignment="Center" />
+									<TextBlock Text="F"
+												FontSize="10"
+												Foreground="{DynamicResource SystemBaseMediumHighColor}"
+												Margin="3,0,16,0"
+												VerticalAlignment="Center" />
+								</StackPanel>
+							</Grid>
+
+							<Slider x:Name="PlaybackSlider"
+									Classes="thickslider"
+									Cursor="Hand"
+									Orientation="Horizontal"
+									HorizontalAlignment="Stretch"
+									Minimum="0"
+									Height="30"
+									Margin="10,-4,10,0"
+									IsSnapToTickEnabled="False"
+									SmallChange="0.042"
+									LargeChange="0.25"
+									TickFrequency="0.042"/>
+
+							<Grid>
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition Width="*"/>
+									<ColumnDefinition Width="Auto"/>
+									<ColumnDefinition Width="*"/>
+								</Grid.ColumnDefinitions>
+
+								<!-- Left Column -->
+								<StackPanel Grid.Column="0" Margin="0,-3,0,-3" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+
+									<!-- Playlist Toggle Button -->
+									<Button x:Name="PlaylistToggle"
+											ToolTip.Tip="Toggle Playlist"
+											Cursor="Hand"
+											Background="Transparent"
+											Width="33"
+											Height="33"
+											Margin="10,0,0,10"
+											Padding="8,8,8,8"
+											VerticalContentAlignment="Center"
+											IsVisible="True"
+											Click="PlaylistButton_Click">
+										<Path Data="{DynamicResource list_regular}"
+												Fill="{DynamicResource SystemBaseHighColor}"
+												Stretch="Uniform" />
+									</Button>
+
+									<!-- Looping Toggle Button -->
+									<Button x:Name="LoopingButton"
+											Background="Transparent"
+											Cursor="Hand"
+											Width="33"
+											Height="33"
+											Margin="8,0,0,10"
+											Padding="8,8"
+											ToolTip.Tip="Toggle Video Looping"
+											VerticalContentAlignment="Center"
+											Click="LoopingButton_Click">
+										<Path x:Name="LoopingPath"
+												Data="{DynamicResource arrow_repeat_all_off_regular}"
+												Fill="{DynamicResource SystemBaseHighColor}"
+												Stretch="Uniform" />
+									</Button>
+
+
+									<!-- Photo Filter Button -->
+									<Button x:Name="PhotoFilterButton"
+											Background="Transparent"
+											Cursor="Hand"
+											ToolTip.Tip="Toggle rec.709 to sRGB"
+											Width="33"
+											Height="33"
+											Margin="8,0,0,10"
+											Padding="8,8"
+											VerticalContentAlignment="Center"
+											Click="PhotoFilter_Click">
+										<Path x:Name="PhotoFilterIcon"
+												Data="{DynamicResource photo_filter_regular}"
+												Fill="{DynamicResource SystemBaseHighColor}"
+												Stretch="Uniform" />
+									</Button>
+
+									<!-- Safety Button -->
+									<Button x:Name="SafetyButton"
+											Background="Transparent"
+											Cursor="Hand"
+											ToolTip.Tip="Broadcast title/action safety"
+											Width="33"
+											Height="33"
+											Margin="8,0,0,10"
+											Padding="8,8"
+											VerticalContentAlignment="Center"
+											Click="SafetyButton_Click">
+										<Path Data="{DynamicResource resize_regular}"
+												Fill="{DynamicResource SystemBaseHighColor}"
+												Stretch="Uniform" />
+									</Button>
+
+									<Button x:Name="InfoButton"
+											Background="Transparent"
+											Cursor="Hand"
+											ToolTip.Tip="Info/metadata"
+											Width="33"
+											Height="33"
+											Margin="8,0,0,10"
+											VerticalContentAlignment="Center"
+											Padding="8,8"
+											Click="InfoButton_Click">
+										<Path Data="{DynamicResource info_regular}"
+												Fill="{DynamicResource SystemBaseHighColor}"
+												Stretch="Uniform" />
+									</Button>
+
+									<!-- Camera Button -->
+									<Button x:Name="CameraButton"
+											Background="Transparent"
+											Cursor="Hand"
+											ToolTip.Tip="Screenshot to clipboard"
+											Width="33"
+											Height="33"
+											Margin="8,0,0,10"
+											Padding="8,8"
+											Click="CameraButton_Click"
+											VerticalContentAlignment="Center">
+										<Path Data="{DynamicResource camera_regular}"
+												Fill="{DynamicResource SystemBaseHighColor}"
+												Stretch="Uniform" />
+									</Button>
+
+								</StackPanel>
+
+								<!--Middle Column-->
+								<StackPanel Margin="0,-3,0,-3" Background="{DynamicResource SystemChromeLowColor}" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+									<Button Name="ToStartButton"
+											Background="Transparent"
+											Width="30"
+											Height="30"
+											Margin="8,0,8,10"
+											Padding="8,8"
+											ToolTip.Tip="Go to beginning"
+											VerticalContentAlignment="Center"
+											Click="ToStartButton_Click">
+										<Path Data="{DynamicResource previous_regular}"
+												Fill="{DynamicResource SystemBaseHighColor}"
+												Stretch="Uniform" />
+									</Button>
+						
+									<Button Name="PrevFrameButton"
+											Background="Transparent"
+											Cursor="Hand"
+											Width="30"
+											Height="30"
+											Padding="8,8"
+											ToolTip.Tip="1 frame backward"
+											Margin="8,0,8,10" VerticalContentAlignment="Center"
+											HorizontalContentAlignment="Center">
+										<Path Data="{DynamicResource chevron_left_regular}"
+												Fill="{DynamicResource SystemBaseHighColor}"
+												Stretch="Uniform" />
+									</Button>
+
+									<Button Name="PlayButton"
+											Background="Transparent"
+											Cursor="Hand"
+											Width="40"
+											Height="40"
+											Padding="8,8"
+											ToolTip.Tip="Play / Pause"
+											Margin="8,0,8,10" VerticalContentAlignment="Center">
+										<Path Data="{DynamicResource play_regular}"
+												Fill="{DynamicResource SystemBaseHighColor}"
+												Stretch="Uniform" />
+									</Button>
+
+									<Button Name="NextFrameButton"
+											Background="Transparent"
+											Cursor="Hand"
+											Width="30"
+											Height="30"
+											Padding="8,8"
+											ToolTip.Tip="1 frame forward"
+											Margin="8,0,8,10" VerticalContentAlignment="Center"
+											HorizontalContentAlignment="Center">
+										<Path Data="{DynamicResource chevron_right_regular}"
+												Fill="{DynamicResource SystemBaseHighColor}"
+												Stretch="Uniform" />
+									</Button>
+	
+									<Button Name="ToEndButton"
+											Background="Transparent"
+											Cursor="Hand"
+											Width="30"
+											Height="30"
+											Margin="8,0,8,10"
+											Padding="8,8"
+											ToolTip.Tip="Go to end"
+											VerticalContentAlignment="Center"
+											Click="ToEndButton_Click">
+										<Path Data="{DynamicResource next_regular}"
+												Fill="{DynamicResource SystemBaseHighColor}"
+												Stretch="Uniform" />
+									</Button>
+						
+								</StackPanel>
+
+								<!--Right Column-->
+								<StackPanel Grid.Column="2"
+											Orientation="Horizontal"
+											HorizontalAlignment="Right"
+											VerticalAlignment="Center"
+											Spacing="7"	
+											Margin="10,-3,10,-3">
+						
+						
+									<Button x:Name="VolumeButton"
+											ToolTip.Tip="Toggle Volume Mute"
+											Background="Transparent"
+											Cursor="Hand"
+											Width="33"
+											Height="33"
+											Margin="10,0,6,10"
+											Padding="8,8"
+											VerticalContentAlignment="Center">
+										<Path Data="{DynamicResource speaker_1_regular}"
+												Fill="{DynamicResource SystemBaseMediumHighhColor}"
+												Width="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Width, Converter={StaticResource SizeConverter}}"
+												Height="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Height, Converter={StaticResource SizeConverter}}"
+												HorizontalAlignment="Center"
+												VerticalAlignment="Center"
+												Stretch="Uniform" />
+									</Button>
+
+									<Slider x:Name="VolumeSlider"
+											Classes="thickslider"
+											Cursor="Hand"
+											Width="100"
+											Minimum="0"
+											Maximum="100"
+											Value="100"
+											Margin="0,0,10,10"
+											IsSnapToTickEnabled="True"
+											TickFrequency="1"/>
+
+						
+
+									<Button x:Name="Toggle1to1Button"
+											Background="Transparent"
+											Cursor="Hand"
+											ToolTip.Tip="Toggle Video 1:1"
+											Width="33"
+											Height="33"
+											Margin="0,0,0,10"
+											VerticalContentAlignment="Center"
+											Padding="8,8"
+											Click="ResizeToPixelRatio_Click">
+										<Path Data="{DynamicResource scale_fit_regular}"
+												Fill="{DynamicResource SystemBaseHighColor}"
+												Stretch="Uniform" />
+									</Button>
+
+									<Button x:Name="HalfScreenButton"
+											ToolTip.Tip="50% of screen"
+											Cursor="Hand"
+											Background="Transparent"
+											Width="33"
+											Height="33"
+											Margin="0,0,0,10"
+											Padding="8,8"
+											VerticalContentAlignment="Center"
+											Click="ResizeToHalfScreenSize_Click">
+										<Path Data="{DynamicResource arrow_maximize_vertical_regular}"
+												Fill="{DynamicResource SystemBaseHighColor}"
+												Stretch="Uniform" />
+									</Button>
+
+									<!-- Full Screen Button -->
+									<Button x:Name="FullScreenButton"
+											ToolTip.Tip="Fullscreen"
+											Cursor="Hand"
+											Background="Transparent"
+											Width="33"
+											Height="33"
+											Margin="0,0,0,10"
+											Padding="8,8"
+											VerticalContentAlignment="Center"
+											Click="FullScreenButton_Click">
+										<Path Data="{DynamicResource arrow_expand_regular}"
+												Fill="{DynamicResource SystemBaseHighColor}"
+												Stretch="Uniform" />
+									</Button>
+									
+									<Button x:Name="NotesToggleButton"
+										Background="Transparent"
+										Width="33"
+										Height="33"
+										Margin="0,0,0,10"
+										Padding="8,8"
+										Cursor="Hand"
+										ToolTip.Tip="Toggle Notes"
+										VerticalContentAlignment="Center"
+										Click="NotesButton_Click">
+										<!-- This needs to match the method signature -->
+										<Path Data="{DynamicResource text_align_right_regular}"
+											  Fill="{DynamicResource SystemBaseHighColor}"
+											  Stretch="Uniform"/>
+									</Button>
+
+								</StackPanel>
+							</Grid>
+						</StackPanel>
+					</Border>
+
+					<!-- MPV Host Container -->
+					<Grid Grid.Row="1">
+						<Panel Name="VideoContainer"
+								x:Name="VideoContainer"
+								DragDrop.AllowDrop="True"
+								DragDrop.DragEnter="MainGrid_DragEnter"
+								DragDrop.DragOver="MainGrid_DragOver"
+								DragDrop.Drop="MainGrid_Drop"
+								Background="Black"
+								ClipToBounds="True"
+								IsVisible="True"
+								HorizontalAlignment="Stretch"
+								VerticalAlignment="Stretch">
+						</Panel>
+						<Image x:Name="OverlayImage"
+							   IsVisible="False"
+							   HorizontalAlignment="Stretch"
+							   VerticalAlignment="Stretch"
+							   Stretch="Uniform" />
+					</Grid>
+				</Grid>
+				<GridSplitter x:Name="NotesSplitter"
+					  Grid.Column="3"
+					  Width="0"
+					  Background="{DynamicResource SystemChromeLowColor}"
+					  ResizeDirection="Columns"
+					  IsEnabled="False"
+					  IsVisible="False"
+					  DragDelta="NotesSplitter_DragDelta"
+					  DragCompleted="NotesSplitter_DragCompleted" />
+
+				<views:NotesView x:Name="NotesView"
+								 Grid.Column="4"
+								 HorizontalAlignment="Stretch"
+								 IsVisible="False"/>
 			</Grid>
 		</Grid>
-		<GridSplitter x:Name="NotesSplitter"
-              Grid.Column="3"
-              Width="1"
-              Background="{DynamicResource SystemChromeLowColor}"
-              ResizeDirection="Columns"
-              IsEnabled="False"
-              IsVisible="False"
-              DragDelta="NotesSplitter_DragDelta"
-              DragCompleted="NotesSplitter_DragCompleted" />
-
-		<views:NotesView x:Name="NotesView"
-						 Grid.Column="4"
-						 HorizontalAlignment="Stretch"
-						 IsVisible="False"/>
-	</Grid>
+	</Border>
 </Window>

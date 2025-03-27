@@ -1,8 +1,8 @@
  <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="UnionMpvPlayer.Views.BackgroundWindow"
-        Background="Black"
         IsHitTestVisible="False"
+		Background="#171717"
         TransparencyLevelHint="None"
         SystemDecorations="None"
         ShowInTaskbar="False"
@@ -10,5 +10,16 @@
         Title="background"
         WindowStartupLocation="Manual">
 
-	 
-</Window>
+	 <Window.Background>
+		 <VisualBrush TileMode="Tile" Stretch="None" DestinationRect="0,0,32,32">
+			 <VisualBrush.Visual>
+				 <Canvas Width="32" Height="32">
+					 <Rectangle Width="32" Height="32" Fill="#FF191919"/>
+					 <Rectangle Width="16" Height="16" Fill="#FF202020"/>
+					 <Rectangle Canvas.Left="16" Canvas.Top="16" Width="16" Height="16" Fill="#FF202020"/>
+				 </Canvas>
+			 </VisualBrush.Visual>
+		 </VisualBrush>
+	 </Window.Background>
+
+ </Window>

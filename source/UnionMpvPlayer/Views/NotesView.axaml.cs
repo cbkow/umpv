@@ -643,31 +643,31 @@ namespace UnionMpvPlayer.Views
             }
         }
 
-
         public void ApplyImageOverlay(string? imagePath, bool apply)
         {
             try
             {
-                if (apply && !string.IsNullOrEmpty(imagePath))
+                Dispatcher.UIThread.Post(() =>
                 {
-                    MainWindow.Current.HideMpvWindow();
-
-                    MainWindow.Current.overlayImage.Source = new Bitmap(imagePath);
-                    MainWindow.Current.overlayImage.IsVisible = true;
-                }
-                else
-                {
-                    MainWindow.Current.overlayImage.IsVisible = false;
-
-                    MainWindow.Current.ShowMpvWindow();
-                }
+                    if (apply && !string.IsNullOrEmpty(imagePath))
+                    {
+                        MainWindow.Current.HideMpvWindow();
+                        MainWindow.Current.overlayImage.Source = new Bitmap(imagePath);
+                        MainWindow.Current.overlayImage.IsVisible = true;
+                    }
+                    else
+                    {
+                        MainWindow.Current.overlayImage.IsVisible = false;
+                        MainWindow.Current.overlayImage.Source = null;  // Clear the source
+                        MainWindow.Current.ShowMpvWindow();
+                    }
+                });
             }
             catch (Exception ex)
             {
-                //Debug.WriteLine($"Error in ApplyImageOverlay: {ex.Message}\nStack trace: {ex.StackTrace}");
+                Debug.WriteLine($"Error in ApplyImageOverlay: {ex.Message}\nStack trace: {ex.StackTrace}");
             }
         }
-
 
         public bool IsOverlayActive()
         {
@@ -680,6 +680,782 @@ namespace UnionMpvPlayer.Views
         }
 
         // Exports
+
+        private string FormatPathForXML(string path)
+        {
+            // Check if this is a network path
+            if (path.StartsWith("\\\\"))
+            {
+                // Network path - ensure it starts with exactly two backslashes
+                string networkPath = path.TrimStart('\\');
+                path = "\\\\" + networkPath;
+            }
+
+            // Convert backslashes to forward slashes for XML
+            path = path.Replace("\\", "/");
+
+            // URL encode the path properly but keep slashes as-is
+            path = Uri.EscapeDataString(path).Replace("%2F", "/").Replace("%3A", ":");
+
+            return path;
+        }
+
+        private async Task ExportForPremierePro(string exportPath)
+        {
+            if (string.IsNullOrEmpty(_currentVideoPath) || _notes.Count == 0)
+                return;
+
+            var videoName = Path.GetFileNameWithoutExtension(_currentVideoPath);
+
+            // Get video properties from MPV
+            double videoFps = GetVideoFrameRate() ?? 30.0;
+            // Round FPS to a more standard representation if needed
+            videoFps = Math.Round(videoFps * 1000) / 1000;
+            bool isNtsc = Math.Abs(videoFps - 23.976) < 0.01 || Math.Abs(videoFps - 29.97) < 0.01;
+            // If it's 23.976 or 29.97, make sure we use the exact value Premiere expects
+            if (Math.Abs(videoFps - 23.976) < 0.01) videoFps = 24;
+            double videoDuration = GetVideoDuration() ?? 60.0;
+            (int width, int height) = GetVideoResolution() ?? (1920, 1080);
+
+            // Calculate total frame count
+            int totalFrames = (int)Math.Ceiling(videoDuration * videoFps);
+
+            // Create images folder
+            var imagesFolder = Path.Combine(
+                Path.GetDirectoryName(exportPath),
+                $"{Path.GetFileNameWithoutExtension(exportPath)}_images"
+            );
+
+            Directory.CreateDirectory(imagesFolder);
+
+            // Copy all images to the new folder
+            var imagePathMapping = new Dictionary<string, string>();
+
+            foreach (var note in _notes)
+            {
+                string sourcePath = !string.IsNullOrEmpty(note.EditedImagePath) && File.Exists(note.EditedImagePath)
+                    ? note.EditedImagePath
+                    : note.ImagePath;
+
+                if (File.Exists(sourcePath))
+                {
+                    var destFileName = $"frame_{note.Timecode.ToString("F3", System.Globalization.CultureInfo.InvariantCulture).Replace(".", "_")}{Path.GetExtension(sourcePath)}";
+                    var destPath = Path.Combine(imagesFolder, destFileName);
+
+                    File.Copy(sourcePath, destPath, true);
+                    imagePathMapping.Add(sourcePath, destPath);
+                }
+            }
+
+            // Generate a unique UUID for the sequence
+            string uuid = Guid.NewGuid().ToString();
+
+            // Generate XML content
+            var xml = new StringBuilder();
+
+            // XML header and project settings
+            xml.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+            xml.AppendLine("<!DOCTYPE xmeml>");
+            xml.AppendLine("<xmeml version=\"4\">");
+            xml.AppendLine($"\t<sequence id=\"sequence-1\" TL.SQAudioVisibleBase=\"0\" TL.SQVideoVisibleBase=\"0\" TL.SQVisibleBaseTime=\"0\" TL.SQAVDividerPosition=\"0.5\" TL.SQHideShyTracks=\"0\" TL.SQHeaderWidth=\"204\" explodedTracks=\"true\">");
+            xml.AppendLine($"\t\t<uuid>{uuid}</uuid>");
+            xml.AppendLine($"\t\t<duration>{totalFrames}</duration>");
+            xml.AppendLine("\t\t<rate>");
+            xml.AppendLine($"\t\t\t<timebase>{videoFps}</timebase>");
+            xml.AppendLine($"\t\t\t<ntsc>{(isNtsc ? "TRUE" : "FALSE")}</ntsc>");
+            xml.AppendLine("\t\t</rate>");
+            xml.AppendLine($"\t\t<name>{videoName}</name>");
+
+            // Add media
+            xml.AppendLine("\t\t<media>");
+
+            // Add video
+            xml.AppendLine("\t\t\t<video>");
+            xml.AppendLine("\t\t\t\t<format>");
+            xml.AppendLine("\t\t\t\t\t<samplecharacteristics>");
+            xml.AppendLine("\t\t\t\t\t\t<rate>");
+            xml.AppendLine($"\t\t\t\t\t\t\t<timebase>{videoFps}</timebase>");
+            xml.AppendLine($"\t\t\t\t\t\t\t<ntsc>{(isNtsc ? "TRUE" : "FALSE")}</ntsc>");
+            xml.AppendLine("\t\t\t\t\t\t</rate>");
+            xml.AppendLine($"\t\t\t\t\t\t<width>{width}</width>");
+            xml.AppendLine($"\t\t\t\t\t\t<height>{height}</height>");
+            xml.AppendLine("\t\t\t\t\t\t<anamorphic>FALSE</anamorphic>");
+            xml.AppendLine("\t\t\t\t\t\t<pixelaspectratio>square</pixelaspectratio>");
+            xml.AppendLine("\t\t\t\t\t\t<fielddominance>none</fielddominance>");
+            xml.AppendLine("\t\t\t\t\t</samplecharacteristics>");
+            xml.AppendLine("\t\t\t\t</format>");
+
+            // Add video track 1 (main video)
+            xml.AppendLine("\t\t\t\t<track TL.SQTrackShy=\"0\" TL.SQTrackExpandedHeight=\"41\" TL.SQTrackExpanded=\"0\" MZ.TrackTargeted=\"1\">");
+
+            // For the main video file path
+            string safeVideoPath = FormatPathForXML(_currentVideoPath);
+
+            string videoFileName = Path.GetFileName(_currentVideoPath);
+            xml.AppendLine("\t\t\t\t\t<clipitem id=\"clipitem-1\">");
+            xml.AppendLine("\t\t\t\t\t\t<masterclipid>masterclip-1</masterclipid>");
+            xml.AppendLine($"\t\t\t\t\t\t<name>{videoFileName}</name>");
+            xml.AppendLine("\t\t\t\t\t\t<enabled>TRUE</enabled>");
+            xml.AppendLine($"\t\t\t\t\t\t<duration>{totalFrames}</duration>");
+            xml.AppendLine("\t\t\t\t\t\t<rate>");
+            xml.AppendLine($"\t\t\t\t\t\t\t<timebase>{videoFps}</timebase>");
+            xml.AppendLine($"\t\t\t\t\t\t\t<ntsc>{(isNtsc ? "TRUE" : "FALSE")}</ntsc>");
+            xml.AppendLine("\t\t\t\t\t\t</rate>");
+            xml.AppendLine("\t\t\t\t\t\t<start>0</start>");
+            xml.AppendLine($"\t\t\t\t\t\t<end>{totalFrames}</end>");
+            xml.AppendLine("\t\t\t\t\t\t<in>0</in>");
+            xml.AppendLine($"\t\t\t\t\t\t<out>{totalFrames}</out>");
+            xml.AppendLine("\t\t\t\t\t\t<pproTicksIn>0</pproTicksIn>");
+            xml.AppendLine($"\t\t\t\t\t\t<pproTicksOut>{totalFrames * 254016000000}</pproTicksOut>");
+            xml.AppendLine("\t\t\t\t\t\t<alphatype>none</alphatype>");
+            xml.AppendLine("\t\t\t\t\t\t<pixelaspectratio>square</pixelaspectratio>");
+            xml.AppendLine("\t\t\t\t\t\t<anamorphic>FALSE</anamorphic>");
+
+            // Add file reference for the video
+            xml.AppendLine("\t\t\t\t\t\t<file id=\"file-1\">");
+            xml.AppendLine($"\t\t\t\t\t\t\t<name>{videoFileName}</name>");
+            xml.AppendLine($"\t\t\t\t\t\t\t<pathurl>{safeVideoPath}</pathurl>");
+            xml.AppendLine("\t\t\t\t\t\t\t<rate>");
+            xml.AppendLine($"\t\t\t\t\t\t\t\t<timebase>{videoFps}</timebase>");
+            xml.AppendLine($"\t\t\t\t\t\t\t\t<ntsc>{(isNtsc ? "TRUE" : "FALSE")}</ntsc>");
+            xml.AppendLine("\t\t\t\t\t\t\t</rate>");
+            xml.AppendLine($"\t\t\t\t\t\t\t<duration>{totalFrames}</duration>");
+            xml.AppendLine("\t\t\t\t\t\t\t<media>");
+            xml.AppendLine("\t\t\t\t\t\t\t\t<video>");
+            xml.AppendLine("\t\t\t\t\t\t\t\t\t<samplecharacteristics>");
+            xml.AppendLine("\t\t\t\t\t\t\t\t\t\t<rate>");
+            xml.AppendLine($"\t\t\t\t\t\t\t\t\t\t\t<timebase>{videoFps}</timebase>");
+            xml.AppendLine($"\t\t\t\t\t\t\t\t\t\t\t<ntsc>{(isNtsc ? "TRUE" : "FALSE")}</ntsc>");
+            xml.AppendLine("\t\t\t\t\t\t\t\t\t\t</rate>");
+            xml.AppendLine($"\t\t\t\t\t\t\t\t\t\t<width>{width}</width>");
+            xml.AppendLine($"\t\t\t\t\t\t\t\t\t\t<height>{height}</height>");
+            xml.AppendLine("\t\t\t\t\t\t\t\t\t\t<anamorphic>FALSE</anamorphic>");
+            xml.AppendLine("\t\t\t\t\t\t\t\t\t\t<pixelaspectratio>square</pixelaspectratio>");
+            xml.AppendLine("\t\t\t\t\t\t\t\t\t\t<fielddominance>none</fielddominance>");
+            xml.AppendLine("\t\t\t\t\t\t\t\t\t</samplecharacteristics>");
+            xml.AppendLine("\t\t\t\t\t\t\t\t</video>");
+
+            // Basic audio definition is needed even if we don't have audio
+            xml.AppendLine("\t\t\t\t\t\t\t\t<audio>");
+            xml.AppendLine("\t\t\t\t\t\t\t\t\t<samplecharacteristics>");
+            xml.AppendLine("\t\t\t\t\t\t\t\t\t\t<depth>16</depth>");
+            xml.AppendLine("\t\t\t\t\t\t\t\t\t\t<samplerate>48000</samplerate>");
+            xml.AppendLine("\t\t\t\t\t\t\t\t\t</samplecharacteristics>");
+            xml.AppendLine("\t\t\t\t\t\t\t\t\t<channelcount>2</channelcount>");
+            xml.AppendLine("\t\t\t\t\t\t\t\t</audio>");
+            xml.AppendLine("\t\t\t\t\t\t\t</media>");
+            xml.AppendLine("\t\t\t\t\t\t</file>");
+
+            // Add basic link references which Premiere Pro needs
+            xml.AppendLine("\t\t\t\t\t\t<link>");
+            xml.AppendLine("\t\t\t\t\t\t\t<linkclipref>clipitem-1</linkclipref>");
+            xml.AppendLine("\t\t\t\t\t\t\t<mediatype>video</mediatype>");
+            xml.AppendLine("\t\t\t\t\t\t\t<trackindex>1</trackindex>");
+            xml.AppendLine("\t\t\t\t\t\t\t<clipindex>1</clipindex>");
+            xml.AppendLine("\t\t\t\t\t\t</link>");
+
+            // Close main clip
+            xml.AppendLine("\t\t\t\t\t</clipitem>");
+
+            // Close main track
+            xml.AppendLine("\t\t\t\t\t<enabled>TRUE</enabled>");
+            xml.AppendLine("\t\t\t\t\t<locked>FALSE</locked>");
+            xml.AppendLine("\t\t\t\t</track>");
+
+            // Add a second track for still images
+            xml.AppendLine("\t\t\t\t<track TL.SQTrackShy=\"0\" TL.SQTrackExpandedHeight=\"41\" TL.SQTrackExpanded=\"0\" MZ.TrackTargeted=\"0\">");
+
+            // Add still images as separate clipitems
+            int clipIndex = 2;
+            int fileIndex = 2;
+            int masterClipIndex = 2;
+
+            foreach (var note in _notes)
+            {
+                string sourcePath = !string.IsNullOrEmpty(note.EditedImagePath) && File.Exists(note.EditedImagePath)
+                    ? note.EditedImagePath
+                    : note.ImagePath;
+
+                if (imagePathMapping.TryGetValue(sourcePath, out string destPath))
+                {
+                    int frameNumber = (int)(note.Timecode * videoFps);
+                    int duration = 10; // 10 frames duration for stills
+
+                    string safeImagePath = destPath.Replace("\\", "/");
+                    if (safeImagePath.StartsWith("/"))
+                    {
+                        safeImagePath = safeImagePath.Substring(1);
+                    }
+                    // URL encode the path properly
+                    safeImagePath = Uri.EscapeDataString(safeImagePath).Replace("%2F", "/").Replace("%3A", ":");
+
+                    string fileName = Path.GetFileName(destPath);
+
+                    xml.AppendLine($"\t\t\t\t\t<clipitem id=\"clipitem-{clipIndex}\">");
+                    xml.AppendLine($"\t\t\t\t\t\t<masterclipid>masterclip-{masterClipIndex}</masterclipid>");
+                    xml.AppendLine($"\t\t\t\t\t\t<name>{fileName}</name>");
+                    xml.AppendLine("\t\t\t\t\t\t<enabled>TRUE</enabled>");
+                    xml.AppendLine("\t\t\t\t\t\t<duration>1035764</duration>"); // Use a large duration like in the example
+                    xml.AppendLine("\t\t\t\t\t\t<rate>");
+                    xml.AppendLine($"\t\t\t\t\t\t\t<timebase>{videoFps}</timebase>");
+                    xml.AppendLine($"\t\t\t\t\t\t\t<ntsc>{(isNtsc ? "TRUE" : "FALSE")}</ntsc>");
+                    xml.AppendLine("\t\t\t\t\t\t</rate>");
+                    xml.AppendLine($"\t\t\t\t\t\t<start>{frameNumber}</start>");
+                    xml.AppendLine($"\t\t\t\t\t\t<end>{frameNumber + duration}</end>");
+                    xml.AppendLine("\t\t\t\t\t\t<in>86313</in>"); // Use values from example
+                    xml.AppendLine("\t\t\t\t\t\t<out>86432</out>"); // Use values from example
+                    xml.AppendLine("\t\t\t\t\t\t<pproTicksIn>914450328792000</pproTicksIn>"); // Use values from example
+                    xml.AppendLine("\t\t\t\t\t\t<pproTicksOut>915711084288000</pproTicksOut>"); // Use values from example
+                    xml.AppendLine("\t\t\t\t\t\t<alphatype>straight</alphatype>");
+                    xml.AppendLine("\t\t\t\t\t\t<pixelaspectratio>square</pixelaspectratio>");
+                    xml.AppendLine("\t\t\t\t\t\t<anamorphic>FALSE</anamorphic>");
+
+                    // Add file reference
+                    xml.AppendLine($"\t\t\t\t\t\t<file id=\"file-{fileIndex}\">");
+                    xml.AppendLine($"\t\t\t\t\t\t\t<name>{fileName}</name>");
+                    xml.AppendLine($"\t\t\t\t\t\t\t<pathurl>{safeImagePath}</pathurl>");
+                    xml.AppendLine("\t\t\t\t\t\t\t<rate>");
+                    xml.AppendLine("\t\t\t\t\t\t\t\t<timebase>30</timebase>"); // Images often use 30fps in Premiere
+                    xml.AppendLine("\t\t\t\t\t\t\t\t<ntsc>TRUE</ntsc>");
+                    xml.AppendLine("\t\t\t\t\t\t\t</rate>");
+                    xml.AppendLine("\t\t\t\t\t\t\t<timecode>");
+                    xml.AppendLine("\t\t\t\t\t\t\t\t<rate>");
+                    xml.AppendLine("\t\t\t\t\t\t\t\t\t<timebase>30</timebase>");
+                    xml.AppendLine("\t\t\t\t\t\t\t\t\t<ntsc>TRUE</ntsc>");
+                    xml.AppendLine("\t\t\t\t\t\t\t\t</rate>");
+                    xml.AppendLine("\t\t\t\t\t\t\t\t<string>00;00;00;00</string>");
+                    xml.AppendLine("\t\t\t\t\t\t\t\t<frame>0</frame>");
+                    xml.AppendLine("\t\t\t\t\t\t\t\t<displayformat>DF</displayformat>");
+                    xml.AppendLine("\t\t\t\t\t\t\t</timecode>");
+                    xml.AppendLine("\t\t\t\t\t\t\t<media>");
+                    xml.AppendLine("\t\t\t\t\t\t\t\t<video>");
+                    xml.AppendLine("\t\t\t\t\t\t\t\t\t<samplecharacteristics>");
+                    xml.AppendLine("\t\t\t\t\t\t\t\t\t\t<rate>");
+                    xml.AppendLine("\t\t\t\t\t\t\t\t\t\t\t<timebase>30</timebase>");
+                    xml.AppendLine("\t\t\t\t\t\t\t\t\t\t\t<ntsc>TRUE</ntsc>");
+                    xml.AppendLine("\t\t\t\t\t\t\t\t\t\t</rate>");
+                    xml.AppendLine($"\t\t\t\t\t\t\t\t\t\t<width>{width}</width>");
+                    xml.AppendLine($"\t\t\t\t\t\t\t\t\t\t<height>{height}</height>");
+                    xml.AppendLine("\t\t\t\t\t\t\t\t\t\t<anamorphic>FALSE</anamorphic>");
+                    xml.AppendLine("\t\t\t\t\t\t\t\t\t\t<pixelaspectratio>square</pixelaspectratio>");
+                    xml.AppendLine("\t\t\t\t\t\t\t\t\t\t<fielddominance>none</fielddominance>");
+                    xml.AppendLine("\t\t\t\t\t\t\t\t\t</samplecharacteristics>");
+                    xml.AppendLine("\t\t\t\t\t\t\t\t</video>");
+                    xml.AppendLine("\t\t\t\t\t\t\t</media>");
+                    xml.AppendLine("\t\t\t\t\t\t</file>");
+
+                    // Add logginginfo as in the example
+                    xml.AppendLine("\t\t\t\t\t\t<logginginfo>");
+                    xml.AppendLine("\t\t\t\t\t\t\t<description></description>");
+                    xml.AppendLine("\t\t\t\t\t\t\t<scene></scene>");
+                    xml.AppendLine("\t\t\t\t\t\t\t<shottake></shottake>");
+                    xml.AppendLine("\t\t\t\t\t\t\t<lognote></lognote>");
+                    xml.AppendLine("\t\t\t\t\t\t\t<good></good>");
+                    xml.AppendLine("\t\t\t\t\t\t\t<originalvideofilename></originalvideofilename>");
+                    xml.AppendLine("\t\t\t\t\t\t\t<originalaudiofilename></originalaudiofilename>");
+                    xml.AppendLine("\t\t\t\t\t\t</logginginfo>");
+                    xml.AppendLine("\t\t\t\t\t\t<colorinfo>");
+                    xml.AppendLine("\t\t\t\t\t\t\t<lut></lut>");
+                    xml.AppendLine("\t\t\t\t\t\t\t<lut1></lut1>");
+                    xml.AppendLine("\t\t\t\t\t\t\t<asc_sop></asc_sop>");
+                    xml.AppendLine("\t\t\t\t\t\t\t<asc_sat></asc_sat>");
+                    xml.AppendLine("\t\t\t\t\t\t\t<lut2></lut2>");
+                    xml.AppendLine("\t\t\t\t\t\t</colorinfo>");
+                    xml.AppendLine("\t\t\t\t\t\t<labels>");
+                    xml.AppendLine("\t\t\t\t\t\t</labels>");
+                    xml.AppendLine("\t\t\t\t\t</clipitem>");
+
+                    clipIndex++;
+                    fileIndex++;
+                    masterClipIndex++;
+                }
+            }
+
+            // Close image track
+            xml.AppendLine("\t\t\t\t\t<enabled>TRUE</enabled>");
+            xml.AppendLine("\t\t\t\t\t<locked>FALSE</locked>");
+            xml.AppendLine("\t\t\t\t</track>");
+
+            // Add an empty track as in the example
+            xml.AppendLine("\t\t\t\t<track TL.SQTrackShy=\"0\" TL.SQTrackExpandedHeight=\"41\" TL.SQTrackExpanded=\"0\" MZ.TrackTargeted=\"0\">");
+            xml.AppendLine("\t\t\t\t\t<enabled>TRUE</enabled>");
+            xml.AppendLine("\t\t\t\t\t<locked>FALSE</locked>");
+            xml.AppendLine("\t\t\t\t</track>");
+
+            // Close video section
+            xml.AppendLine("\t\t\t</video>");
+
+            // Add audio section
+            xml.AppendLine("\t\t\t<audio>");
+            xml.AppendLine("\t\t\t\t<numOutputChannels>2</numOutputChannels>");
+            xml.AppendLine("\t\t\t\t<format>");
+            xml.AppendLine("\t\t\t\t\t<samplecharacteristics>");
+            xml.AppendLine("\t\t\t\t\t\t<depth>16</depth>");
+            xml.AppendLine("\t\t\t\t\t\t<samplerate>48000</samplerate>");
+            xml.AppendLine("\t\t\t\t\t</samplecharacteristics>");
+            xml.AppendLine("\t\t\t\t</format>");
+
+            // Add basic audio outputs
+            xml.AppendLine("\t\t\t\t<outputs>");
+            xml.AppendLine("\t\t\t\t\t<group>");
+            xml.AppendLine("\t\t\t\t\t\t<index>1</index>");
+            xml.AppendLine("\t\t\t\t\t\t<numchannels>1</numchannels>");
+            xml.AppendLine("\t\t\t\t\t\t<downmix>0</downmix>");
+            xml.AppendLine("\t\t\t\t\t\t<channel>");
+            xml.AppendLine("\t\t\t\t\t\t\t<index>1</index>");
+            xml.AppendLine("\t\t\t\t\t\t</channel>");
+            xml.AppendLine("\t\t\t\t\t</group>");
+            xml.AppendLine("\t\t\t\t\t<group>");
+            xml.AppendLine("\t\t\t\t\t\t<index>2</index>");
+            xml.AppendLine("\t\t\t\t\t\t<numchannels>1</numchannels>");
+            xml.AppendLine("\t\t\t\t\t\t<downmix>0</downmix>");
+            xml.AppendLine("\t\t\t\t\t\t<channel>");
+            xml.AppendLine("\t\t\t\t\t\t\t<index>2</index>");
+            xml.AppendLine("\t\t\t\t\t\t</channel>");
+            xml.AppendLine("\t\t\t\t\t</group>");
+            xml.AppendLine("\t\t\t\t</outputs>");
+
+            // Add an empty audio track
+            xml.AppendLine("\t\t\t\t<track TL.SQTrackAudioKeyframeStyle=\"0\" TL.SQTrackShy=\"0\" TL.SQTrackExpandedHeight=\"41\" TL.SQTrackExpanded=\"0\" MZ.TrackTargeted=\"1\" PannerCurrentValue=\"0.5\" PannerIsInverted=\"true\" PannerStartKeyframe=\"-91445760000000000,0.5,0,0,0,0,0,0\" PannerName=\"Balance\" currentExplodedTrackIndex=\"0\" totalExplodedTrackCount=\"2\" premiereTrackType=\"Stereo\">");
+            xml.AppendLine("\t\t\t\t\t<enabled>TRUE</enabled>");
+            xml.AppendLine("\t\t\t\t\t<locked>FALSE</locked>");
+            xml.AppendLine("\t\t\t\t\t<outputchannelindex>1</outputchannelindex>");
+            xml.AppendLine("\t\t\t\t</track>");
+            xml.AppendLine("\t\t\t\t<track TL.SQTrackAudioKeyframeStyle=\"0\" TL.SQTrackShy=\"0\" TL.SQTrackExpandedHeight=\"41\" TL.SQTrackExpanded=\"0\" MZ.TrackTargeted=\"1\" PannerCurrentValue=\"0.5\" PannerIsInverted=\"true\" PannerStartKeyframe=\"-91445760000000000,0.5,0,0,0,0,0,0\" PannerName=\"Balance\" currentExplodedTrackIndex=\"1\" totalExplodedTrackCount=\"2\" premiereTrackType=\"Stereo\">");
+            xml.AppendLine("\t\t\t\t\t<enabled>TRUE</enabled>");
+            xml.AppendLine("\t\t\t\t\t<locked>FALSE</locked>");
+            xml.AppendLine("\t\t\t\t\t<outputchannelindex>2</outputchannelindex>");
+            xml.AppendLine("\t\t\t\t</track>");
+
+            // Close audio section
+            xml.AppendLine("\t\t\t</audio>");
+
+            // Close media section
+            xml.AppendLine("\t\t</media>");
+
+            // Add sequence timecode
+            xml.AppendLine("\t\t<timecode>");
+            xml.AppendLine("\t\t\t<rate>");
+            xml.AppendLine($"\t\t\t\t<timebase>{videoFps}</timebase>");
+            xml.AppendLine($"\t\t\t\t<ntsc>{(isNtsc ? "TRUE" : "FALSE")}</ntsc>");
+            xml.AppendLine("\t\t\t</rate>");
+            xml.AppendLine("\t\t\t<string>00:00:00:00</string>");
+            xml.AppendLine("\t\t\t<frame>0</frame>");
+            xml.AppendLine("\t\t\t<displayformat>NDF</displayformat>");
+            xml.AppendLine("\t\t</timecode>");
+
+            // Add sequence markers (this is where Premiere actually reads them from)
+            xml.AppendLine("\t\t\t<marker>");
+            foreach (var note in _notes)
+            {
+                int frameNumber = (int)(note.Timecode * videoFps);
+                xml.AppendLine("\t\t\t\t<marker>");
+                xml.AppendLine($"\t\t\t\t\t<comment>{System.Security.SecurityElement.Escape(note.Notes)}</comment>");
+                xml.AppendLine("\t\t\t\t\t<name></name>");
+                xml.AppendLine($"\t\t\t\t\t<in>{frameNumber}</in>");
+                xml.AppendLine("\t\t\t\t\t<out>-1</out>");
+                xml.AppendLine("\t\t\t\t\t<out>-1</out>");
+                xml.AppendLine("\t\t\t\t</marker>");
+            }
+            xml.AppendLine("\t\t\t</marker>");
+
+            // Close sequence section with additional metadata
+            xml.AppendLine("\t\t<labels>");
+            xml.AppendLine("\t\t\t<label2>Forest</label2>");
+            xml.AppendLine("\t\t</labels>");
+            xml.AppendLine("\t\t<logginginfo>");
+            xml.AppendLine("\t\t\t<description></description>");
+            xml.AppendLine("\t\t\t<scene></scene>");
+            xml.AppendLine("\t\t\t<shottake></shottake>");
+            xml.AppendLine("\t\t\t<lognote></lognote>");
+            xml.AppendLine("\t\t\t<good></good>");
+            xml.AppendLine("\t\t\t<originalvideofilename></originalvideofilename>");
+            xml.AppendLine("\t\t\t<originalaudiofilename></originalaudiofilename>");
+            xml.AppendLine("\t\t</logginginfo>");
+            xml.AppendLine("\t</sequence>");
+
+            // Close project and xmeml tags
+            xml.AppendLine("</children>");
+            xml.AppendLine("</project>");
+            xml.AppendLine("</xmeml>");
+
+            // Write XML file
+            await File.WriteAllTextAsync(exportPath, xml.ToString());
+        }
+
+        private async Task ExportForAfterEffects(string exportPath)
+        {
+            if (string.IsNullOrEmpty(_currentVideoPath) || _notes.Count == 0)
+                return;
+
+            var videoName = Path.GetFileNameWithoutExtension(_currentVideoPath);
+
+            // Get video properties from MPV
+            double videoFps = GetVideoFrameRate() ?? 30.0;
+            double videoDuration = GetVideoDuration() ?? 60.0;
+            (int width, int height) = GetVideoResolution() ?? (1920, 1080);
+
+            // Create images folder
+            var imagesFolder = Path.Combine(
+                Path.GetDirectoryName(exportPath),
+                $"{Path.GetFileNameWithoutExtension(exportPath)}_images"
+            );
+
+            Directory.CreateDirectory(imagesFolder);
+
+            // Copy all images to the new folder
+            var imagePathMapping = new Dictionary<string, string>();
+
+            foreach (var note in _notes)
+            {
+                string sourcePath = !string.IsNullOrEmpty(note.EditedImagePath) && File.Exists(note.EditedImagePath)
+                    ? note.EditedImagePath
+                    : note.ImagePath;
+
+                if (File.Exists(sourcePath))
+                {
+                    var destFileName = $"frame_{note.Timecode.ToString("F3", System.Globalization.CultureInfo.InvariantCulture).Replace(".", "_")}{Path.GetExtension(sourcePath)}";
+                    var destPath = Path.Combine(imagesFolder, destFileName);
+
+                    File.Copy(sourcePath, destPath, true);
+                    imagePathMapping.Add(sourcePath, destPath);
+                }
+            }
+
+            // Create data structure for AE with image mapping included
+            var exportData = new
+            {
+                ProjectInfo = new
+                {
+                    VideoPath = _currentVideoPath,
+                    VideoName = videoName,
+                    Fps = videoFps,
+                    Duration = videoDuration,
+                    Width = width,
+                    Height = height,
+                    ExportDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
+                },
+                Notes = _notes.Select(note =>
+                {
+                    string sourcePath = !string.IsNullOrEmpty(note.EditedImagePath) && File.Exists(note.EditedImagePath)
+                        ? note.EditedImagePath
+                        : note.ImagePath;
+
+                    string exportedImagePath = imagePathMapping.ContainsKey(sourcePath)
+                        ? imagePathMapping[sourcePath]
+                        : sourcePath;
+
+                    return new
+                    {
+                        Timecode = note.Timecode,
+                        TimecodeString = note.TimecodeString,
+                        FrameNumber = (int)(note.Timecode * videoFps),
+                        Notes = note.Notes,
+                        OriginalImagePath = sourcePath,
+                        ExportedImagePath = exportedImagePath,
+                        Created = note.Created.ToString("yyyy-MM-dd HH:mm:ss")
+                    };
+                }).OrderBy(n => n.Timecode).ToList(),
+                ImageMappings = imagePathMapping
+            };
+
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            };
+
+            var json = JsonSerializer.Serialize(exportData, options);
+            await File.WriteAllTextAsync(exportPath, json);
+
+            // Create the JSX file
+            var jsxContent = GenerateAfterEffectsJSX();
+            var jsxPath = Path.Combine(
+                Path.GetDirectoryName(exportPath),
+                $"Import_{Path.GetFileNameWithoutExtension(exportPath)}.jsx"
+            );
+            await File.WriteAllTextAsync(jsxPath, jsxContent);
+        }
+
+        private (int width, int height)? GetVideoResolution()
+        {
+            if (_mainWindow?.GetMpvHandle() is IntPtr mpvHandle && mpvHandle != IntPtr.Zero)
+            {
+                try
+                {
+                    // Try to get width and height from MPV player
+                    var widthStr = MPVInterop.GetStringProperty(mpvHandle, "width");
+                    var heightStr = MPVInterop.GetStringProperty(mpvHandle, "height");
+
+                    if (!string.IsNullOrEmpty(widthStr) && !string.IsNullOrEmpty(heightStr) &&
+                        int.TryParse(widthStr, out int width) && int.TryParse(heightStr, out int height))
+                    {
+                        return (width, height);
+                    }
+
+                    // Alternative approach if the above fails
+                    var videoParamsStr = MPVInterop.GetStringProperty(mpvHandle, "video-params");
+                    if (!string.IsNullOrEmpty(videoParamsStr))
+                    {
+                        // Parse the video-params string which might look like "w=1920,h=1080,..."
+                        var wMatch = System.Text.RegularExpressions.Regex.Match(videoParamsStr, @"w=(\d+)");
+                        var hMatch = System.Text.RegularExpressions.Regex.Match(videoParamsStr, @"h=(\d+)");
+
+                        if (wMatch.Success && hMatch.Success &&
+                            int.TryParse(wMatch.Groups[1].Value, out width) &&
+                            int.TryParse(hMatch.Groups[1].Value, out height))
+                        {
+                            return (width, height);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error getting video resolution: {ex.Message}");
+                }
+            }
+
+            return null;
+        }
+
+        private double? GetVideoDuration()
+        {
+            if (_mainWindow?.GetMpvHandle() is IntPtr mpvHandle && mpvHandle != IntPtr.Zero)
+            {
+                try
+                {
+                    // Try to get duration from MPV player
+                    var durationStr = MPVInterop.GetStringProperty(mpvHandle, "duration");
+                    if (!string.IsNullOrEmpty(durationStr) && double.TryParse(durationStr, System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture, out double duration))
+                    {
+                        return duration;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error getting video duration: {ex.Message}");
+                }
+            }
+
+            return null;
+        }
+
+        private double? GetVideoFrameRate()
+        {
+            if (_mainWindow?.GetMpvHandle() is IntPtr mpvHandle && mpvHandle != IntPtr.Zero)
+            {
+                try
+                {
+                    // Try to get fps from MPV player
+                    var fpsStr = MPVInterop.GetStringProperty(mpvHandle, "fps");
+                    if (!string.IsNullOrEmpty(fpsStr) && double.TryParse(fpsStr, System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture, out double fps))
+                    {
+                        return fps;
+                    }
+
+                    // Alternative: try container-fps if normal fps isn't available
+                    fpsStr = MPVInterop.GetStringProperty(mpvHandle, "container-fps");
+                    if (!string.IsNullOrEmpty(fpsStr) && double.TryParse(fpsStr, System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture, out fps))
+                    {
+                        return fps;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error getting video frame rate: {ex.Message}");
+                }
+            }
+
+            return null;
+        }
+
+        private string GenerateAfterEffectsJSX()
+        {
+            return @"// After Effects Import Script for UnionMpvPlayer Notes
+// Place this script and the corresponding JSON file in the same folder
+// Run via File > Scripts > Import_UnionMpvPlayer_Notes.jsx
+
+(function(thisObj) {
+    var myPanel = (thisObj instanceof Panel) ? thisObj : new Window(""palette"", ""Import UnionMpvPlayer Notes"", undefined, { resizeable: true });
+
+    function buildUI(thisPanel) {
+        thisPanel.orientation = ""column"";
+        thisPanel.alignChildren = [""fill"", ""top""];
+        thisPanel.spacing = 10;
+        thisPanel.margins = 10;
+
+        // Auto-detect JSON file
+        var scriptFile = new File($.fileName);
+        var scriptFolder = scriptFile.parent;
+        var jsonFileName = scriptFile.name.replace("".jsx"", "".json"").replace(""Import_"", """");
+        var jsonFile = new File(scriptFolder.fsName + ""/"" + jsonFileName);
+        
+        // === File Path Display ===
+        var fileGroup = thisPanel.add(""panel"", undefined, ""JSON File"");
+        fileGroup.orientation = ""column"";
+        fileGroup.alignChildren = [""fill"", ""top""];
+        fileGroup.margins = 10;
+
+        var fileStatusText = fileGroup.add(""statictext"", undefined, jsonFile.exists ? ""Found: "" + jsonFileName : ""JSON file not found in script directory"");
+        fileStatusText.preferredSize.width = 300;
+
+        // Only show browse button if auto-detection failed
+        var browseButton;
+        if (!jsonFile.exists) {
+            browseButton = fileGroup.add(""button"", undefined, ""Browse for JSON file..."");
+        }
+
+        // === Options Panel ===
+        var optionsGroup = thisPanel.add(""panel"", undefined, ""Import Options"");
+        optionsGroup.orientation = ""column"";
+        optionsGroup.alignChildren = [""left"", ""top""];
+        optionsGroup.margins = 10;
+
+        var importMarkers = optionsGroup.add(""checkbox"", undefined, ""Import Markers"");
+        importMarkers.value = true;
+
+        var importStills = optionsGroup.add(""checkbox"", undefined, ""Import Still Images"");
+        importStills.value = true;
+
+        var stillDuration = optionsGroup.add(""group"");
+        stillDuration.orientation = ""row"";
+        stillDuration.alignChildren = [""left"", ""center""];
+        stillDuration.add(""statictext"", undefined, ""Still Duration (frames):"");
+        var stillDurationInput = stillDuration.add(""edittext"", undefined, ""10"");
+        stillDurationInput.preferredSize.width = 50;
+
+        // === Button Group ===
+        var buttonGroup = thisPanel.add(""group"");
+        buttonGroup.orientation = ""row"";
+        buttonGroup.alignment = ""right"";
+
+        var cancelButton = buttonGroup.add(""button"", undefined, ""Cancel"");
+        var okButton = buttonGroup.add(""button"", undefined, ""Import"");
+        okButton.enabled = jsonFile.exists;
+
+        // === Browse logic (only if needed) ===
+        if (browseButton) {
+            browseButton.onClick = function() {
+                var file = File.openDialog(""Select Notes JSON File"", ""JSON Files:*.json"");
+                if (file) {
+                    jsonFile = file;
+                    fileStatusText.text = ""Selected: "" + jsonFile.name;
+                    okButton.enabled = true;
+                }
+            };
+        }
+
+        // === Button logic ===
+        cancelButton.onClick = function() {
+            if (thisPanel instanceof Window) {
+                thisPanel.close();
+            }
+        };
+
+        okButton.onClick = function() {
+            try {
+                importNotesFromJson(jsonFile.fsName, {
+                    importMarkers: importMarkers.value,
+                    importStills: importStills.value,
+                    stillDuration: parseInt(stillDurationInput.text, 10) || 10
+                });
+                
+                if (thisPanel instanceof Window) {
+                    thisPanel.close();
+                }
+            } catch (e) {
+                alert(""Error importing notes: "" + e.toString());
+            }
+        };
+
+        return thisPanel;
+    }
+
+    var builtPanel = buildUI(myPanel);
+
+    if (builtPanel instanceof Window) {
+        builtPanel.center();
+        builtPanel.show();
+    } else {
+        builtPanel.layout.layout(true);
+        builtPanel.layout.resize();
+    }
+
+    // === Main Import Logic ===
+    function importNotesFromJson(jsonPath, options) {
+        var file = new File(jsonPath);
+        file.open(""r"");
+        var jsonContent = file.read();
+        file.close();
+
+        var data = JSON.parse(jsonContent);
+        var projectInfo = data.ProjectInfo;
+        var notesData = data.Notes;
+
+        var comp = app.project.activeItem;
+        if (!(comp instanceof CompItem)) {
+            comp = app.project.items.addComp(
+                projectInfo.VideoName,
+                projectInfo.Width,
+                projectInfo.Height,
+                1,
+                projectInfo.Duration,
+                projectInfo.Fps
+            );
+        } else {
+            if (comp.duration < projectInfo.Duration) {
+                comp.duration = projectInfo.Duration;
+            }
+        }
+
+        var videoItem = null;
+        try {
+            var videoFile = new File(projectInfo.VideoPath);
+            if (videoFile.exists) {
+                var importOptions = new ImportOptions(videoFile);
+                videoItem = app.project.importFile(importOptions);
+                comp.layers.add(videoItem);
+            }
+        } catch (e) {
+            alert(""Could not import video: "" + e.toString());
+        }
+
+        for (var i = 0; i < notesData.length; i++) {
+            var noteItem = notesData[i];
+            var frameTime = noteItem.FrameNumber / projectInfo.Fps;
+
+            if (options.importMarkers) {
+                var markerObj = new MarkerValue(noteItem.Notes);
+                comp.markerProperty.setValueAtTime(frameTime, markerObj);
+            }
+
+            if (options.importStills) {
+                try {
+                    // Use the exported image path directly from the JSON
+                    var imgPath = noteItem.ExportedImagePath;
+                    
+                    var imgFile = new File(imgPath);
+                    if (imgFile.exists) {
+                        var imgOptions = new ImportOptions(imgFile);
+                        var img = app.project.importFile(imgOptions);
+                        var imgLayer = comp.layers.add(img);
+
+                        imgLayer.startTime = frameTime;
+                        imgLayer.outPoint = frameTime + (options.stillDuration / projectInfo.Fps);
+                    }
+                } catch (e) {
+                    alert(""Error importing image for note "" + (i+1) + "": "" + e.toString());
+                }
+            }
+        }
+
+        alert(""Import complete! Imported "" + notesData.length + "" notes."");
+    }
+})(this);";
+        }
 
         private string ConvertImageToBase64(string imagePath)
         {
@@ -747,7 +1523,7 @@ namespace UnionMpvPlayer.Views
             var dir = new DirectoryInfo(path);
             while (dir != null)
             {
-                if (System.Text.RegularExpressions.Regex.IsMatch(dir.Name, @"^\d{6,7}_.*"))
+                if (System.Text.RegularExpressions.Regex.IsMatch(dir.Name, @"^\d{6,7}[a-zA-Z]?_.*"))
                 {
                     var requiredFolders = new[] { "docs", "assets", "3d", "ae" };
                     if (requiredFolders.All(folder => Directory.Exists(Path.Combine(dir.FullName, folder))))
@@ -785,7 +1561,15 @@ namespace UnionMpvPlayer.Views
             bool isUnionNotes = ExportFormatComboBox.SelectedIndex == 3;
             bool isHtml = ExportFormatComboBox.SelectedIndex == 1;
             bool isMarkdown = ExportFormatComboBox.SelectedIndex == 0;
-            string extension = isHtml ? ".html" : ".md";
+            bool isPdf = ExportFormatComboBox.SelectedIndex == 2;
+            bool isAfterEffects = ExportFormatComboBox.SelectedIndex == 4;
+            bool isPremierePro = ExportFormatComboBox.SelectedIndex == 5;
+
+            string extension = isHtml ? ".html" :
+                      isMarkdown ? ".md" :
+                      isPdf ? ".pdf" :
+                      isAfterEffects ? ".json" :
+                      isPremierePro ? ".xml" : ".md";
 
             string exportFolder;
             string projectRoot = FindProjectRoot(_currentVideoPath) ?? "";
@@ -803,11 +1587,19 @@ namespace UnionMpvPlayer.Views
 
             var videoName = Path.GetFileNameWithoutExtension(_currentVideoPath);
             var exportPath = Path.Combine(exportFolder, $"{videoName}_notes{extension}");
-            var sb = new StringBuilder();
 
-            if (isUnionNotes)
+            if (isAfterEffects)
+            {
+                await ExportForAfterEffects(exportPath);
+            }
+            else if (isPremierePro)
+            {
+                await ExportForPremierePro(exportPath);
+            }
+            else if (isUnionNotes)
             {
                 // Union Notes format
+                var sb = new StringBuilder();
                 sb.AppendLine($"# {videoName}");
                 sb.AppendLine("```File Path");
                 sb.AppendLine($"{_currentVideoPath}");
@@ -834,6 +1626,7 @@ namespace UnionMpvPlayer.Views
             else if (isMarkdown)
             {
                 // Standard Markdown format
+                var sb = new StringBuilder();
                 sb.AppendLine($"# {videoName}");
                 sb.AppendLine($"`{_currentVideoPath}`");
                 sb.AppendLine();
@@ -849,8 +1642,7 @@ namespace UnionMpvPlayer.Views
                 }
                 await File.WriteAllTextAsync(exportPath, sb.ToString());
             }
-
-            if (isHtml)
+            else if (isHtml)
             {
                 var htmlSb = new StringBuilder();
                 htmlSb.AppendLine("<!DOCTYPE html>");
@@ -881,7 +1673,7 @@ namespace UnionMpvPlayer.Views
                 htmlSb.AppendLine("</body></html>");
                 await File.WriteAllTextAsync(exportPath, htmlSb.ToString());
             }
-            else if (ExportFormatComboBox.SelectedIndex == 2) // PDF
+            else if (isPdf) // PDF
             {
                 var htmlSb = new StringBuilder();
                 htmlSb.AppendLine("<!DOCTYPE html>");
@@ -934,69 +1726,90 @@ namespace UnionMpvPlayer.Views
                     }
                 }
             }
+
+            if (isAfterEffects || isPremierePro)
+            {
+                var popup = new ExportCompletePopup(hideOpenButton: true) { Tag = exportPath };
+
+                popup.OpenFolderRequested += (s, path) =>
+                {
+                    try
+                    {
+                        var psi = new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = Path.GetDirectoryName(path),
+                            UseShellExecute = true
+                        };
+                        System.Diagnostics.Process.Start(psi);
+                    }
+                    catch (Exception ex)
+                    {
+                        //Debug.WriteLine($"Error opening folder: {ex.Message}");
+                    }
+                };
+
+                await popup.ShowDialog((Window)TopLevel.GetTopLevel(this));
+            }
             else
             {
-                await File.WriteAllTextAsync(exportPath, sb.ToString());
+                var popup = new ExportCompletePopup() { Tag = exportPath };
+
+                popup.OpenFileRequested += (s, path) =>
+                {
+                    if (isUnionNotes)
+                    {
+                        try
+                        {
+                            var psi = new System.Diagnostics.ProcessStartInfo
+                            {
+                                FileName = @"C:\UnionApps\unionProjects\notesViewer.exe",
+                                Arguments = path,
+                                UseShellExecute = true
+                            };
+                            System.Diagnostics.Process.Start(psi);
+                        }
+                        catch (Exception ex)
+                        {
+                            //Debug.WriteLine($"Error opening UnionNotes viewer: {ex.Message}");
+                        }
+                    }
+                    else
+                    {
+                        try
+                        {
+                            var psi = new System.Diagnostics.ProcessStartInfo
+                            {
+                                FileName = path,
+                                UseShellExecute = true
+                            };
+                            System.Diagnostics.Process.Start(psi);
+                        }
+                        catch (Exception ex)
+                        {
+                            //Debug.WriteLine($"Error opening file: {ex.Message}");
+                        }
+                    }
+                };
+
+                popup.OpenFolderRequested += (s, path) =>
+                {
+                    try
+                    {
+                        var psi = new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = Path.GetDirectoryName(path),
+                            UseShellExecute = true
+                        };
+                        System.Diagnostics.Process.Start(psi);
+                    }
+                    catch (Exception ex)
+                    {
+                        //Debug.WriteLine($"Error opening folder: {ex.Message}");
+                    }
+                };
+
+                await popup.ShowDialog((Window)TopLevel.GetTopLevel(this));
             }
-
-
-            var popup = new ExportCompletePopup { Tag = exportPath };
-
-            popup.OpenFileRequested += (s, path) =>
-            {
-                if (isUnionNotes)
-                {
-                    try
-                    {
-                        var psi = new System.Diagnostics.ProcessStartInfo
-                        {
-                            FileName = @"C:\UnionApps\unionProjects\notesViewer.exe",
-                            Arguments = path,
-                            UseShellExecute = true
-                        };
-                        System.Diagnostics.Process.Start(psi);
-                    }
-                    catch (Exception ex)
-                    {
-                        //Debug.WriteLine($"Error opening UnionNotes viewer: {ex.Message}");
-                    }
-                }
-                else
-                {
-                    try
-                    {
-                        var psi = new System.Diagnostics.ProcessStartInfo
-                        {
-                            FileName = path,
-                            UseShellExecute = true
-                        };
-                        System.Diagnostics.Process.Start(psi);
-                    }
-                    catch (Exception ex)
-                    {
-                        //Debug.WriteLine($"Error opening file: {ex.Message}");
-                    }
-                }
-            };
-
-            popup.OpenFolderRequested += (s, path) =>
-            {
-                try
-                {
-                    var psi = new System.Diagnostics.ProcessStartInfo
-                    {
-                        FileName = Path.GetDirectoryName(path),
-                        UseShellExecute = true
-                    };
-                    System.Diagnostics.Process.Start(psi);
-                }
-                catch (Exception ex)
-                {
-                    //Debug.WriteLine($"Error opening folder: {ex.Message}");
-                }
-            };
-
-            await popup.ShowDialog((Window)TopLevel.GetTopLevel(this));
         }
     }
 }

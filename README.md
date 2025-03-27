@@ -49,11 +49,11 @@ This app function will run a Powershell script that adds the necessary registry 
 |`App`|Various settings panels including keyboard bindings, cache directory settings and more|
 |![left buttons](images/umpv003.jpg)|Open playlist, Toggle Loop, sRGB to rec.709 (gamma 2.4) LUT, Broadcast Title Safety, (video) Info, Screenshot to Windows clipboard|
 |![middle buttons](images/umpv004.jpg)|Video beginning, Back one frame, Play/Pause, Forward one frame, Video End|
-|![right buttons](images/umpv005.jpg)|Toggle mute, Volume slider, 1:1 resolution mode, Full screen, Open notes panel
+|![right buttons](images/umpv005.jpg)|Toggle mute, Volume slider, 1:1 resolution mode, Resize to 50% of screen dimension, Full screen, Open notes panel
 |![playlist top](images/umpv006.jpg)|Toggle autoplay for playlist, Delete playlist, Add to playlist|
 |![playlist bottom](images/umpv007.jpg)|Close playlist, Previous video, Move video up in order, Delete video from playlist, Move video down in order, Next video|
 |![notes top](images/umpv008.jpg)|Delete note, Add current frame as a note|
-|![notes bottom](images/umpv009.jpg)|Export notes (PDF, HTML, Markdown), Close notes panel|
+|![notes bottom](images/umpv009.jpg)|Export notes (PDF, HTML, Markdown, After Effects, Premiere Pro), Close notes panel|
 |![note](images/umpv010.jpg)|Click on note to select in player, right click or click on image icon to edit/annotate image. Click delete icon to delete note.
 
 ### Sidebars and annotations
@@ -63,6 +63,32 @@ This app function will run a Powershell script that adds the necessary registry 
 
 ![annotation](images/umpv011.jpg)
 Adjust line width, Select colors (before you select the tool), Pen, Erase, Arrow, Textbox, Undo, Redo, Revert to original image, Save edits/annotations, Close.
+
+
+
+## Exporting notes to timelines
+
+umpv allows you to export notes and annotations to PDFs, Markdown, and HTML (with embedded images ). 
+
+You can also export notes to Adobe After Effects and Premiere Pro timelines. The source video will be imported into a composition/timeline in both timeline exports, and notes will be imported as markers. Annotated images will be imported using the proper timecode and placed above the source video. 
+
+#### After Effects (JSON)
+
+Exporting with the After Effects option will collect all image annotations into a new folder next to a JSON and a JSX file. To import into AE, either:
+
+Navigate to `File > Scripts > Run Script File` and select the generated JSX file. (or)
+Navigate to `Window > umpvNotes.jsx` and select the generated JSON file. *See below for instructions on installing the optional* `umpvNotes.jsx` *script.*
+
+#### Premiere Pro (XML)
+
+Exporting with the Premiere Pro option will collect all image annotations into a new folder next to an XML file. Either drag in or import this XML to bring in the timeline, annotated images, and notes as markers.
+
+#### Optional After Effects Script Installation
+
+Though you can use the JSX file from each After Effects note export, you can also directly import the JSON files with an optional accompanying script. Download `Optional_AfterEffectsScript.zip` from the latest release, extract `umpvNotes.jsx` to `C:\Program Files\Adobe\Adobe After Effects XXXX\Support Files\Scripts\ScriptUI Panels`.
+
+
+
 
 ## Contributing and Disclaimers
 

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -117,11 +117,142 @@ namespace UnionMpvPlayer.Views
         public static MainWindow Current { get; private set; }
         public event EventHandler PlaybackStarted;
         private bool _mpvHidden;
+        private string _currentOverlayColor = "Gold";
+
+        private readonly Dictionary<string, SafetyOverlay> _overlays = new()
+        {
+            ["Broadcast16x9"] = new SafetyOverlay
+            {
+                Name = "Broadcast16x9",
+                GenerateFilter = color => $@"lavfi=[
+                    drawbox=x=(iw-((iw*0.9)))/2:y=(ih-((ih*0.9)))/2:w=iw*0.9:h=ih*0.9:color={color}@1:t=2,
+                    drawbox=x=(iw-((iw*0.93)))/2:y=(ih-((ih*0.93)))/2:w=iw*0.93:h=ih*0.93:color={color}@1:t=2
+                ]"
+            },
+
+            ["MetaReel9x16"] = new SafetyOverlay
+            {
+                Name = "MetaReel9x16",
+                GenerateFilter = color => $@"lavfi=[
+                    drawbox=x=(iw-((iw*0.88)))/2:y=ih*0.14:w=iw*0.88:h=4:color={color}@1:t=2,
+                    drawbox=x=(iw-((iw*0.88)))/2:y=ih*0.14:w=4:h=ih*0.51:color={color}@1:t=2,
+                    drawbox=x=(iw-((iw*0.88)))/2:y=ih*0.65:w=iw*0.73:h=4:color={color}@1:t=2,
+                    drawbox=x=iw*0.79:y=ih*0.6:w=4:h=ih*0.05:color={color}@1:t=2,
+                    drawbox=x=iw*0.94:y=ih*0.14:w=4:h=ih*0.46:color={color}@1:t=2,
+                    drawbox=x=iw*0.79:y=ih*0.6:w=4:h=ih*0.05:color={color}@1:t=2,
+                    drawbox=x=iw*0.79:y=ih*0.60:w=iw*0.15:h=4:color={color}@1:t=2
+                ]"
+            },
+
+            ["MetaStory9x16"] = new SafetyOverlay
+            {
+                Name = "MetaStory9x16",
+                GenerateFilter = color => $@"lavfi=[
+                    drawbox=x=(iw*0.0604):y=(ih*0.1302):w=iw*0.8796:h=ih*0.6700:color={color}@1:t=2
+                ]"
+            },
+
+            ["Pinterest9x16"] = new SafetyOverlay
+            {
+                Name = "Pinterest9x16",
+                GenerateFilter = color => $@"lavfi=[
+                    drawbox=x=(iw*0.0603):y=(ih*0.1406):w=iw*0.7589:h=ih*0.4478:color={color}@1:t=2
+                ]"
+            },
+
+            ["Pinterest1x1PremiumSpotlight"] = new SafetyOverlay
+            {
+                Name = "Pinterest1x1PremiumSpotlight",
+                GenerateFilter = color => $@"lavfi=[
+                    drawbox=x=0:y=0:w=iw:h=ih*0.0981:color={color}@1:t=2,
+                    drawbox=x=iw*0.0111:y=ih*0.1278:w=iw*0.9778:h=ih*0.1389:color={color}@1:t=2,
+                    drawbox=x=iw*0.8815:y=ih*0.3093:w=iw*0.0741:h=ih*0.0537:color={color}@1:t=2,
+                    drawbox=x=iw*0.0750:y=ih*0.6324:w=iw*0.8500:h=ih*0.1972:color={color}@1:t=2,
+                    drawbox=x=iw*0.3824:y=ih*0.8296:w=iw*0.2352:h=ih*0.1380:color={color}@1:t=2
+                ]"
+            },
+
+            ["Snapchat9x16"] = new SafetyOverlay
+            {
+                Name = "Snapchat9x16",
+                GenerateFilter = color => $@"lavfi=[
+                    drawbox=x=(iw*0.0104):y=(ih*0.0835):w=iw*0.9793:h=ih*0.8662:color={color}@1:t=2
+                ]"
+            },
+
+            ["TikTok9x16"] = new SafetyOverlay
+            {
+                Name = "TikTok9x16",
+                GenerateFilter = color => $@"lavfi=[
+                    drawbox=x=iw*0.1102:y=ih*0.1305:w=iw*0.7786:h=ih*0.0019:color={color}@1:t=2,
+                    drawbox=x=iw*0.1102:y=ih*0.1305:w=iw*0.0019:h=ih*0.5369791666666667:color={color}@1:t=2,
+                    drawbox=x=iw*0.7752:y=ih*0.1865:w=iw*0.1126:h=ih*0.0019:color={color}@1:t=2,
+                    drawbox=x=iw*0.7752:y=ih*0.1865:w=iw*0.0019:h=ih*0.48046875:color={color}@1:t=2,
+                    drawbox=x=iw*0.1099:y=ih*0.6657:w=iw*0.6681:h=ih*0.0019:color={color}@1:t=2,
+                    drawbox=x=iw*0.8888888888888889:y=ih*0.1305:w=iw*0.0019:h=ih*0.05796875:color={color}@1:t=2
+                ]"
+            },
+
+            ["Youtube1x1"] = new SafetyOverlay
+            {
+                Name = "Youtube1x1",
+                GenerateFilter = color => $@"lavfi=[
+                    drawbox=x=iw*0.0444444444444444:y=ih*0.0444097222222222:w=iw*0.450017037037037:h=ih*0.0019:color={color}@1:t=2,
+                    drawbox=x=iw*0.0444444444444444:y=ih*0.0444097222222222:w=iw*0.0019:h=ih*0.5947575:color={color}@1:t=2,
+                    drawbox=x=iw*0.4944672222222222:y=ih*0.0444097222222222:w=iw*0.0019:h=ih*0.0528353703703704:color={color}@1:t=2,
+                    drawbox=x=iw*0.4944672222222222:y=ih*0.0972450925925926:w=iw*0.4120569444444444:h=ih*0.0019:color={color}@1:t=2,
+                    drawbox=x=iw*0.9065078703703704:y=ih*0.0972450925925926:w=iw*0.0019:h=ih*0.5424561111111111:color={color}@1:t=2,
+                    drawbox=x=iw*0.0444444444444444:y=ih*0.638867962962963:w=iw*0.8621408333333333:h=ih*0.0019:color={color}@1:t=2
+                ]"
+            },
+
+            ["Youtube9x16"] = new SafetyOverlay
+            {
+                Name = "Youtube9x16",
+                GenerateFilter = color => $@"lavfi=[
+                    drawbox=x=(iw*0.0454):y=(ih*0.15):w=iw*0.7769:h=ih*0.4995:color={color}@1:t=2
+                ]"
+            },
+
+            ["Youtube16x9"] = new SafetyOverlay
+            {
+                Name = "Youtube16x9",
+                GenerateFilter = color => $@"lavfi=[
+                    drawbox=x=iw*0.019796875:y=ih*0.1522222222222222:w=iw*0.1635364583333333:h=ih*0.0019:color={color}@1:t=2,
+                    drawbox=x=iw*0.019796875:y=ih*0.1522222222222222:w=iw*0.0019:h=ih*0.5342013888888889:color={color}@1:t=2,
+                    drawbox=x=iw*0.1833333333333333:y=ih*0.0336111111111111:w=iw*0.591140625:h=ih*0.0019:color={color}@1:t=2,
+                    drawbox=x=iw*0.1833333333333333:y=ih*0.0336111111111111:w=iw*0.0019:h=ih*0.1186111111111111:color={color}@1:t=2,
+                    drawbox=x=iw*0.01984375:y=ih*0.6864259259259259:w=iw*0.4259791666666667:h=ih*0.0019:color={color}@1:t=2,
+                    drawbox=x=iw*0.4458138020833333:y=ih*0.6864259259259259:w=iw*0.0019:h=ih*0.1791203703703704:color={color}@1:t=2,
+                    drawbox=x=iw*0.4458125:y=ih*0.8655462962962963:w=iw*0.2115104166666667:h=ih*0.0019:color={color}@1:t=2,
+                    drawbox=x=iw*0.6572864583333333:y=ih*0.8226111111111111:w=iw*0.1015364583333333:h=ih*0.0019:color={color}@1:t=2,
+                    drawbox=x=iw*0.6572864583333333:y=ih*0.8226111111111111:w=iw*0.0019:h=ih*0.0435126851851852:color={color}@1:t=2,
+                    drawbox=x=iw*0.7588229166666667:y=ih*0.7121851851851852:w=iw*0.1620416666666667:h=ih*0.0019:color={color}@1:t=2,
+                    drawbox=x=iw*0.7588229166666667:y=ih*0.7121851851851852:w=iw*0.0019:h=ih*0.1104225:color={color}@1:t=2,
+                    drawbox=x=iw*0.7744739583333333:y=ih*0.1213981481481481:w=iw*0.1463177083333333:h=ih*0.0019:color={color}@1:t=2,
+                    drawbox=x=iw*0.9208691666666667:y=ih*0.1213981481481481:w=iw*0.0019:h=ih*0.5893055555555556:color={color}@1:t=2,
+                    drawbox=x=iw*0.7744739583333333:y=ih*0.0336111111111111:w=iw*0.0019:h=ih*0.0877893518518519:color={color}@1:t=2
+                ]"
+            },
+
+            ["Youtube16x9MastHead"] = new SafetyOverlay
+            {
+                Name = "Youtube16x9MastHead",
+                GenerateFilter = color => $@"lavfi=[
+                    drawbox=x=0:y=0:w=iw:h=(ih*0.25):color={color}@1:t=2,
+                    drawbox=x=0:y=(ih*0.75):w=iw:h=(ih*0.25):color={color}@1:t=2
+                ]"
+            },
+
+        };
+
 
         public MainWindow()
         {
             Current = this;
             InitializeComponent();
+            Activated += (_, _) => SetActiveBorder(true);
+            Deactivated += (_, _) => SetActiveBorder(false);
             DataContext = new MainWindowViewModel();
             _sequenceHandler = new EXRSequenceHandler();
             PlaylistSplitter = this.FindControl<GridSplitter>("PlaylistSplitter");
@@ -189,7 +320,23 @@ namespace UnionMpvPlayer.Views
                 }, Avalonia.Threading.DispatcherPriority.Background);
                 EnsureCorrectWindowOrder();
             };
-            
+
+            this.GotFocus += (s, e) => {
+                EnsureCorrectWindowOrder();
+            };
+
+            this.LostFocus += (s, e) => {
+                EnsureCorrectWindowOrder();
+            };
+
+            this.Activated += (s, e) => {
+                EnsureCorrectWindowOrder();
+            };
+
+            this.Deactivated += (s, e) => {
+                EnsureCorrectWindowOrder();
+            };
+
         }
 
         private void InitializeComponent()
@@ -221,6 +368,7 @@ namespace UnionMpvPlayer.Views
             playbackSlider.PropertyChanged += PlaybackSlider_ValueChanged;
             playbackSlider.PointerPressed += PlaybackSlider_PointerPressed;
             playbackSlider.PointerReleased += PlaybackSlider_PointerReleased;
+            playbackSlider.Tapped += PlaybackSlider_Tapped;
             volumeSlider.PropertyChanged += VolumeSlider_PropertyChanged;
             volumeSlider.PointerPressed += VolumeSlider_PointerPressed;
             volumeSlider.PointerReleased += VolumeSlider_PointerReleased;
@@ -266,6 +414,34 @@ namespace UnionMpvPlayer.Views
             }
             EnsureCorrectWindowOrder();
         }
+
+        // Border and Fake Titlebar
+
+        private void SetActiveBorder(bool isActive)
+        {
+            if (this.FindControl<Border>("MainBorder") is Border border)
+            {
+                border.BorderBrush = isActive
+                    ? new SolidColorBrush(Color.FromRgb(85, 64, 2)) // Mica blue highlight
+                    : new SolidColorBrush(Colors.Transparent);
+            }
+        }
+
+        private void TitleBar_PointerPressed(object? sender, PointerPressedEventArgs e)
+        {
+            if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+                BeginMoveDrag(e);
+        }
+
+        private void MinimizeButton_Click(object? sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+
+        private void MaximizeRestoreButton_Click(object? sender, RoutedEventArgs e)
+        {
+            WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+        }
+
+        private void CloseButton_Click(object? sender, RoutedEventArgs e) => Close();
+
 
         // Hiding MPV
 
@@ -357,6 +533,7 @@ namespace UnionMpvPlayer.Views
             this.Topmost = true; 
             this.Topmost = false;
             EnsureCorrectWindowOrder();
+            this.Activate(); // Ensures it's active
             this.Focus();
 
         }
@@ -717,32 +894,6 @@ namespace UnionMpvPlayer.Views
             {
                 //Debug.WriteLine($"Error showing toast: {ex.Message}");
             }
-        }
-
-
-
-        // Draggable Menu Bar
-        private void Menu_PointerPressed(object? sender, PointerPressedEventArgs e)
-        {
-            if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
-            {
-                this.BeginMoveDrag(e);
-            }
-        }
-
-        private void MinimizeButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-        {
-            WindowState = WindowState.Minimized;
-        }
-
-        private void MaximizeButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-        {
-            WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
-        }
-
-        private void CloseButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-        {
-            Close();
         }
 
         // Drag and drop main window
@@ -2122,17 +2273,6 @@ namespace UnionMpvPlayer.Views
                     //Debug.WriteLine($"MPV Error: {MPVInterop.GetError(result)}");
                     EnsureCorrectWindowOrder();
                 }
-                //else if (wasPaused)
-                //{
-                //    PlaybackStarted?.Invoke(this, EventArgs.Empty);
-
-                //    if (_notesView?.IsOverlayActive() == true && currentPosition.HasValue)
-                //    {
-                //        _notesView.ApplyImageOverlay(null, false);
-
-                //        ShowMpvWindow();
-                //    }
-                //}
                 ShowMpvWindow();
             }
             catch (Exception ex)
@@ -2310,168 +2450,166 @@ namespace UnionMpvPlayer.Views
             _ = HandleScreenshot();
         }
 
-        private void ApplyFilter(string filterCommand, string filterIdentifier)
+        // Safety Overlays
+
+        private void ApplyFilter(string filterCommand, string filterIdentifier, bool forceReapply = false)
         {
             if (mpvHandle == IntPtr.Zero)
-            {
                 return;
-            }
 
             try
             {
-                // If clicking the same button that's currently active, toggle it off
-                if (currentActiveFilter == filterIdentifier)
+                if (!forceReapply)
                 {
-                    filterCommand = "";
-                    currentActiveFilter = string.Empty;
+                    // Normal toggle logic
+                    if (currentActiveFilter == filterIdentifier)
+                    {
+                        filterCommand = "";
+                        currentActiveFilter = string.Empty;
+                    }
+                    else
+                    {
+                        currentActiveFilter = filterIdentifier;
+                    }
                 }
                 else
                 {
-                    // Switching to a new filter
-                    currentActiveFilter = filterIdentifier;
+                    // On color reapply, don't change currentActiveFilter or clear the filter
                 }
 
                 var args = new[] { "vf", "set", filterCommand };
-                int result = MPVInterop.mpv_command(mpvHandle, args);
+                _ = MPVInterop.mpv_command(mpvHandle, args);
             }
             catch (Exception ex)
             {
-                //Debug.WriteLine($"Error applying filter: {ex.Message}");
+                // Log or handle if needed
             }
         }
 
-        private void SafetyButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-        {
-            string filterCommand = @"lavfi=[
-                                    drawbox=x=(iw-((iw*0.9)))/2:y=(ih-((ih*0.9)))/2:w=iw*.9:h=ih*.9:color=Gold@1:t=2,
-                                    drawbox=x=(iw-((iw*0.93)))/2:y=(ih-((ih*0.93)))/2:w=iw*.93:h=ih*.93:color=Gold@1:t=1
-                                ]";
 
-            ApplyFilter(filterCommand, "Broadcast16x9");
+        private void ToggleOverlay(string key)
+        {
+            if (_overlays.TryGetValue(key, out var overlay))
+            {
+                bool isSameOverlay = currentActiveFilter == key;
+
+                if (overlay.IsActive)
+                {
+                    if (isSameOverlay)
+                    {
+                        // Reapply filter with updated color (from color change)
+                        var filter = overlay.GenerateFilter(_currentOverlayColor);
+                        ApplyFilter(filter, key);
+                        return;
+                    }
+                    else
+                    {
+                        // A different overlay is selected, deactivate this one
+                        overlay.IsActive = false;
+                    }
+                }
+
+                // Apply the new overlay
+                foreach (var kv in _overlays)
+                    kv.Value.IsActive = false;
+
+                var newFilter = overlay.GenerateFilter(_currentOverlayColor);
+                ApplyFilter(newFilter, key);
+                overlay.IsActive = true;
+                currentActiveFilter = key;
+            }
         }
 
-        private void SafetyButton_MetaReel9x16_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-        {
-            string filterCommand = @"lavfi=[
-                                    drawbox=x=(iw-((iw*0.88)))/2:y=ih*0.14:w=iw*0.88:h=4:color=Gold@1:t=2, 
-                                    drawbox=x=(iw-((iw*0.88)))/2:y=ih*0.14:w=4:h=ih*0.51:color=Gold@1:t=2, 
-                                    drawbox=x=(iw-((iw*0.88)))/2:y=ih*0.65:w=iw*0.73:h=4:color=Gold@1:t=2, 
-                                    drawbox=x=iw*0.79:y=ih*0.6:w=4:h=ih*0.05:color=Gold@1:t=2, 
-                                    drawbox=x=iw*0.94:y=ih*0.14:w=4:h=ih*0.46:color=Gold@1:t=2, 
-                                    drawbox=x=iw*0.79:y=ih*0.6:w=4:h=ih*0.05:color=Gold@1:t=2, 
-                                    drawbox=x=iw*0.79:y=ih*0.60:w=iw*0.15:h=4:color=Gold@1:t=2
-                                ]";
 
-            ApplyFilter(filterCommand, "MetaReel9x16");
+        private void SetOverlayColor(string newColor)
+        {
+            _currentOverlayColor = newColor;
+
+            if (!string.IsNullOrWhiteSpace(currentActiveFilter) &&
+                _overlays.TryGetValue(currentActiveFilter, out var overlay) &&
+                overlay.IsActive)
+            {
+                var filter = overlay.GenerateFilter(_currentOverlayColor);
+                ApplyFilter(filter, currentActiveFilter, forceReapply: true);
+            }
         }
 
-        private void SafetyButton_MetaStory9x16_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+
+        private void OnSafetyColorClicked(object? sender, RoutedEventArgs e)
         {
-            string filterCommand = @"lavfi=[
-                                    drawbox=x=(iw*0.0604):y=(ih*0.1302):w=iw*0.8796:h=ih*0.6700:color=Gold@1:t=2
-                                ]";
-            ApplyFilter(filterCommand, "MetaStory9x16");
+            if (sender is MenuItem item)
+            {
+                var colorName = item.Name switch
+                {
+                    "SafetyGold" => "Gold",
+                    "SafetyDarkOrange" => "DarkOrange",
+                    "SafetyRed" => "Red",
+                    "SafetyHotPink" => "HotPink",
+                    "SafetyDarkMagenta" => "DarkMagenta",
+                    "SafetyPaleGreen" => "PaleGreen",
+                    "SafetyDarkGreen" => "DarkGreen",
+                    "SafetyDeepSkyBlue" => "DeepSkyBlue",
+                    "SafetyMediumBlue" => "MediumBlue",
+                    _ => "Gold"
+                };
+
+                SetOverlayColor(colorName);
+            }
         }
 
-        private void SafetyButton_Pinterest9x16_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        private void SafetyButton_Click(object? sender, RoutedEventArgs e)
         {
-            string filterCommand = @"lavfi=[
-                                    drawbox=x=(iw*0.0603):y=(ih*0.1406):w=iw*0.7589:h=ih*0.4478:color=Gold@1:t=2
-                                ]";
-            ApplyFilter(filterCommand, "Pinterest9x16");
+            ToggleOverlay("Broadcast16x9");
         }
 
-        private void SafetyButton_Pinterest1x1PremiumSpotlight_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        private void SafetyButton_MetaReel9x16_Click(object? sender, RoutedEventArgs e)
         {
-            string filterCommand = @"lavfi=[
-                                    drawbox=x=0:y=0:w=iw:h=ih*0.0981:color=Gold@1:t=2,                
-                                    drawbox=x=iw*0.0111:y=ih*0.1278:w=iw*0.9778:h=ih*0.1389:color=Gold@1:t=2,  
-                                    drawbox=x=iw*0.8815:y=ih*0.3093:w=iw*0.0741:h=ih*0.0537:color=Gold@1:t=2,   
-                                    drawbox=x=iw*0.0750:y=ih*0.6324:w=iw*0.8500:h=ih*0.1972:color=Gold@1:t=2,   
-                                    drawbox=x=iw*0.3824:y=ih*0.8296:w=iw*0.2352:h=ih*0.1380:color=Gold@1:t=2     
-                                ]";
-
-            ApplyFilter(filterCommand, "Pinterest1x1PremiumSpotlight");
+            ToggleOverlay("MetaReel9x16");
         }
 
-        private void SafetyButton_Snapchat9x16_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        private void SafetyButton_MetaStory9x16_Click(object? sender, RoutedEventArgs e)
         {
-            string filterCommand = @"lavfi=[
-                                    drawbox=x=(iw*0.0104):y=(ih*0.0835):w=iw*0.9793:h=ih*0.8662:color=Gold@1:t=2
-                                ]";
-
-            ApplyFilter(filterCommand, "Snapchat9x16");
+            ToggleOverlay("MetaStory9x16");
         }
 
-        private void SafetyButton_TikTok9x16_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        private void SafetyButton_Pinterest9x16_Click(object? sender, RoutedEventArgs e)
         {
-            string filterCommand = @"lavfi=[
-                                    drawbox=x=iw*0.1102:y=ih*0.1305:w=iw*0.7786:h=ih*0.0019:color=Gold@1:t=2,         
-                                    drawbox=x=iw*0.1102:y=ih*0.1305:w=iw*0.0019:h=ih*0.5369791666666667:color=Gold@1:t=2,              
-                                    drawbox=x=iw*0.7752:y=ih*0.1865:w=iw*0.1126:h=ih*0.0019:color=Gold@1:t=2, 
-                                    drawbox=x=iw*0.7752:y=ih*0.1865:w=iw*0.0019:h=ih*0.48046875:color=Gold@1:t=2, 
-                                    drawbox=x=iw*0.1099:y=ih*0.6657:w=iw*0.6681:h=ih*0.0019:color=Gold@1:t=2,   
-                                    drawbox=x=iw*0.8888888888888889:y=ih*0.1305:w=iw*0.0019:h=ih*0.05796875:color=Gold@1:t=2   
-                                ]";
-
-            ApplyFilter(filterCommand, "TikTok9x16");
+            ToggleOverlay("Pinterest9x16");
         }
 
-        private void SafetyButton_Youtube1x1_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        private void SafetyButton_Pinterest1x1PremiumSpotlight_Click(object? sender, RoutedEventArgs e)
         {
-            string filterCommand = @"lavfi=[
-                                    drawbox=x=iw*0.0444444444444444:y=ih*0.0444097222222222:w=iw*0.450017037037037:h=ih*0.0019:color=Gold@1:t=2,         
-                                    drawbox=x=iw*0.0444444444444444:y=ih*0.0444097222222222:w=iw*0.0019:h=ih*0.5947575:color=Gold@1:t=2,   
-                                    drawbox=x=iw*0.4944672222222222:y=ih*0.0444097222222222:w=iw*0.0019:h=ih*0.0528353703703704:color=Gold@1:t=2, 
-                                    drawbox=x=iw*0.4944672222222222:y=ih*0.0972450925925926:w=iw*0.4120569444444444:h=ih*0.0019:color=Gold@1:t=2,
-                                    drawbox=x=iw*0.9065078703703704:y=ih*0.0972450925925926:w=iw*0.0019:h=ih*0.5424561111111111:color=Gold@1:t=2,
-                                    drawbox=x=iw*0.0444444444444444:y=ih*0.638867962962963:w=iw*0.8621408333333333:h=ih*0.0019:color=Gold@1:t=2, 
-                                ]";
-
-            ApplyFilter(filterCommand, "Youtube1x1");
+            ToggleOverlay("Pinterest1x1PremiumSpotlight");
         }
 
-        private void SafetyButton_Youtube9x16_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        private void SafetyButton_Snapchat9x16_Click(object? sender, RoutedEventArgs e)
         {
-            string filterCommand = @"lavfi=[
-                                    drawbox=x=(iw*0.0454):y=(ih*0.15):w=iw*0.7769:h=ih*0.4995:color=Gold@1:t=2
-                                ]";
-
-            ApplyFilter(filterCommand, "Youtube9x16");
+            ToggleOverlay("Snapchat9x16");
         }
 
-        private void SafetyButton_Youtube16x9_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        private void SafetyButton_TikTok9x16_Click(object? sender, RoutedEventArgs e)
         {
-            string filterCommand = @"lavfi=[
-                                    drawbox=x=iw*0.019796875:y=ih*0.1522222222222222:w=iw*0.1635364583333333:h=ih*0.0019:color=Gold@1:t=2,  
-                                    drawbox=x=iw*0.019796875:y=ih*0.1522222222222222:w=iw*0.0019:h=ih*0.5342013888888889:color=Gold@1:t=2,  
-                                    drawbox=x=iw*0.1833333333333333:y=ih*0.0336111111111111:w=iw*0.591140625:h=ih*0.0019:color=Gold@1:t=2,  
-                                    drawbox=x=iw*0.1833333333333333:y=ih*0.0336111111111111:w=iw*0.0019:h=ih*0.1186111111111111:color=Gold@1:t=2,
-                                    drawbox=x=iw*0.01984375:y=ih*0.6864259259259259:w=iw*0.4259791666666667:h=ih*0.0019:color=Gold@1:t=2,
-                                    drawbox=x=iw*0.4458138020833333:y=ih*0.6864259259259259:w=iw*0.0019:h=ih*0.1791203703703704:color=Gold@1:t=2,
-                                    drawbox=x=iw*0.4458125:y=ih*0.8655462962962963:w=iw*0.2115104166666667:h=ih*0.0019:color=Gold@1:t=2,
-		                            drawbox=x=iw*0.6572864583333333:y=ih*0.8226111111111111:w=iw*0.1015364583333333:h=ih*0.0019:color=Gold@1:t=2,
-                                    drawbox=x=iw*0.6572864583333333:y=ih*0.8226111111111111:w=iw*0.0019:h=ih*0.0435126851851852:color=Gold@1:t=2,
-		                            drawbox=x=iw*0.7588229166666667:y=ih*0.7121851851851852:w=iw*0.1620416666666667:h=ih*0.0019:color=Gold@1:t=2,
-                                    drawbox=x=iw*0.7588229166666667:y=ih*0.7121851851851852:w=iw*0.0019:h=ih*0.1104225:color=Gold@1:t=2,
-		                            drawbox=x=iw*0.7744739583333333:y=ih*0.1213981481481481:w=iw*0.1463177083333333:h=ih*0.0019:color=Gold@1:t=2,
-                                    drawbox=x=iw*0.9208691666666667:y=ih*0.1213981481481481:w=iw*0.0019:h=ih*0.5893055555555556:color=Gold@1:t=2,
-                                    drawbox=x=iw*0.7744739583333333:y=ih*0.0336111111111111:w=iw*0.0019:h=ih*0.0877893518518519:color=Gold@1:t=2,
-                                    ]";
-
-            ApplyFilter(filterCommand, "Youtube16x9");
+            ToggleOverlay("TikTok9x16");
         }
 
-        private void SafetyButton_Youtube16x9MastHead_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        private void SafetyButton_Youtube1x1_Click(object? sender, RoutedEventArgs e)
         {
-            string filterCommand = @"lavfi=[
-                                    drawbox=x=0:y=0:w=iw:h=(ih*0.25):color=Gold@1:t=2,
-                                    drawbox=x=0:y=(ih*0.75):w=iw:h=(ih*0.25):color=Gold@1:t=2
-                                ]";
+            ToggleOverlay("Youtube1x1");
+        }
 
+        private void SafetyButton_Youtube9x16_Click(object? sender, RoutedEventArgs e)
+        {
+            ToggleOverlay("Youtube9x16");
+        }
 
+        private void SafetyButton_Youtube16x9_Click(object? sender, RoutedEventArgs e)
+        {
+            ToggleOverlay("Youtube16x9");
+        }
 
-            ApplyFilter(filterCommand, "Youtube16x9MastHead");
+        private void SafetyButton_Youtube16x9MastHead_Click(object? sender, RoutedEventArgs e)
+        {
+            ToggleOverlay("Youtube16x9MastHead");
         }
 
         private void FullScreenButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -3266,16 +3404,41 @@ namespace UnionMpvPlayer.Views
             return null;
         }
 
-        // Modified slider event handlers
+        // Playback Controls
+
+        private void PlaybackSlider_Tapped(object? sender, TappedEventArgs e)
+        {
+            if (overlayImage.IsVisible)
+            {
+                PlaybackStarted?.Invoke(this, EventArgs.Empty);
+                // Get the clicked position and seek to it
+                if (sender is Slider slider)
+                {
+                    var point = e.GetPosition(slider);
+                    var ratio = point.X / slider.Bounds.Width;
+                    var position = ratio * slider.Maximum;
+                    SeekToPosition(position);
+                }
+            }
+        }
+
         private void PlaybackSlider_PointerPressed(object? sender, Avalonia.Input.PointerPressedEventArgs e)
         {
             isSliderDragging = true;
+            PlaybackStarted?.Invoke(this, EventArgs.Empty);
+            if (overlayImage.IsVisible)
+            {
+                overlayImage.IsVisible = false;
+                overlayImage.Source = null;  
+                ShowMpvWindow();
+            }
         }
 
         private void PlaybackSlider_PointerReleased(object? sender, Avalonia.Input.PointerReleasedEventArgs e)
         {
             if (!isSliderDragging) return;
             isSliderDragging = false;
+            PlaybackStarted?.Invoke(this, EventArgs.Empty);
             SeekToPosition(playbackSlider.Value);
         }
 
@@ -3391,17 +3554,17 @@ namespace UnionMpvPlayer.Views
                 bool success = await WaitForDurationAndInitialize();
                 if (success)
                 {
-                    Debug.WriteLine("Duration initialized successfully, starting timecode updates");
+                    //Debug.WriteLine("Duration initialized successfully, starting timecode updates");
                     _ = UpdateTimecodeAsync();
                     var playArgs = new[] { "set", "pause", "no" };
                     int playResult = MPVInterop.mpv_command(mpvHandle, playArgs);
                     if (playResult < 0)
                     {
-                        Debug.WriteLine($"Failed to start playback: {MPVInterop.GetError(playResult)}");
+                        //Debug.WriteLine($"Failed to start playback: {MPVInterop.GetError(playResult)}");
                     }
                     else
                     {
-                        Debug.WriteLine("Successfully started playback of new video");
+                        //Debug.WriteLine("Successfully started playback of new video");
                         _ = UpdatePlayPauseIcon();
                         _ = UpdatePlayState();
                         EnsureCorrectWindowOrder(); 
@@ -3503,6 +3666,13 @@ namespace UnionMpvPlayer.Views
             }
         }
 
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SetFocus(IntPtr hWnd);
+
+
         private void InitializeMPV()
         {
             try
@@ -3518,14 +3688,16 @@ namespace UnionMpvPlayer.Views
 
                 SetMpvOption("terminal", "yes");
                 SetMpvOption("msg-level", "all=v");
-                SetMpvOption("background", "color");
-                SetMpvOption("background-color", "0/0/0");
+                SetMpvOption("alpha", "auto");
+                SetMpvOption("background", "tiles");
+                SetMpvOption("background-color", "#171717");
+                //SetMpvOption("gpu-clear-color", "18/18/18/255");
+                SetMpvOption("gpu-api", "d3d11");
+                SetMpvOption("opengl-rectangle-textures", "yes");
                 SetMpvOption("vid-end-pause", "yes");
-                SetMpvOption("demuxer-readahead-secs", "2");
+                SetMpvOption("demuxer-readahead-secs", "0.1");
                 SetMpvOption("screenshot-high-bit-depth", "yes");
                 SetMpvOption("screenshot-jpeg-quality", "75");
-                SetMpvOption("gpu-clear-color", "0/0/0/255");
-                SetMpvOption("alpha", "no");
                 SetMpvOption("tone-mapping", "off");
                 SetMpvOption("force-window", "no");
                 SetMpvOption("keep-open", "always");
@@ -3539,6 +3711,11 @@ namespace UnionMpvPlayer.Views
                 SetMpvOption("cursor-autohide", "no");
                 SetMpvOption("keepaspect", "yes");
                 SetMpvOption("volume", "80");
+                SetMpvOption("hwdec", "auto");
+                SetMpvOption("cache", "yes");
+                SetMpvOption("cache-secs", "10");
+
+
                 //Debug.WriteLine("MPV options set successfully");
 
                 int result = MPVInterop.mpv_initialize(mpvHandle);
@@ -3582,6 +3759,16 @@ namespace UnionMpvPlayer.Views
                             }
                             SetMpvOption("wid", childWindowHandle.ToString());
                             UpdateChildWindowBounds();
+
+                            Dispatcher.UIThread.Post(() =>
+                            {
+                                var hwnd = GetParentWindowHandle();
+                                if (hwnd != IntPtr.Zero)
+                                {
+                                    SetForegroundWindow(hwnd);
+                                    SetFocus(hwnd);
+                                }
+                            });
                         }
                         else
                         {

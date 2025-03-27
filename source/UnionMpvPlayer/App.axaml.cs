@@ -45,5 +45,6 @@ namespace UnionMpvPlayer
                 BindingPlugins.DataValidators.Remove(plugin);
             }
         }
+
     }
 }

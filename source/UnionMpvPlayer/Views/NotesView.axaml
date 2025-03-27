@@ -38,6 +38,9 @@
 								Click="ClearNotesButton_Click"
 								Cursor="Hand"
 								Padding="8,8"
+								Margin="4"
+								BorderBrush="{DynamicResource SystemListLowColor}"
+								BorderThickness="1"
 								Background="Transparent"
 								ToolTip.Tip="Clear all notes">
 							<Path Data="{DynamicResource delete_regular}"
@@ -47,7 +50,10 @@
 						</Button>
 						<Button x:Name="AddToNotesButton"
 								Click="AddToNotesButton_Click"
-								Padding="8,8"
+								Padding="32,8"
+								Margin="4"
+								BorderBrush="{DynamicResource SystemListLowColor}"
+								BorderThickness="1"
 								Cursor="Hand"
 								Background="Transparent"
 								ToolTip.Tip="Add frame as note">
@@ -192,39 +198,46 @@
 						<ColumnDefinition Width="Auto"/>
 					</Grid.ColumnDefinitions>
 
-
-					<StackPanel Grid.Column="0"
-								Orientation="Horizontal"
-								HorizontalAlignment="Center"
-								VerticalAlignment="Center"
-								Background="{DynamicResource SystemChromeLowColor}"
-								Margin="32,0,0,0">
-						<ComboBox x:Name="ExportFormatComboBox"
-								  Width="120"
-								  Height="26"
-								  FontSize="12"
-								  Margin="4,4,0,4"
-								  SelectedIndex="2">
-							<ComboBoxItem Content="Markdown"/>
-							<ComboBoxItem Content="HTML"/>
-							<ComboBoxItem Content="PDF"/>
-							<ComboBoxItem Content="Union Notes"/>
-						</ComboBox>
-						<Button x:Name="ExportButton"
-								Content="Export"
-								HorizontalContentAlignment="Center"
-								VerticalContentAlignment="Center"
-								Background="Transparent"
-								Width="33"
-								Height="33"
-								Margin="6,0,4,0"
-								Padding="8"
-								Click="ExportButton_Click">
-							<Path Data="{DynamicResource save_regular}"
-								  Fill="{DynamicResource SystemBaseHighColor}"
-								  Stretch="Uniform"/>
-						</Button>
-					</StackPanel>
+					<Border BorderBrush="{DynamicResource SystemListLowColor}"
+						BorderThickness="1"
+						Grid.Column="0"
+							Height="34"
+						HorizontalAlignment="Center"
+						Margin="32,0,0,0"
+						CornerRadius="4">
+						<StackPanel Orientation="Horizontal"
+									HorizontalAlignment="Center"
+									VerticalAlignment="Center"
+									Background="{DynamicResource SystemChromeLowColor}">
+							<ComboBox x:Name="ExportFormatComboBox"
+									  Width="120"
+									  VerticalAlignment="Center"
+									  FontSize="12"
+									  Margin="5,4,0,3"
+									  SelectedIndex="2">
+								<ComboBoxItem Content="Markdown"/>
+								<ComboBoxItem Content="HTML"/>
+								<ComboBoxItem Content="PDF"/>
+								<ComboBoxItem Content="Union Notes"/>
+								<ComboBoxItem Content="After Effects (JSON)"/>
+								<ComboBoxItem Content="Premiere Pro (XML)"/>
+							</ComboBox>
+							<Button x:Name="ExportButton"
+									Content="Export"
+									HorizontalContentAlignment="Center"
+									VerticalContentAlignment="Center"
+									Background="Transparent"
+									Width="33"
+									Height="33"
+									Margin="6,0,0,0"
+									Padding="8"
+									Click="ExportButton_Click">
+								<Path Data="{DynamicResource save_regular}"
+									  Fill="{DynamicResource SystemBaseHighColor}"
+									  Stretch="Uniform"/>
+							</Button>
+						</StackPanel>
+					</Border>
 					<Border Grid.Column="1" Padding="4,0,10,0"
 							Background="{DynamicResource SystemRegionColor}">
 						<Button x:Name="NotesToggle"
@@ -233,8 +246,10 @@
 								Cursor="Hand"
 								Width="33"
 								Height="33"
-								Margin="0,0,0,0"
 								Padding="8,8,8,8"
+								Margin="4"
+								BorderBrush="{DynamicResource SystemListLowColor}"
+								BorderThickness="1"
 								VerticalContentAlignment="Center"
 								Click="NotesToggle_Click">
 							<Path Data="{DynamicResource list_regular}"

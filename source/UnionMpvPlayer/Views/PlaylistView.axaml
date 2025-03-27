@@ -34,7 +34,9 @@
 					<Button x:Name="TogglePlaylistModeButton"
 							Cursor="Hand"
 							Padding="8,8"
-							Margin="0,0,5,0"
+							Margin="4"
+							BorderBrush="{DynamicResource SystemListLowColor}"
+							BorderThickness="1"
 							Background="Transparent"
 							ToolTip.Tip="Toggle Playlist Mode">
 						<Path Data="{DynamicResource checkmark_circle_regular}"
@@ -45,6 +47,9 @@
 					<Button x:Name="ClearPlaylistButton"
 							Cursor="Hand"
 							Padding="8,8"
+							Margin="4"
+							BorderBrush="{DynamicResource SystemListLowColor}"
+							BorderThickness="1"
 							Background="Transparent"
 							ToolTip.Tip="Clear Playlist">
 						<Path Data="{DynamicResource delete_regular}"
@@ -53,7 +58,10 @@
 							  Stretch="Uniform"/>
 					</Button>
 					<Button x:Name="AddToPlaylistButton"
-							Padding="8,8"
+							Padding="32,8"
+							Margin="4"
+							BorderBrush="{DynamicResource SystemListLowColor}"
+							BorderThickness="1"
 							Cursor="Hand"
 							Background="Transparent"
 							ToolTip.Tip="Add Files">
@@ -141,6 +149,8 @@
 								Width="33"
 								Height="33"
 								Margin="10,0,10,10"
+								BorderBrush="{DynamicResource SystemListLowColor}"
+								BorderThickness="1"
 								Padding="8,8,8,8"
 								VerticalContentAlignment="Center"
 								Click="viewPlaylistButton_Click">
@@ -148,72 +158,75 @@
 							Fill="{DynamicResource SystemBaseHighColor}"
 							Stretch="Uniform" />
 				</Button>
-				
-				<StackPanel Grid.Column="1"
-							Background="{DynamicResource SystemChromeLowColor}"
-							Orientation="Horizontal"
-							HorizontalAlignment="Center"
-							Margin="0,0,34,10">
-					<Button x:Name="BackwardSpotButton"
-							Background="Transparent"
-							Cursor="Hand"
-							Margin="5,0"
-							Padding="8,8"
-							HorizontalContentAlignment="Center"
-							ToolTip.Tip="Previous Video">
-						<Path Data="{DynamicResource arrow_previous_regular}"
-							  Fill="{DynamicResource SystemBaseHighColor}"
-							  Width="13" Height="13"
-							  Stretch="Uniform"/>
-					</Button>
-					<Button x:Name="MoveUpButton"
-							Background="Transparent"
-							Cursor="Hand"
-							Margin="5,0"
-							Padding="8,8"
-							ToolTip.Tip="Move Up">
-						<Path Data="{DynamicResource arrow_up_regular}"
-							  Fill="{DynamicResource SystemBaseHighColor}"
-							  Width="13" Height="13"
-							  Stretch="Uniform"/>
-					</Button>
+				<Border BorderBrush="{DynamicResource SystemListLowColor}"
+						BorderThickness="1"
+						Grid.Column="1"
+						HorizontalAlignment="Center"
+						Margin="0,0,34,10"
+						CornerRadius="4">
+					<StackPanel Background="{DynamicResource SystemChromeLowColor}"
+								Orientation="Horizontal">
+						<Button x:Name="BackwardSpotButton"
+								Background="Transparent"
+								Cursor="Hand"
+								Margin="0,0,5,0"
+								Padding="8,8"
+								HorizontalContentAlignment="Center"
+								ToolTip.Tip="Previous Video">
+							<Path Data="{DynamicResource arrow_previous_regular}"
+								  Fill="{DynamicResource SystemBaseHighColor}"
+								  Width="13" Height="13"
+								  Stretch="Uniform"/>
+						</Button>
+						<Button x:Name="MoveUpButton"
+								Background="Transparent"
+								Cursor="Hand"
+								Margin="5,0"
+								Padding="8,8"
+								ToolTip.Tip="Move Up">
+							<Path Data="{DynamicResource arrow_up_regular}"
+								  Fill="{DynamicResource SystemBaseHighColor}"
+								  Width="13" Height="13"
+								  Stretch="Uniform"/>
+						</Button>
 					
-					<Button x:Name="RemoveFromPlaylistButton"
-							Background="Transparent"
-							Cursor="Hand"
-							Margin="5,0"
-							Padding="8,8"
-							ToolTip.Tip="Remove Media">
-						<Path Data="{DynamicResource delete_regular}"
-							  Fill="{DynamicResource SystemBaseHighColor}"
-							  Width="13" Height="13"
-							  Stretch="Uniform"/>
-					</Button>
-					<Button x:Name="MoveDownButton"
-							Background="Transparent"
-							Cursor="Hand"
-							Margin="5,0"
-							Padding="8,8"
-							ToolTip.Tip="Move Down">
-						<Path Data="{DynamicResource arrow_down_regular}"
-							  Fill="{DynamicResource SystemBaseHighColor}"
-							  Width="13" Height="13"
-							  Stretch="Uniform"/>
-					</Button>
+						<Button x:Name="RemoveFromPlaylistButton"
+								Background="Transparent"
+								Cursor="Hand"
+								Margin="5,0"
+								Padding="8,8"
+								ToolTip.Tip="Remove Media">
+							<Path Data="{DynamicResource delete_regular}"
+								  Fill="{DynamicResource SystemBaseHighColor}"
+								  Width="13" Height="13"
+								  Stretch="Uniform"/>
+						</Button>
+						<Button x:Name="MoveDownButton"
+								Background="Transparent"
+								Cursor="Hand"
+								Margin="5,0"
+								Padding="8,8"
+								ToolTip.Tip="Move Down">
+							<Path Data="{DynamicResource arrow_down_regular}"
+								  Fill="{DynamicResource SystemBaseHighColor}"
+								  Width="13" Height="13"
+								  Stretch="Uniform"/>
+						</Button>
 					
-					<Button x:Name="ForwardSpotButton"
-							Background="Transparent"
-							Cursor="Hand"
-							Margin="4,0"
-							Padding="8,8"
-							HorizontalContentAlignment="Center"
-							ToolTip.Tip="Next Video">
-						<Path Data="{DynamicResource arrow_next_regular}"
-							  Fill="{DynamicResource SystemBaseHighColor}"
-							  Width="13" Height="13"
-							  Stretch="Uniform"/>
-					</Button>
-				</StackPanel>
+						<Button x:Name="ForwardSpotButton"
+								Background="Transparent"
+								Cursor="Hand"
+								Margin="4,0,0,0"
+								Padding="8,8"
+								HorizontalContentAlignment="Center"
+								ToolTip.Tip="Next Video">
+							<Path Data="{DynamicResource arrow_next_regular}"
+								  Fill="{DynamicResource SystemBaseHighColor}"
+								  Width="13" Height="13"
+								  Stretch="Uniform"/>
+						</Button>
+					</StackPanel>	
+				</Border>
 			</Grid>
 		</Grid>
 	</Grid>
