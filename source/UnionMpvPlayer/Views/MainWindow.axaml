@@ -16,7 +16,7 @@
     ExtendClientAreaTitleBarHeightHint="40"
     Title="{Binding TopTitle}"
     Width="1130"
-    Height="766"
+    Height="813"
     Focusable="True"
     KeyDown="MainWindow_KeyDown"
     KeyUp="MainWindow_KeyUp">
