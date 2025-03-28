@@ -55,6 +55,11 @@
                             BorderBrush="Transparent"
                             Name="CloseButton"
                             Click="CloseButton_Click">
+						<Button.Styles>
+							<Style Selector=":pointerover" x:SetterTargetType="Button">
+								<Setter Property="Background" Value="FireBrick"/>
+							</Style>
+						</Button.Styles>
 						<Canvas Width="40" Height="40">
 							<Path Fill="{DynamicResource SystemBaseHighColor}"
                                   Data="{DynamicResource dismiss_regular}"
@@ -71,12 +76,22 @@
 					   Foreground="{DynamicResource SystemBaseMediumHighColor}" HorizontalAlignment="Center"/>
 			<TextBox Name="FrameRateInput" Width="380" 
 					 SelectionBrush="{DynamicResource SystemChromeMediumLowColor}"
-					 BorderBrush="{DynamicResource SystemBaseLowColor}"/>
+					 BorderBrush="{DynamicResource SystemBaseLowColor}">
+				<TextBox.Styles>
+					<Style Selector=":pointerover" x:SetterTargetType="TextBox">
+						<Setter Property="Background" Value="{DynamicResource SystemBaseLowColor}"/>
+					</Style>
+				</TextBox.Styles>
+			</TextBox>
 			<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
 				<Button Name="OkButton" Content="OK" Width="186"
-                                HorizontalContentAlignment="Center" Click="OkButton_Click"/>
+						Background="Transparent" Cursor="Hand"
+						BorderBrush="{DynamicResource SystemChromeMediumLowColor}"
+                        HorizontalContentAlignment="Center" Click="OkButton_Click"/>
 				<Button Name="CancelButton" Content="Cancel" Width="186"
-                                HorizontalContentAlignment="Center" Click="CancelButton_Click"/>
+						Background="Transparent" Cursor="Hand"
+						BorderBrush="{DynamicResource SystemChromeMediumLowColor}"
+                        HorizontalContentAlignment="Center" Click="CancelButton_Click"/>
 			</StackPanel>
 		</StackPanel>
 	</Grid>

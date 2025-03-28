@@ -3,7 +3,7 @@
 		xmlns:local="clr-namespace:UnionMpvPlayer.Views"
         x:Class="UnionMpvPlayer.Views.CacheSettingsPopup"
 		Title="EXR cache settings"
-        Width="400" Height="320"
+        Width="400" Height="324"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="0"
         ExtendClientAreaChromeHints="NoChrome"
@@ -54,7 +54,13 @@
                             Background="Transparent"
                             BorderBrush="Transparent"
                             Name="CloseButton"
+							Cursor="Hand"
                             Click="CloseButton_Click">
+						<Button.Styles>
+							<Style Selector=":pointerover" x:SetterTargetType="Button">
+								<Setter Property="Background" Value="FireBrick"/>
+							</Style>
+						</Button.Styles>
 						<Canvas Width="40" Height="40">
 							<Path Fill="{DynamicResource SystemBaseHighColor}"
                                   Data="{DynamicResource dismiss_regular}"
@@ -70,15 +76,29 @@
 		<StackPanel Margin="18,10" Grid.Row="1">
 			<TextBlock Text="Current Cache Path:" FontSize="14"
                        Foreground="{DynamicResource SystemBaseHighColor}"/>
-			<TextBox x:Name="CurrentCachePath" IsReadOnly="True" Margin="0,10" 
+			<TextBox x:Name="CurrentCachePath"
+					 IsReadOnly="True"
+					 Margin="0,10"
 					 SelectionBrush="{DynamicResource SystemChromeMediumLowColor}"
-					 BorderBrush="{DynamicResource SystemBaseLowColor}"/>
-			
+					 BorderBrush="{DynamicResource SystemBaseLowColor}">
+				<TextBox.Styles>
+					<Style Selector=":pointerover" x:SetterTargetType="TextBox">
+						<Setter Property="Background" Value="{DynamicResource SystemBaseLowColor}"/>
+					</Style>
+				</TextBox.Styles>
+			</TextBox>
+
+
 			<StackPanel Orientation="Horizontal" Margin="0,2,0,16" Spacing="10">
-				<Button Content="Set New Cache Path" Click="BrowseNewPath_Click" HorizontalAlignment="Stretch"
-					HorizontalContentAlignment="Center" Width="177"/>
+				<Button Content="Set New Cache Path" Click="BrowseNewPath_Click"
+						Background="Transparent" Cursor="Hand"
+						BorderBrush="{DynamicResource SystemChromeMediumLowColor}"
+						HorizontalAlignment="Stretch"
+						HorizontalContentAlignment="Center" Width="177"/>
 				<Button Content="Revert to Default" Click="RevertToDefaultPath_Click"
 						HorizontalAlignment="Stretch" Width="177"
+						Background="Transparent" Cursor="Hand"
+						BorderBrush="{DynamicResource SystemChromeMediumLowColor}"
 						HorizontalContentAlignment="Center"/>
 			</StackPanel>
 			<Border BorderThickness="1" BorderBrush="Gold" Margin="0,10,0,0">
@@ -123,7 +143,9 @@
 			</Border>
 
 			<Button Content="Empty Cache" Margin="0,24,0,16" Click="EmptyCache_Click"
-						HorizontalAlignment="Stretch"
+					HorizontalAlignment="Stretch"
+					Background="Transparent" Cursor="Hand"
+					BorderBrush="{DynamicResource SystemChromeMediumLowColor}"
 					HorizontalContentAlignment="Center"/>
 		</StackPanel>
 		

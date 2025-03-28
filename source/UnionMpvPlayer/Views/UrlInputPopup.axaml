@@ -55,6 +55,11 @@
                             BorderBrush="Transparent"
                             Name="CloseButton"
                             Click="CloseButton_Click">
+						<Button.Styles>
+							<Style Selector=":pointerover" x:SetterTargetType="Button">
+								<Setter Property="Background" Value="FireBrick"/>
+							</Style>
+						</Button.Styles>
 						<Canvas Width="40" Height="40">
 							<Path Fill="{DynamicResource SystemBaseHighColor}"
                                   Data="{DynamicResource dismiss_regular}"
@@ -74,12 +79,28 @@
 			<TextBox x:Name="UrlTextBox" Width="384" 
 					 SelectionBrush="{DynamicResource SystemChromeMediumLowColor}" 
 					 BorderBrush="{DynamicResource SystemBaseLowColor}"
-					 HorizontalAlignment="Center" Margin="0,0,0,10"/>
+					 HorizontalAlignment="Center" Margin="0,0,0,10">
+				<TextBox.Styles>
+					<Style Selector=":pointerover" x:SetterTargetType="TextBox">
+						<Setter Property="Background" Value="{DynamicResource SystemBaseLowColor}"/>
+					</Style>
+					<Style Selector=":focus" x:SetterTargetType="TextBox">
+						<Setter Property="Background" Value="{DynamicResource SystemBaseLowColor}"/>
+					</Style>
+					<Style Selector=":focus:pointerover" x:SetterTargetType="TextBox">
+						<Setter Property="Background" Value="{DynamicResource SystemBaseLowColor}"/>
+					</Style>
+				</TextBox.Styles>
+			</TextBox>
 			<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="6">
 				<Button x:Name="OkButton" FontSize="13" Content="OK" Width="186" 
-                                        Margin="0" HorizontalContentAlignment="Center"/>
-				<Button x:Name="CancelButton" FontSize="13" Content="Canel" Width="186" 
-                                HorizontalContentAlignment="Center" Margin="0"/>
+						Background="Transparent" Cursor="Hand"
+						BorderBrush="{DynamicResource SystemChromeMediumLowColor}"
+                        Margin="0" HorizontalContentAlignment="Center"/>
+				<Button x:Name="CancelButton" FontSize="13" Content="Canel" Width="186"
+                        Background="Transparent" Cursor="Hand"
+						BorderBrush="{DynamicResource SystemChromeMediumLowColor}"
+						HorizontalContentAlignment="Center" Margin="0"/>
 			</StackPanel>
 		</StackPanel>
 	</Grid>

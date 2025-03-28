@@ -94,17 +94,17 @@
 			<Setter Property="BorderThickness" Value="1"/>
 			<Setter Property="CornerRadius" Value="2"/>
 			<Setter Property="Padding" Value="4"/>
-			<Setter Property="BorderBrush" Value="{DynamicResource SystemBaseLowColor}"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource SystemListLowColor}"/>
 		</Style>
 
 		<Style Selector="TextBox:pointerover /template/ Border">
-			<Setter Property="Background" Value="{DynamicResource SystemAltLowColor}"/>
+			<Setter Property="Background" Value="{DynamicResource SystemBaseLowColor}"/>
 			<Setter Property="CornerRadius" Value="2"/>
 			<Setter Property="BorderBrush" Value="{DynamicResource SystemBaseLowColor}"/>
 		</Style>
 
 		<Style Selector="TextBox:focus /template/ Border">
-			<Setter Property="Background" Value="{DynamicResource SystemAltLowColor}"/>
+			<Setter Property="Background" Value="{DynamicResource SystemBaseLowColor}"/>
 			<Setter Property="CornerRadius" Value="2"/>
 			<Setter Property="BorderBrush" Value="{DynamicResource SystemBaseLowColor}"/>
 		</Style>

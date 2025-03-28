@@ -6,9 +6,8 @@
              Background="{DynamicResource SystemChromeLowColor}">
 
 	<Border BorderBrush="{DynamicResource SystemChromeLowColor}" 
-			BorderThickness="2.5,0,0,0">
-		<Grid x:Name="NotesPanel"
-			  Background="{DynamicResource SystemRegionColor}">
+			BorderThickness="2,0,0,0" CornerRadius="8,0,8,0"  Background="{DynamicResource SystemRegionColor}">
+		<Grid x:Name="NotesPanel">
 			<Grid.RowDefinitions>
 				<RowDefinition Height="Auto"/>
 				<RowDefinition Height="*"/>

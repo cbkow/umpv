@@ -10,252 +10,265 @@
 		WindowStartupLocation="CenterScreen"
         Width="1280" Height="890">
 
-	<Grid Background="{DynamicResource SystemRegionColor}">
-		<Grid.RowDefinitions>
-			<RowDefinition Height="Auto"/>
-			<RowDefinition Height="*"/>
-		</Grid.RowDefinitions>
+	<Border x:Name="MainBorder" BorderThickness="2" CornerRadius="8" Padding="0,0,0,4" Background="{DynamicResource SystemChromeLowColor}">
 
-		<!-- Custom Title Bar -->
-		<Border Background="{DynamicResource SystemRegionColor}"
-                BorderBrush="{DynamicResource SystemBaseLowColor}"
-				PointerPressed="Menu_PointerPressed"
-                BorderThickness="0"
-                Grid.Row="0" Height="40"
-                HorizontalAlignment="Stretch"
-                VerticalAlignment="Top">
-			<Grid ColumnDefinitions="*, Auto">
-				<!-- Window Title -->
-				<StackPanel Orientation="Horizontal"
-                          Grid.Column="0"
-                          HorizontalAlignment="Left"
-                          VerticalAlignment="Center"
-                          Spacing="1">
-					<Image Source="avares://umpv/Assets/union.ico"
-                           Width="18" Height="18"
-                           VerticalAlignment="Center"
-                           Margin="12,0,0,0"/>
-					<TextBlock Text="annotate frame"
-                             VerticalAlignment="Center"
-                             Margin="10,0"
-                             FontSize="13"
-                             Foreground="{DynamicResource SystemBaseMediumHighColor}"/>
-				</StackPanel>
-
-				<!-- Window Controls -->
-				<StackPanel Orientation="Horizontal"
-                          Grid.Column="1"
-                          HorizontalAlignment="Right"
-                          VerticalAlignment="Center"
-                          Spacing="1"
-                          Background="{DynamicResource SystemRegionColor}">
-					<!-- Close Button -->
-					<Button Width="40" Height="40"
-                            Background="Transparent"
-                            BorderBrush="Transparent"
-                            Name="CloseButton"
-                            Click="CloseButton_Click">
-						<Canvas Width="40" Height="40">
-							<Path Fill="{DynamicResource SystemBaseHighColor}"
-                                  Data="{DynamicResource dismiss_regular}"
-                                  Width="12" Height="12"
-                                  Stretch="Uniform"
-                                  Canvas.Left="14" Canvas.Top="14"/>
-						</Canvas>
-					</Button>
-				</StackPanel>
-			</Grid>
-		</Border>
-	
-		<Grid  Grid.Row="1">
+		<Grid>
 			<Grid.RowDefinitions>
-				<RowDefinition Height="Auto"/>
-				<RowDefinition Height="*"/>
-				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="32" />
+				<!-- Custom Title Bar -->
+				<RowDefinition Height="*" />
+				<!-- Main App Content -->
 			</Grid.RowDefinitions>
 
-			<!-- Drawing Tools -->
-			<StackPanel Grid.Row="0"
-						Orientation="Horizontal"
-						Margin="10,5"
-						Spacing="10">
+			<!-- Custom Title Bar -->
+			<Border Grid.Row="0"
+					x:Name="CustomTitleBar"
+					Cursor="Hand" CornerRadius="8"
+					Background="{DynamicResource SystemChromeLowColor}"
+					PointerPressed="TitleBar_PointerPressed">
+				<Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center" Margin="8,0,0,0">
+					<!-- App Icon -->
+					<Image Source="/Assets/union.ico"
+						   Width="20" Height="20"
+						   VerticalAlignment="Center"/>
 
-			</StackPanel>
+					<!-- Title Text -->
+					<TextBlock Grid.Column="1"
+							   Text="annotate frame"
+							   VerticalAlignment="Center"
+							   Foreground="{DynamicResource SystemBaseMediumColor}"
+							   FontSize="12"
+							   FontWeight="SemiBold"
+							   Margin="10,0"/>
 
-			<!-- Drawing Area -->
-			<Panel Grid.Row="1">
-				<Image x:Name="BackgroundImage"
-					   Stretch="Uniform"
-					   HorizontalAlignment="Center"
-					   VerticalAlignment="Center"/>
+					<!-- Window Buttons -->
+					<StackPanel Grid.Column="2"
+								Orientation="Horizontal"
+								HorizontalAlignment="Right"
+								VerticalAlignment="Top"
+								Spacing="0">
 
-				<Canvas x:Name="DrawingCanvas"
-						Background="Transparent"
-						HorizontalAlignment="Center"
-						VerticalAlignment="Center"/>
-			</Panel>
-
-			<!-- Bottom Buttons -->
-
-			<StackPanel Grid.Row="2"
-						Orientation="Horizontal"
-						HorizontalAlignment="Center"
-						Margin="10">
-				<Border BorderBrush="{DynamicResource SystemBaseLowColor}"
-						BorderThickness="0" CornerRadius="4"
-						Background="{DynamicResource SystemChromeLowColor}">
-					<StackPanel Orientation="Horizontal">
-						<ComboBox x:Name="BrushSize"
-								  Width="150"
-								  Margin="10,6,10,6"
-								  SelectedIndex="2">
-							<ComboBoxItem>Thin (1px)</ComboBoxItem>
-							<ComboBoxItem>Normal (3px)</ComboBoxItem>
-							<ComboBoxItem>Thick (6px)</ComboBoxItem>
-							<ComboBoxItem>Very Thick (9px)</ComboBoxItem>
-						</ComboBox>
-					</StackPanel>
-				</Border>
-				<Border BorderBrush="{DynamicResource SystemBaseLowColor}"
-						BorderThickness="0" CornerRadius="4" Margin="20,0,0,0"
-						Background="{DynamicResource SystemChromeLowColor}">
-					<StackPanel Orientation="Horizontal">
-
-						<Button Classes="ColorButton" Background="#ff2d55" Cursor="Hand" Margin="10,0,0,0" Click="ColorButton_Click"/>
-						<Button Classes="ColorButton" Background="#ff9500" Cursor="Hand" Click="ColorButton_Click"/>
-						<Button Classes="ColorButton" Background="#ffcc00" Cursor="Hand" Click="ColorButton_Click"/>
-						<Button Classes="ColorButton" Background="#34c759" Cursor="Hand" Click="ColorButton_Click"/>
-						<Button Classes="ColorButton" Background="#5ac8fa" Cursor="Hand" Click="ColorButton_Click"/>
-						<Button Classes="ColorButton" Background="#007aff" Cursor="Hand" Click="ColorButton_Click"/>
-						<Button Classes="ColorButton" Background="#5856d6" Cursor="Hand" Click="ColorButton_Click"/>
-						<Button Classes="ColorButton" Background="#af52de" Cursor="Hand" Click="ColorButton_Click"/>
-						<Button Classes="ColorButton" Background="#010101" Cursor="Hand" Click="ColorButton_Click"/>
-						<Button Classes="ColorButton" Background="#efefef" Cursor="Hand" Click="ColorButton_Click"/>
-
-						<Button x:Name="PenButton" Classes="ColorButton"
-								Width="45"
-								Margin="10,0,10,0"
-								Click="PenButton_Click"
+						<Button Click="CloseButton_Click"
+								Width="48" Height="32"
+								Background="Transparent"
+								CornerRadius="0"
 								Cursor="Hand"
-								Background="{DynamicResource SystemChromeMediumColor}"
-								ToolTip.Tip="Pen Tool">
-							<Path Data="{DynamicResource edit_regular}"
-								  Fill="{DynamicResource SystemBaseHighColor}"
-								  Width="16" Height="16"
-								  Stretch="Uniform"/>
+								Padding="0"
+								HorizontalContentAlignment="Center"
+								VerticalContentAlignment="Center">
+							<Button.Styles>
+								<Style Selector=":pointerover" x:SetterTargetType="Button">
+									<Setter Property="Background" Value="FireBrick"/>
+								</Style>
+							</Button.Styles>
+							<Viewbox Width="12" Height="12">
+								<Path Data="{DynamicResource dismiss_regular}"
+									  Fill="{DynamicResource SystemBaseHighColor}"
+									  Stretch="Uniform"/>
+							</Viewbox>
 						</Button>
 
-						<Button Name="EraserButton" Classes="ColorButton"
-												Click="EraserButton_Click"
-												Cursor="Hand"
-												Width="45"
-												Margin="0,0,10,0"
-												Background="{DynamicResource SystemChromeMediumColor}"
-												Padding="6"
-												ToolTip.Tip="Eraser">
-							<Path Data="{DynamicResource erase_regular}"
-								  Fill="{DynamicResource SystemBaseHighColor}"
-									Width="16" Height="16"
-									Stretch="Uniform"/>
-						</Button>
+					</StackPanel>
+				</Grid>
+			</Border>
+		
+			<Grid  Grid.Row="1" Background="{DynamicResource SystemRegionColor}">
+				<Grid.RowDefinitions>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="*"/>
+				</Grid.RowDefinitions>
+	
+				<Grid  Grid.Row="1">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
+						<RowDefinition Height="Auto"/>
+					</Grid.RowDefinitions>
+
+					<!-- Drawing Tools -->
+					<StackPanel Grid.Row="0"
+								Orientation="Horizontal"
+								Margin="10,5"
+								Spacing="10">
+
+					</StackPanel>
+
+					<!-- Drawing Area -->
+					<Panel Grid.Row="1">
+						<Image x:Name="BackgroundImage"
+							   Stretch="Uniform"
+							   HorizontalAlignment="Center"
+							   VerticalAlignment="Center"/>
+
+						<Canvas x:Name="DrawingCanvas"
+								Background="Transparent"
+								HorizontalAlignment="Center"
+								VerticalAlignment="Center"/>
+					</Panel>
+
+					<!-- Bottom Buttons -->
+
+					<StackPanel Grid.Row="2"
+								Orientation="Horizontal"
+								HorizontalAlignment="Center"
+								Margin="10">
+						<Border BorderBrush="{DynamicResource SystemListLowColor}"
+								BorderThickness="1" CornerRadius="4"
+								Background="{DynamicResource SystemChromeLowColor}">
+							<StackPanel Orientation="Horizontal">
+								<ComboBox x:Name="BrushSize"
+										  Width="150"
+										  Margin="10,6,10,6"
+										  SelectedIndex="2">
+									<ComboBoxItem>Thin (1px)</ComboBoxItem>
+									<ComboBoxItem>Normal (3px)</ComboBoxItem>
+									<ComboBoxItem>Thick (6px)</ComboBoxItem>
+									<ComboBoxItem>Very Thick (9px)</ComboBoxItem>
+								</ComboBox>
+							</StackPanel>
+						</Border>
+						<Border BorderBrush="{DynamicResource SystemListLowColor}"
+								BorderThickness="1" CornerRadius="4" Margin="20,0,0,0"
+								Background="{DynamicResource SystemChromeLowColor}">
+							<StackPanel Orientation="Horizontal">
+
+								<Button Classes="ColorButton" Background="#ff2d55" Cursor="Hand" Margin="10,0,0,0" Click="ColorButton_Click"/>
+								<Button Classes="ColorButton" Background="#ff9500" Cursor="Hand" Click="ColorButton_Click"/>
+								<Button Classes="ColorButton" Background="#ffcc00" Cursor="Hand" Click="ColorButton_Click"/>
+								<Button Classes="ColorButton" Background="#34c759" Cursor="Hand" Click="ColorButton_Click"/>
+								<Button Classes="ColorButton" Background="#5ac8fa" Cursor="Hand" Click="ColorButton_Click"/>
+								<Button Classes="ColorButton" Background="#007aff" Cursor="Hand" Click="ColorButton_Click"/>
+								<Button Classes="ColorButton" Background="#5856d6" Cursor="Hand" Click="ColorButton_Click"/>
+								<Button Classes="ColorButton" Background="#af52de" Cursor="Hand" Click="ColorButton_Click"/>
+								<Button Classes="ColorButton" Background="#010101" Cursor="Hand" Click="ColorButton_Click"/>
+								<Button Classes="ColorButton" Background="#efefef" Cursor="Hand" Click="ColorButton_Click"/>
+
+								<Button x:Name="PenButton" Classes="ColorButton"
+										Width="45"
+										Margin="10,0,10,0"
+										Click="PenButton_Click"
+										Cursor="Hand"
+										Background="{DynamicResource SystemChromeMediumColor}"
+										ToolTip.Tip="Pen Tool">
+									<Path Data="{DynamicResource edit_regular}"
+										  Fill="{DynamicResource SystemBaseHighColor}"
+										  Width="16" Height="16"
+										  Stretch="Uniform"/>
+								</Button>
+
+								<Button Name="EraserButton" Classes="ColorButton"
+														Click="EraserButton_Click"
+														Cursor="Hand"
+														Width="45"
+														Margin="0,0,10,0"
+														Background="{DynamicResource SystemChromeMediumColor}"
+														Padding="6"
+														ToolTip.Tip="Eraser">
+									<Path Data="{DynamicResource erase_regular}"
+										  Fill="{DynamicResource SystemBaseHighColor}"
+											Width="16" Height="16"
+											Stretch="Uniform"/>
+								</Button>
 						
-						<Button Name="ArrowButton" Classes="ColorButton"
-								Click="ArrowButton_Click"
-								Cursor="Hand"
-								Width="45"
-								Margin="0,0,10,0"
-								Background="{DynamicResource SystemChromeMediumColor}"
-								ToolTip.Tip="Draw Arrow">
-							<Path Data="{DynamicResource arrow_up_right_regular}"
-								  Fill="{DynamicResource SystemBaseHighColor}"
-								  Width="16" Height="16"
-								  Stretch="Uniform"/>
-						</Button>
+								<Button Name="ArrowButton" Classes="ColorButton"
+										Click="ArrowButton_Click"
+										Cursor="Hand"
+										Width="45"
+										Margin="0,0,10,0"
+										Background="{DynamicResource SystemChromeMediumColor}"
+										ToolTip.Tip="Draw Arrow">
+									<Path Data="{DynamicResource arrow_up_right_regular}"
+										  Fill="{DynamicResource SystemBaseHighColor}"
+										  Width="16" Height="16"
+										  Stretch="Uniform"/>
+								</Button>
 
-						<Button x:Name="TextButton"
-								Classes="ColorButton"
-								Width="45"
-								Margin="0,0,10,0"
-								Click="TextButton_Click"
-								Cursor="Hand"
-								Background="{DynamicResource SystemChromeMediumColor}"
-								ToolTip.Tip="Add Text">
-							<Path Data="{DynamicResource textbox_regular}"
-								  Fill="{DynamicResource SystemBaseHighColor}"
-								  Width="16" Height="16"
-								  Stretch="Uniform"/>
-						</Button>
+								<Button x:Name="TextButton"
+										Classes="ColorButton"
+										Width="45"
+										Margin="0,0,10,0"
+										Click="TextButton_Click"
+										Cursor="Hand"
+										Background="{DynamicResource SystemChromeMediumColor}"
+										ToolTip.Tip="Add Text">
+									<Path Data="{DynamicResource textbox_regular}"
+										  Fill="{DynamicResource SystemBaseHighColor}"
+										  Width="16" Height="16"
+										  Stretch="Uniform"/>
+								</Button>
 
-					</StackPanel>
-				</Border>
+							</StackPanel>
+						</Border>
 				
-				<Border BorderBrush="{DynamicResource SystemBaseLowColor}"
-									BorderThickness="0" CornerRadius="4" Margin="20,0,0,0"
-									Background="{DynamicResource SystemChromeLowColor}">
-					<StackPanel Orientation="Horizontal">
+						<Border BorderBrush="{DynamicResource SystemListLowColor}"
+											BorderThickness="1" CornerRadius="4" Margin="20,0,0,0"
+											Background="{DynamicResource SystemChromeLowColor}">
+							<StackPanel Orientation="Horizontal">
 
-						<Button Name="UndoButton"
-									Click="UndoButton_Click"
-									IsEnabled="False"
-									Background="Transparent"
-									ToolTip.Tip="Undo"
-									Width="45"
-									Margin="10,0,0,0">
-							<Path Data="{DynamicResource arrow_counterclockwise_regular}"
-								  Fill="{DynamicResource SystemBaseHighColor}"
-									Width="14" Height="14"
-									Stretch="Uniform"/>
-						</Button>
-						<Button Name="RedoButton"
-								Click="RedoButton_Click"
-								IsEnabled="False"
-								Background="Transparent"
-								ToolTip.Tip="Redo"
-								Width="45"
-								Margin="4,0,0,0">
-							<Path Data="{DynamicResource arrow_clockwise_regular}"
-								  Fill="{DynamicResource SystemBaseHighColor}"
-									Width="14" Height="14"
-									Stretch="Uniform"/>
-						</Button>
-						<Button x:Name="RevertButton"
-								Background="Transparent"
-								ToolTip.Tip="Revert to original image"
-								Margin="4,0,0,0"
-								Width="45"
-								Click="RevertButton_Click">
-							<Path Data="{DynamicResource image_arrow_counterclockwise_regular}"
-								  Fill="{DynamicResource SystemBaseHighColor}"
-									Width="14" Height="14"
-									Stretch="Uniform"/>
-						</Button>
-						<Button x:Name="SaveButton"
-								Background="Transparent"
-								ToolTip.Tip="Save image edits"
-								Margin="4,0,0,0"
-								Width="45"
-								Click="SaveButton_Click">
-							<Path Data="{DynamicResource save_regular}"
-								  Fill="{DynamicResource SystemBaseHighColor}"
-									Width="14" Height="14"
-									Stretch="Uniform"/>
-						</Button>
-						<Button x:Name="CancelButton"
-								Background="Transparent"
-								ToolTip.Tip="Cancel image edits"
-								Margin="4,0,10,0"
-								Width="45"
-								Click="CancelButton_Click">
-							<Path Data="{DynamicResource dismiss_regular}"
-								  Fill="{DynamicResource SystemBaseHighColor}"
-									Width="14" Height="14"
-									Stretch="Uniform"/>
-						</Button>
+								<Button Name="UndoButton"
+											Click="UndoButton_Click"
+											IsEnabled="False"
+											Background="Transparent"
+											ToolTip.Tip="Undo"
+											Width="45"
+											Margin="10,0,0,0">
+									<Path Data="{DynamicResource arrow_counterclockwise_regular}"
+										  Fill="{DynamicResource SystemBaseHighColor}"
+											Width="14" Height="14"
+											Stretch="Uniform"/>
+								</Button>
+								<Button Name="RedoButton"
+										Click="RedoButton_Click"
+										IsEnabled="False"
+										Background="Transparent"
+										ToolTip.Tip="Redo"
+										Width="45"
+										Margin="4,0,0,0">
+									<Path Data="{DynamicResource arrow_clockwise_regular}"
+										  Fill="{DynamicResource SystemBaseHighColor}"
+											Width="14" Height="14"
+											Stretch="Uniform"/>
+								</Button>
+								<Button x:Name="RevertButton"
+										Background="Transparent"
+										ToolTip.Tip="Revert to original image"
+										Margin="4,0,0,0"
+										Width="45"
+										Click="RevertButton_Click">
+									<Path Data="{DynamicResource image_arrow_counterclockwise_regular}"
+										  Fill="{DynamicResource SystemBaseHighColor}"
+											Width="14" Height="14"
+											Stretch="Uniform"/>
+								</Button>
+								<Button x:Name="SaveButton"
+										Background="Transparent"
+										ToolTip.Tip="Save image edits"
+										Margin="4,0,0,0"
+										Width="45"
+										Click="SaveButton_Click">
+									<Path Data="{DynamicResource save_regular}"
+										  Fill="{DynamicResource SystemBaseHighColor}"
+											Width="14" Height="14"
+											Stretch="Uniform"/>
+								</Button>
+								<Button x:Name="CancelButton"
+										Background="Transparent"
+										ToolTip.Tip="Cancel image edits"
+										Margin="4,0,10,0"
+										Width="45"
+										Click="CancelButton_Click">
+									<Path Data="{DynamicResource dismiss_regular}"
+										  Fill="{DynamicResource SystemBaseHighColor}"
+											Width="14" Height="14"
+											Stretch="Uniform"/>
+								</Button>
+							</StackPanel>
+						</Border>
 					</StackPanel>
-				</Border>
-			</StackPanel>
+				</Grid>
+			</Grid>
 		</Grid>
-	</Grid>
+	</Border>	
 	<Window.Styles>
 		<Style Selector="Button.ColorButton">
 			<Setter Property="Width" Value="24"/>

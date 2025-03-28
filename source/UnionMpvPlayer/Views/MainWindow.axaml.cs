@@ -354,7 +354,6 @@ namespace UnionMpvPlayer.Views
             volumeSlider = this.FindControl<Slider>("VolumeSlider");
             videoContainer = this.FindControl<Panel>("VideoContainer");
             overlayImage = this.FindControl<Image>("OverlayImage");
-            videoContainer.Background = Avalonia.Media.Brushes.Black;
             UpdateVolumeIcon(false); 
             CurrentTimeTextBlock = this.FindControl<TextBlock>("CurrentTimeTextBlock");
             CurrentFrameTextBlock = this.FindControl<TextBlock>("CurrentFrameTextBlock");

@@ -16,7 +16,7 @@
     ExtendClientAreaTitleBarHeightHint="40"
     Title="{Binding TopTitle}"
     Width="1130"
-    Height="813"
+    Height="807"
     Focusable="True"
     KeyDown="MainWindow_KeyDown"
     KeyUp="MainWindow_KeyUp">
@@ -125,11 +125,11 @@
 
 	</Window.Styles>
 
-	<Border x:Name="MainBorder" BorderThickness="2" CornerRadius="8" Padding="0,4" Background="{DynamicResource SystemChromeLowColor}">
+	<Border x:Name="MainBorder" BorderThickness="2" CornerRadius="8" Padding="0,0,0,4" Background="{DynamicResource SystemChromeLowColor}">
 
 		<Grid>
 			<Grid.RowDefinitions>
-				<RowDefinition Height="35" />
+				<RowDefinition Height="32" />
 				<!-- Custom Title Bar -->
 				<RowDefinition Height="*" />
 				<!-- Main App Content -->
@@ -138,10 +138,10 @@
 			<!-- Custom Title Bar -->
 			<Border Grid.Row="0"
 					x:Name="CustomTitleBar"
-					Cursor="Hand"
+					Cursor="Hand" CornerRadius="8"
 					Background="{DynamicResource SystemChromeLowColor}"
 					PointerPressed="TitleBar_PointerPressed">
-				<Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center" Margin="8,0,8,0">
+				<Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center" Margin="8,0,0,0">
 					<!-- App Icon -->
 					<Image Source="/Assets/union.ico"
 						   Width="20" Height="20"
@@ -160,12 +160,13 @@
 					<StackPanel Grid.Column="2"
 								Orientation="Horizontal"
 								HorizontalAlignment="Right"
-								VerticalAlignment="Center"
-								Spacing="6">
+								VerticalAlignment="Top"
+								Spacing="0">
 						
 						<Button Click="MinimizeButton_Click"
-								Width="32" Height="32"
+								Width="48" Height="32"
 								Background="Transparent"
+								CornerRadius="0"
 								Cursor="Hand"
 								Padding="0"
 								HorizontalContentAlignment="Center"
@@ -178,8 +179,9 @@
 						</Button>
 
 						<Button Click="MaximizeRestoreButton_Click"
-								Width="32" Height="32"
+								Width="48" Height="32"
 								Background="Transparent"
+								CornerRadius="0"
 								Cursor="Hand"
 								Padding="0"
 								HorizontalContentAlignment="Center"
@@ -192,12 +194,18 @@
 						</Button>
 
 						<Button Click="CloseButton_Click"
-								Width="32" Height="32"
+								Width="48" Height="32"
 								Background="Transparent"
+								CornerRadius="0"
 								Cursor="Hand"
 								Padding="0"
 								HorizontalContentAlignment="Center"
 								VerticalContentAlignment="Center">
+							<Button.Styles>
+								<Style Selector=":pointerover" x:SetterTargetType="Button">
+									<Setter Property="Background" Value="FireBrick"/>
+								</Style>
+							</Button.Styles>
 							<Viewbox Width="12" Height="12">
 								<Path Data="{DynamicResource dismiss_regular}"
 									  Fill="{DynamicResource SystemBaseHighColor}"
@@ -536,12 +544,12 @@
 		
 					<!-- Bottom Toolbar -->
 					<Border BorderThickness="0,1,0,0"
-							Grid.Row="2"
-							BorderBrush="{DynamicResource SystemListLowColor}">
+							Grid.Row="2" CornerRadius="8"
+							BorderBrush="{DynamicResource SystemListLowColor}"
+							Background="{DynamicResource SystemChromeLowColor}">
 						<StackPanel x:Name="BottomToolbar"
 									Orientation="Vertical"
-									Spacing="0"
-									Background="{DynamicResource SystemChromeLowColor}">
+									Spacing="0">
 				
 							<Grid VerticalAlignment="Center" Margin="0,10,0,0">
 								<Grid.ColumnDefinitions>
@@ -891,7 +899,7 @@
 								DragDrop.DragEnter="MainGrid_DragEnter"
 								DragDrop.DragOver="MainGrid_DragOver"
 								DragDrop.Drop="MainGrid_Drop"
-								Background="Black"
+								Background="#171717"
 								ClipToBounds="True"
 								IsVisible="True"
 								HorizontalAlignment="Stretch"

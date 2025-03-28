@@ -63,6 +63,8 @@ namespace UnionMpvPlayer.Views
         public ImageEditWindow(string imagePath, string? editedImagePath = null)
         {
             InitializeComponent();
+            Activated += (_, _) => SetActiveBorder(true);
+            Deactivated += (_, _) => SetActiveBorder(false);
             _imagePath = imagePath;
             _originalBitmap = new Bitmap(imagePath);
             string pathToLoad = !string.IsNullOrEmpty(editedImagePath) && File.Exists(editedImagePath)
@@ -111,6 +113,31 @@ namespace UnionMpvPlayer.Views
                 EditedPath = editedPath;
             }
         }
+
+        private void SetActiveBorder(bool isActive)
+        {
+            if (this.FindControl<Border>("MainBorder") is Border border)
+            {
+                border.BorderBrush = isActive
+                    ? new SolidColorBrush(Color.FromRgb(85, 64, 2)) // Mica blue highlight
+                    : new SolidColorBrush(Colors.Transparent);
+            }
+        }
+
+        private void TitleBar_PointerPressed(object? sender, PointerPressedEventArgs e)
+        {
+            if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+                BeginMoveDrag(e);
+        }
+
+        private void MinimizeButton_Click(object? sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+
+        private void MaximizeRestoreButton_Click(object? sender, RoutedEventArgs e)
+        {
+            WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+        }
+
+        private void CloseButton_Click(object? sender, RoutedEventArgs e) => Close();
 
         // Tools
 
@@ -779,12 +806,6 @@ namespace UnionMpvPlayer.Views
         private void CancelButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
             Close();
-        }
-
-        private void CloseButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-        {
-            Debug.WriteLine("CloseButton_Click: Closing window.");
-            this.Close();
         }
 
         protected override void OnClosing(WindowClosingEventArgs e)

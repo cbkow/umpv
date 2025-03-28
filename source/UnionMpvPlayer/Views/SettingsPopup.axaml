@@ -58,6 +58,11 @@
                             BorderBrush="Transparent"
                             Name="CloseButton"
                             Click="CloseButton_Click">
+						<Button.Styles>
+							<Style Selector=":pointerover" x:SetterTargetType="Button">
+								<Setter Property="Background" Value="FireBrick"/>
+							</Style>
+						</Button.Styles>
 						<Canvas Width="40" Height="40">
 							<Path Fill="{DynamicResource SystemBaseHighColor}"
                                   Data="{DynamicResource dismiss_regular}"
@@ -245,11 +250,12 @@
 		</DataGrid>
 		<Button Grid.Row="2"
             Content="Reset to Default"
-            HorizontalAlignment="Center"
+            HorizontalAlignment="Stretch"
 			HorizontalContentAlignment="Center"
             Margin="10"
             Padding="8"
-			Width="580"
+			Background="Transparent" Cursor="Hand"
+			BorderBrush="{DynamicResource SystemChromeMediumLowColor}"
             Click="ResetToDefault_Click" />
 	</Grid>
 </Window>

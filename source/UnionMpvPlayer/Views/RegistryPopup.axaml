@@ -56,6 +56,11 @@
                             BorderBrush="Transparent"
                             Name="CloseButton"
                             Click="CloseButton_Click">
+						<Button.Styles>
+							<Style Selector=":pointerover" x:SetterTargetType="Button">
+								<Setter Property="Background" Value="FireBrick"/>
+							</Style>
+						</Button.Styles>
 						<Canvas Width="40" Height="40">
 							<Path Fill="{DynamicResource SystemBaseHighColor}"
                                   Data="{DynamicResource dismiss_regular}"
@@ -124,8 +129,13 @@
 
 		<!-- Buttons -->
 		<StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10" Margin="10,0,10,16">
-			<Button Name="InstallButton" Content="Install" Width="176"  HorizontalContentAlignment="Center" Click="InstallButton_Click"/>
-			<Button Name="UninstallButton" Content="Uninstall" Width="176" HorizontalContentAlignment="Center" Click="UninstallButton_Click"/>
+			<Button Name="InstallButton" Background="Transparent" Cursor="Hand"
+					BorderBrush="{DynamicResource SystemChromeMediumLowColor}"
+					Content="Install" Width="176"  HorizontalContentAlignment="Center" Click="InstallButton_Click"/>
+			<Button Name="UninstallButton" Content="Uninstall" 
+					Background="Transparent" Cursor="Hand"
+					BorderBrush="{DynamicResource SystemChromeMediumLowColor}"
+					Width="176" HorizontalContentAlignment="Center" Click="UninstallButton_Click"/>
 		</StackPanel>
 	</Grid>
 </Window>

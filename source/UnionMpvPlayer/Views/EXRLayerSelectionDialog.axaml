@@ -58,8 +58,13 @@
                     <Button Width="40" Height="40"
                             Background="Transparent"
                             BorderBrush="Transparent"
-                            Name="CloseButton"
+                            Name="CloseButton" Cursor="Hand"
                             Click="CancelButton_Click">
+						<Button.Styles>
+							<Style Selector=":pointerover" x:SetterTargetType="Button">
+								<Setter Property="Background" Value="FireBrick"/>
+							</Style>
+						</Button.Styles>
                         <Canvas Width="40" Height="40">
                             <Path Fill="{DynamicResource SystemBaseHighColor}"
                                   Data="{DynamicResource dismiss_regular}"
@@ -98,7 +103,15 @@
             <TextBlock Text="Enter Frame Rate (e.g., 24, 25, 30):"
                        Margin="0,0,0,5"
                        Foreground="{DynamicResource SystemBaseMediumHighColor}"/>
-            <TextBox Name="FrameRateInput" Width="360" SelectionBrush="{DynamicResource SystemChromeMediumLowColor}" BorderBrush="{DynamicResource SystemBaseLowColor}"/>
+            <TextBox Name="FrameRateInput" Width="360" 
+					 SelectionBrush="{DynamicResource SystemChromeMediumLowColor}" 
+					 BorderBrush="{DynamicResource SystemBaseLowColor}">
+				<TextBox.Styles>
+					<Style Selector=":pointerover" x:SetterTargetType="TextBox">
+						<Setter Property="Background" Value="{DynamicResource SystemBaseLowColor}"/>
+					</Style>
+				</TextBox.Styles>
+			</TextBox>
         </StackPanel>
 
         <!-- Buttons -->
@@ -109,11 +122,15 @@
                     Spacing="10">
             <Button Content="OK"
                     Name="OkButton"
+					Background="Transparent" Cursor="Hand"
+					BorderBrush="{DynamicResource SystemChromeMediumLowColor}"
                     Width="175"
                     HorizontalContentAlignment="Center"
                     Click="OkButton_Click"/>
             <Button Content="Cancel"
                     Name="CancelButton"
+					Background="Transparent" Cursor="Hand"
+					BorderBrush="{DynamicResource SystemChromeMediumLowColor}"
                     Width="175"
                     HorizontalContentAlignment="Center"
                     Click="CancelButton_Click"/>
