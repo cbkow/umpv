@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Version>0.3.3</Version>
+    <Version>0.3.6</Version>
     <OutputType>WinExe</OutputType>
 	<PlatformTarget>x64</PlatformTarget>
     <TargetFramework>net8.0</TargetFramework>
@@ -81,29 +81,31 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="11.2.3" />
+    <PackageReference Include="Avalonia" Version="11.2.6" />
     <PackageReference Include="Avalonia.BuildServices" Version="0.0.31" />
-    <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.2.3" />
-    <PackageReference Include="Avalonia.Desktop" Version="11.2.3" />
-    <PackageReference Include="Avalonia.ReactiveUI" Version="11.2.3" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.3" />
-    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.3" />
+    <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.2.6" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.2.6" />
+    <PackageReference Include="Avalonia.ReactiveUI" Version="11.2.6" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.6" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.6" />
     <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
-    <PackageReference Include="Avalonia.Diagnostics" Version="11.2.3">
+    <PackageReference Include="Avalonia.Diagnostics" Version="11.2.6">
       <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
       <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>none</IncludeAssets>
     </PackageReference>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-    <PackageReference Include="HtmlAgilityPack" Version="1.11.72" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.12.0" />
     <PackageReference Include="Markdig" Version="0.40.0" />
     <PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.3.0" />
-    <PackageReference Include="ReactiveUI" Version="20.1.63" />
-    <PackageReference Include="System.Drawing.Common" Version="9.0.0" />
+    <PackageReference Include="ReactiveUI" Version="20.2.45" />
+    <PackageReference Include="System.Drawing.Common" Version="10.0.0-preview.2.25163.9" />
     <PackageReference Include="System.Reactive" Version="6.0.1" />
     <PackageReference Include="System.Xml.XPath" Version="4.3.0" />
-    <PackageReference Include="TinyEXR.NET" Version="0.3.8" />
-    <PackageReference Include="Vortice.Direct3D11" Version="3.6.2" />
-    <PackageReference Include="Vortice.DXGI" Version="3.6.2" />
+    <PackageReference Include="TinyEXR.NET" Version="0.3.9" />
+    <PackageReference Include="Vortice.Direct3D11" Version="3.7.2-beta" />
+    <PackageReference Include="Vortice.DXGI" Version="3.7.2-beta" />
   </ItemGroup>
 
   <ItemGroup>

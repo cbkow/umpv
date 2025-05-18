@@ -1,0 +1,30 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="UnionMpvPlayer.Views.TextInputPopup"
+        Title="Add Text"
+        Width="400"
+        Height="280"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False">
+
+	<StackPanel Margin="20">
+		<TextBlock Text="Enter text for annotation:" Margin="0,0,0,10"/>
+		<TextBox x:Name="TextInput" Height="100"
+                AcceptsReturn="True" TextWrapping="Wrap"
+                Watermark="Type your text here..."/>
+
+		<Grid ColumnDefinitions="Auto,*,Auto" Margin="0,15,0,20">
+			<TextBlock Text="Font Size:" VerticalAlignment="Center"/>
+			<Slider x:Name="FontSizeSlider" Grid.Column="1"
+                    Minimum="14" Maximum="48" Value="28"
+                    Margin="10,0"/>
+			<TextBlock x:Name="FontSizeText" Grid.Column="2"
+                      Text="28px" Width="40"/>
+		</Grid>
+
+		<StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+			<Button Content="Cancel" Width="80" Click="CancelButton_Click"/>
+			<Button Content="OK" Width="80" Click="OkButton_Click"/>
+		</StackPanel>
+	</StackPanel>
+</Window>

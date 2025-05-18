@@ -1598,31 +1598,84 @@ namespace UnionMpvPlayer.Views
             }
             else if (isUnionNotes)
             {
-                // Union Notes format
+                // Union Notes now using Markdown format with .md extension
                 var sb = new StringBuilder();
+
+                // File reference as markdown
                 sb.AppendLine($"# {videoName}");
-                sb.AppendLine("```File Path");
-                sb.AppendLine($"{_currentVideoPath}");
-                sb.AppendLine("```");
+                sb.AppendLine($"`{_currentVideoPath}`");
                 sb.AppendLine();
-                sb.AppendLine("\\");
-                sb.AppendLine("&nbsp;");
-                sb.AppendLine();
+
+                // Network share path for notesViewer app
+                string notesNetworkShare = @"\\192.168.40.100\UnionNotes";
+
+                // Extract project name from the current video path or use a default
+                string projectFolderName;
+                if (!string.IsNullOrEmpty(projectRoot))
+                {
+                    // Use existing project folder name extraction logic
+                    projectFolderName = Path.GetFileName(projectRoot);
+                }
+                else
+                {
+                    // If not in a standard project structure, create a folder based on video name
+                    projectFolderName = videoName;
+                }
+
+                // Create the target directory in the network share
+                string targetDirectory = Path.Combine(notesNetworkShare, projectFolderName);
+                Directory.CreateDirectory(targetDirectory);
+
+                // Generate filename using the pattern yyMMdda_videoName.md
+                string todayDate = DateTime.Now.ToString("yyMMdd");
+                char versionLetter = 'a';
+                string baseFileName = $"{todayDate}{versionLetter}";
+                string newFileName = $"{baseFileName}_{videoName}.md";
+                string fullPath = Path.Combine(targetDirectory, newFileName);
+
+                // Check if a file with this pattern already exists and increment the version letter if needed
+                while (Directory.EnumerateFiles(targetDirectory, $"{todayDate}*")
+                                .Any(f => Path.GetFileName(f).StartsWith(baseFileName)))
+                {
+                    versionLetter++;
+                    if (versionLetter > 'z')
+                    {
+                        // This is extremely unlikely to happen, but handle it just in case
+                        baseFileName = $"{todayDate}_extra";
+                        break;
+                    }
+                    baseFileName = $"{todayDate}{versionLetter}";
+                    newFileName = $"{baseFileName}_{videoName}.md";
+                    fullPath = Path.Combine(targetDirectory, newFileName);
+                }
+
+                // Process each note, copying images to the same flat directory
+                int imageCounter = 1;
                 foreach (var note in _notes)
                 {
-                    string imagePath = !string.IsNullOrEmpty(note.EditedImagePath) && File.Exists(note.EditedImagePath)
+                    string sourcePath = !string.IsNullOrEmpty(note.EditedImagePath) && File.Exists(note.EditedImagePath)
                         ? note.EditedImagePath : note.ImagePath;
-                    sb.AppendLine($"### {note.TimecodeString}");
-                    sb.AppendLine($"![Frame at {note.TimecodeString}]({imagePath})");
-                    sb.AppendLine();
+
+                    // Create a new image name in the target location
+                    string imageExt = Path.GetExtension(sourcePath);
+                    string imageFileName = $"{baseFileName}_img_{imageCounter++:D3}{imageExt}";
+                    string targetImagePath = Path.Combine(targetDirectory, imageFileName);
+
+                    // Copy the image
+                    File.Copy(sourcePath, targetImagePath, true);
+
+                    // Add markdown for this note with screenshot reference
+                    sb.AppendLine($"## {note.TimecodeString}");
+                    sb.AppendLine($"![Frame at {note.TimecodeString}]({imageFileName})");
                     sb.AppendLine(note.Notes);
                     sb.AppendLine();
-                    sb.AppendLine("\\");
-                    sb.AppendLine("&nbsp;");
-                    sb.AppendLine();
                 }
+
+                // Update the exportPath for use by the popup dialog
+                exportPath = fullPath;
                 await File.WriteAllTextAsync(exportPath, sb.ToString());
             }
+
             else if (isMarkdown)
             {
                 // Standard Markdown format
@@ -1763,14 +1816,14 @@ namespace UnionMpvPlayer.Views
                             var psi = new System.Diagnostics.ProcessStartInfo
                             {
                                 FileName = @"C:\UnionApps\unionProjects\notesViewer.exe",
-                                Arguments = path,
+                                Arguments = $"\"{exportPath}\"", // Make sure to quote the path
                                 UseShellExecute = true
                             };
                             System.Diagnostics.Process.Start(psi);
                         }
                         catch (Exception ex)
                         {
-                            //Debug.WriteLine($"Error opening UnionNotes viewer: {ex.Message}");
+                            Debug.WriteLine($"Error opening UnionNotes viewer: {ex.Message}");
                         }
                     }
                     else

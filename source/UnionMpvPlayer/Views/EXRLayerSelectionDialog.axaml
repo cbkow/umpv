@@ -122,14 +122,14 @@
                     Spacing="10">
             <Button Content="OK"
                     Name="OkButton"
-					Background="Transparent" Cursor="Hand"
+					Background="#282828" Cursor="Hand"
 					BorderBrush="{DynamicResource SystemChromeMediumLowColor}"
                     Width="175"
                     HorizontalContentAlignment="Center"
                     Click="OkButton_Click"/>
             <Button Content="Cancel"
                     Name="CancelButton"
-					Background="Transparent" Cursor="Hand"
+					Background="#282828" Cursor="Hand"
 					BorderBrush="{DynamicResource SystemChromeMediumLowColor}"
                     Width="175"
                     HorizontalContentAlignment="Center"

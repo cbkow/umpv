@@ -129,11 +129,11 @@
 
 		<!-- Buttons -->
 		<StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10" Margin="10,0,10,16">
-			<Button Name="InstallButton" Background="Transparent" Cursor="Hand"
+			<Button Name="InstallButton" Background="#282828" Cursor="Hand"
 					BorderBrush="{DynamicResource SystemChromeMediumLowColor}"
 					Content="Install" Width="176"  HorizontalContentAlignment="Center" Click="InstallButton_Click"/>
 			<Button Name="UninstallButton" Content="Uninstall" 
-					Background="Transparent" Cursor="Hand"
+					Background="#282828" Cursor="Hand"
 					BorderBrush="{DynamicResource SystemChromeMediumLowColor}"
 					Width="176" HorizontalContentAlignment="Center" Click="UninstallButton_Click"/>
 		</StackPanel>

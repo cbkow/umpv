@@ -115,7 +115,7 @@
                         Content="OK"
                         HorizontalAlignment="Center"
                         HorizontalContentAlignment="Center"
-						Background="Transparent" Cursor="Hand"
+						Background="#282828" Cursor="Hand"
 						BorderBrush="{DynamicResource SystemChromeMediumLowColor}"
                         Margin="0,10,0,0"
                         Width="336"

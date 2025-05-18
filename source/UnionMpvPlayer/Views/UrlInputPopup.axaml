@@ -94,11 +94,11 @@
 			</TextBox>
 			<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="6">
 				<Button x:Name="OkButton" FontSize="13" Content="OK" Width="186" 
-						Background="Transparent" Cursor="Hand"
+						Background="#282828" Cursor="Hand"
 						BorderBrush="{DynamicResource SystemChromeMediumLowColor}"
                         Margin="0" HorizontalContentAlignment="Center"/>
 				<Button x:Name="CancelButton" FontSize="13" Content="Canel" Width="186"
-                        Background="Transparent" Cursor="Hand"
+                        Background="#282828" Cursor="Hand"
 						BorderBrush="{DynamicResource SystemChromeMediumLowColor}"
 						HorizontalContentAlignment="Center" Margin="0"/>
 			</StackPanel>

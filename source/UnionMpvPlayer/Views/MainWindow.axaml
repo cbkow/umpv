@@ -196,7 +196,7 @@
 						<Button Click="CloseButton_Click"
 								Width="48" Height="32"
 								Background="Transparent"
-								CornerRadius="0"
+								CornerRadius="0,7,0,0"
 								Cursor="Hand"
 								Padding="0"
 								HorizontalContentAlignment="Center"
@@ -239,7 +239,7 @@
 				<GridSplitter x:Name="PlaylistSplitter"
 							  Grid.Column="1"
 							  Width="0"
-							  Background="{DynamicResource SystemChromeLowColor}"
+							  Background="Transparent"
 							  ResizeDirection="Columns"
 							  IsEnabled="False"
 							  IsVisible="False"
@@ -328,6 +328,13 @@
 									<MenuItem x:Name="ScreenShotDesktop" Header="_Desktop" Padding="10,8,10,8"
 												CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
 												Click="ScreenShotDesktop_Click" />
+									<MenuItem x:Name="ToggleTimecodeMenuItem" Header="_Burn Timecode" Padding="10,8,10,8"
+											  CornerRadius="1" Margin="4,0,4,0" Foreground="{DynamicResource SystemBaseMediumHighColor}"
+											  Click="ToggleBurnTimecode_Click">
+										<MenuItem.Icon>
+											<CheckBox IsChecked="{Binding IsBurnTimecodeEnabled}" IsHitTestVisible="False"/>
+										</MenuItem.Icon>
+									</MenuItem>
 								</MenuItem>
 
 								<MenuItem Header="_Color" Padding="10,2,10,2" CornerRadius="2"
@@ -915,7 +922,7 @@
 				<GridSplitter x:Name="NotesSplitter"
 					  Grid.Column="3"
 					  Width="0"
-					  Background="{DynamicResource SystemChromeLowColor}"
+					  Background="Transparent"
 					  ResizeDirection="Columns"
 					  IsEnabled="False"
 					  IsVisible="False"

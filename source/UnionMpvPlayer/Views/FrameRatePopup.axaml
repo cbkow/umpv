@@ -85,11 +85,11 @@
 			</TextBox>
 			<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
 				<Button Name="OkButton" Content="OK" Width="186"
-						Background="Transparent" Cursor="Hand"
+						Background="#282828" Cursor="Hand"
 						BorderBrush="{DynamicResource SystemChromeMediumLowColor}"
                         HorizontalContentAlignment="Center" Click="OkButton_Click"/>
 				<Button Name="CancelButton" Content="Cancel" Width="186"
-						Background="Transparent" Cursor="Hand"
+						Background="#282828" Cursor="Hand"
 						BorderBrush="{DynamicResource SystemChromeMediumLowColor}"
                         HorizontalContentAlignment="Center" Click="CancelButton_Click"/>
 			</StackPanel>

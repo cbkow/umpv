@@ -26,6 +26,7 @@ using System.Collections.ObjectModel;
 using Avalonia.Collections;
 using static UnionMpvPlayer.Helpers.EXRSequenceHandler;
 using static UnionMpvPlayer.Views.EXRLayerSelectionDialog;
+using ReactiveUI;
 
 namespace UnionMpvPlayer.Views
 {
@@ -118,6 +119,7 @@ namespace UnionMpvPlayer.Views
         public event EventHandler PlaybackStarted;
         private bool _mpvHidden;
         private string _currentOverlayColor = "Gold";
+        private bool _burnTimecode = false;
 
         private readonly Dictionary<string, SafetyOverlay> _overlays = new()
         {
@@ -254,6 +256,11 @@ namespace UnionMpvPlayer.Views
             Activated += (_, _) => SetActiveBorder(true);
             Deactivated += (_, _) => SetActiveBorder(false);
             DataContext = new MainWindowViewModel();
+            // In your MainWindow constructor, after initializing DataContext:
+            if (DataContext is MainWindowViewModel viewModel)
+            {
+                viewModel.IsBurnTimecodeEnabled = _burnTimecode;
+            }
             _sequenceHandler = new EXRSequenceHandler();
             PlaylistSplitter = this.FindControl<GridSplitter>("PlaylistSplitter");
             PlaylistToggle = this.FindControl<Button>("PlaylistToggle");
@@ -421,9 +428,59 @@ namespace UnionMpvPlayer.Views
             if (this.FindControl<Border>("MainBorder") is Border border)
             {
                 border.BorderBrush = isActive
-                    ? new SolidColorBrush(Color.FromRgb(85, 64, 2)) // Mica blue highlight
+                    ? new SolidColorBrush(Color.FromRgb(85, 64, 2))
                     : new SolidColorBrush(Colors.Transparent);
             }
+        }
+
+        private async Task FlashBorderAsync(int durationMs = 200)
+        {
+            // Get a reference to the main border
+            var border = this.FindControl<Border>("MainBorder");
+            if (border == null) return;
+
+            // Store the original color
+            var originalBrush = border.BorderBrush;
+
+            // Set bright yellow flash color
+            var flashColor = new SolidColorBrush(Color.FromRgb(255, 215, 0)); // Bright gold
+            border.BorderBrush = flashColor;
+
+            // Create smooth fade back animation
+            var fadeSteps = 20; // Number of steps for smooth transition
+            var stepDelay = durationMs / fadeSteps;
+
+            // Get original color components
+            var originalColor = ((SolidColorBrush)originalBrush).Color;
+            var startR = 255;
+            var startG = 215;
+            var startB = 0;
+            var endR = originalColor.R;
+            var endG = originalColor.G;
+            var endB = originalColor.B;
+
+            // Gradually fade from flash color to original
+            for (int i = 0; i < fadeSteps; i++)
+            {
+                // Calculate intermediate color
+                float progress = (float)(i + 1) / fadeSteps;
+                byte r = (byte)(startR - (startR - endR) * progress);
+                byte g = (byte)(startG - (startG - endG) * progress);
+                byte b = (byte)(startB - (startB - endB) * progress);
+
+                // Apply intermediate color
+                await Dispatcher.UIThread.InvokeAsync(() => {
+                    border.BorderBrush = new SolidColorBrush(Color.FromRgb(r, g, b));
+                });
+
+                // Wait for the next step
+                await Task.Delay(stepDelay);
+            }
+
+            // Ensure we're back to the original color
+            await Dispatcher.UIThread.InvokeAsync(() => {
+                border.BorderBrush = originalBrush;
+            });
         }
 
         private void TitleBar_PointerPressed(object? sender, PointerPressedEventArgs e)
@@ -1186,8 +1243,8 @@ namespace UnionMpvPlayer.Views
                 }
 
                 //Debug.WriteLine($"LUT applied successfully: {lutFileName}");
-                var toast = new ToastView();
-                toast.ShowToast("Success", "Color transform applied.", this);
+                //var toast = new ToastView();
+                //toast.ShowToast("Success", "Color transform applied.", this);
             }
             catch (Exception ex)
             {
@@ -1252,8 +1309,8 @@ namespace UnionMpvPlayer.Views
                 }
 
                 //Debug.WriteLine("LUT removed successfully");
-                var toast = new ToastView();
-                toast.ShowToast("Success", "Color transforms removed.", this);
+                //var toast = new ToastView();
+                //toast.ShowToast("Success", "Color transforms removed.", this);
             }
             catch (Exception ex)
             {
@@ -1626,8 +1683,8 @@ namespace UnionMpvPlayer.Views
                 else
                 {
                     //Debug.WriteLine($"Playback speed set to {_currentSpeed}x");
-                    var toast = new ToastView();
-                    toast.ShowToast("Success", $"Playback speed set to {_currentSpeed}x", this);
+                    //var toast = new ToastView();
+                    //toast.ShowToast("Success", $"Playback speed set to {_currentSpeed}x", this);
                 }
             }
             catch (Exception ex)
@@ -1697,8 +1754,8 @@ namespace UnionMpvPlayer.Views
                 else
                 {
                     //Debug.WriteLine("Toggled subtitles successfully");
-                    var toast = new ToastView();
-                    toast.ShowToast("Success", "Subtitles Toggled", this);
+                    //var toast = new ToastView();
+                    //toast.ShowToast("Success", "Subtitles Toggled", this);
                 }
             }
             catch (Exception ex)
@@ -1741,8 +1798,8 @@ namespace UnionMpvPlayer.Views
                     else
                     {
                         //Debug.WriteLine($"Loaded subtitle file: {subtitlePath}");
-                        var toast = new ToastView();
-                        toast.ShowToast("Success", "Subtitles loaded.", this);
+                        //var toast = new ToastView();
+                        //toast.ShowToast("Success", "Subtitles loaded.", this);
                     }
                 }
                 catch (Exception ex)
@@ -1808,49 +1865,91 @@ namespace UnionMpvPlayer.Views
         }
 
         // Screenshot Menu
-        private void ScreenShotDesktop_Click(object? sender, RoutedEventArgs e)
+        private async void ScreenShotDesktop_Click(object? sender, RoutedEventArgs e)
         {
             if (mpvHandle == IntPtr.Zero)
             {
-                //Debug.WriteLine("MPV handle is not initialized");
                 return;
             }
+
             try
             {
                 string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                int dirResult = MPVInterop.mpv_set_option_string(mpvHandle, "screenshot-directory", desktopPath);
-                if (dirResult < 0)
-                {
-                    //Debug.WriteLine($"Failed to set screenshot directory: {MPVInterop.GetError(dirResult)}");
-                    return;
-                }
-                int templateResult = MPVInterop.mpv_set_option_string(mpvHandle, "screenshot-template", "%F-%04n");
-                if (templateResult < 0)
-                {
-                    //Debug.WriteLine($"Failed to set screenshot template: {MPVInterop.GetError(templateResult)}");
-                    return;
-                }
+                string finalFileName = $"screenshot_{DateTime.Now:yyyyMMddHHmmss}.png";
+                string finalPath = Path.Combine(desktopPath, finalFileName);
 
-                var args = new[] { "screenshot" };
-                int commandResult = MPVInterop.mpv_command(mpvHandle, args);
-                if (commandResult < 0)
+                if (_burnTimecode)
                 {
-                    //Debug.WriteLine($"Failed to take a screenshot: {MPVInterop.GetError(commandResult)}");
+                    // Take a direct approach using CaptureScreenshot which gives us a specific path
+                    string tempDir = Path.Combine(Path.GetTempPath(), "umpv");
+                    Directory.CreateDirectory(tempDir);
+                    string tempPath = Path.Combine(tempDir, $"temp_screenshot_{Guid.NewGuid()}.png");
+
+                    // Use our existing method to capture a screenshot to a specific file
+                    await CaptureScreenshot(tempPath);
+
+                    // Check if the file exists
                     var toast = new ToastView();
-                    toast.ShowToast("Warning", "Failed to take screenshot.", this);
+                    if (!File.Exists(tempPath))
+                    {
+                        
+                        toast.ShowToast("Error", "Failed to capture screenshot.", this);
+                        return;
+                    }
+
+                    // Now process it with timecode
+                    using (var image = DrawingImage.FromFile(tempPath))
+                    {
+                        var processedImage = BurnTimecodeOnImage(image);
+                        processedImage.Save(finalPath);
+                    }
+
+                    // Clean up temp file
+                    try { File.Delete(tempPath); } catch { /* Ignore errors */ }
+
+                    // Show success toast
+                    FlashBorderAsync();
+              
+                    toast.ShowToast("Success", "Screenshot saved with timecode.", this);
                 }
                 else
                 {
-                    //Debug.WriteLine($"Screenshot saved to desktop successfully.");
-                    var toast = new ToastView();
-                    toast.ShowToast("Success", "Screenshot saved.", this);
+                    // Default screenshot behavior without burn-in
+                    int dirResult = MPVInterop.mpv_set_option_string(mpvHandle, "screenshot-directory", desktopPath);
+                    if (dirResult < 0)
+                    {
+                        var toast = new ToastView();
+                        toast.ShowToast("Error", "Failed to set screenshot directory.", this);
+                        return;
+                    }
+
+                    int templateResult = MPVInterop.mpv_set_option_string(mpvHandle, "screenshot-template", "%F-%04n");
+                    if (templateResult < 0)
+                    {
+                        var toast = new ToastView();
+                        toast.ShowToast("Error", "Failed to set screenshot template.", this);
+                        return;
+                    }
+
+                    var args = new[] { "screenshot" };
+                    int commandResult = MPVInterop.mpv_command(mpvHandle, args);
+                    if (commandResult < 0)
+                    {
+                        var toast = new ToastView();
+                        toast.ShowToast("Warning", "Failed to take screenshot.", this);
+                    }
+                    else
+                    {
+                        FlashBorderAsync();
+                        var toast = new ToastView();
+                        toast.ShowToast("Success", "Screenshot saved to desktop.", this);
+                    }
                 }
             }
             catch (Exception ex)
             {
-                //Debug.WriteLine($"Error taking screenshot: {ex.Message}");
                 var toast = new ToastView();
-                toast.ShowToast("Warning", "Error taking screenshot.", this);
+                toast.ShowToast("Error", $"Screenshot failed: {ex.Message}", this);
             }
         }
 
@@ -2106,8 +2205,8 @@ namespace UnionMpvPlayer.Views
                     Height = screenHeight / RenderScaling;
                     Position = new PixelPoint(0, 0); // Top-left corner of the screen
                     Debug.WriteLine($"Window size exceeds screen size, expanding to full screen.");
-                    var toast = new ToastView();
-                    toast.ShowToast("Warning", "Window size exceeds screen size, this is not truly 1:1.", this);
+                    //var toast = new ToastView();
+                    //toast.ShowToast("Warning", "Window size exceeds screen size, this is not truly 1:1.", this);
 
                 }
                 else
@@ -2213,15 +2312,15 @@ namespace UnionMpvPlayer.Views
                 {
                     PhotoFilterIcon.Data = Application.Current.FindResource("circle_half_fill_regular") as StreamGeometry;
                     await ApplyLut("709_sRGB.cube");
-                    var toast = new ToastView();
-                    toast.ShowToast("Success", "Color transformed applied.", this);
+                    //var toast = new ToastView();
+                    //toast.ShowToast("Success", "Color transformed applied.", this);
                 }
                 else
                 {
                     PhotoFilterIcon.Data = Application.Current.FindResource("photo_filter_regular") as StreamGeometry;
                     await RemoveLut();
-                    var toast = new ToastView();
-                    toast.ShowToast("Success", "Color transform removed.", this);
+                    //var toast = new ToastView();
+                    //toast.ShowToast("Success", "Color transform removed.", this);
                 }
             }
             catch (Exception ex)
@@ -2418,23 +2517,23 @@ namespace UnionMpvPlayer.Views
 
                 await Task.Delay(200); // Give file time to be written
 
-
                 using (var image = DrawingImage.FromFile(screenshotPath))
                 {
-                    NativeClipboard.SetImage(image);
-                }
+                    // Apply timecode if enabled using the current video's data
+                    var processedImage = _burnTimecode ? BurnTimecodeOnImage(image) : image;
 
-                var toastSuccess = new ToastView();
-                toastSuccess.ShowToast("Success", "Screenshot copied to clipboard.", this);
+                    // Copy to clipboard
+                    NativeClipboard.SetImage(processedImage);
 
-                // Clean up the temp file
-                try
-                {
-                    File.Delete(screenshotPath);
-                }
-                catch (Exception ex)
-                {
-                    // Log cleanup error if necessary
+                    // Clean up the temp file
+                    try
+                    {
+                        File.Delete(screenshotPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log cleanup error if necessary
+                    }
                 }
             }
             catch (Exception ex)
@@ -2447,6 +2546,7 @@ namespace UnionMpvPlayer.Views
         private void CameraButton_Click(object sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
             _ = HandleScreenshot();
+            FlashBorderAsync();
         }
 
         // Safety Overlays
@@ -2734,7 +2834,8 @@ namespace UnionMpvPlayer.Views
                 if (result >= 0)
                 {
                     //Debug.WriteLine($"Looping toggled: {loopState}");
-                    UpdateLoopingIcon(); 
+                    UpdateLoopingIcon();
+                    FlashBorderAsync();
                 }
                 else
                 {
@@ -2927,6 +3028,96 @@ namespace UnionMpvPlayer.Views
             {
                 //Debug.WriteLine($"Error setting volume: {ex.Message}");
             }
+        }
+
+        // Timecode burn-in
+
+        private void ToggleBurnTimecode_Click(object? sender, RoutedEventArgs e)
+        {
+            _burnTimecode = !_burnTimecode;
+    
+            // Update the view model binding
+            if (DataContext is MainWindowViewModel viewModel)
+            {
+                viewModel.IsBurnTimecodeEnabled = _burnTimecode;
+            }
+    
+            // Flash border for user feedback
+            FlashBorderAsync();
+    
+            // Optionally show toast message
+            var toast = new ToastView();
+            toast.ShowToast("Timecode Burn", _burnTimecode ? "Timecode burn enabled" : "Timecode burn disabled", this);
+        }
+
+        private System.Drawing.Image BurnTimecodeOnImage(System.Drawing.Image image)
+        {
+            if (!_burnTimecode)
+                return image;
+
+            // Get the CURRENT timecode and frame values directly from MPV at the time of screenshot
+            string timecode = CurrentTimeTextBlock.Text;
+            string framecode = CurrentFrameTextBlock.Text;
+
+            // If MPV handle is valid, try to get the most accurate current values
+            if (mpvHandle != IntPtr.Zero)
+            {
+                var currentTime = MPVInterop.GetDoubleProperty(mpvHandle, "time-pos");
+                var currentFrame = MPVInterop.GetDoubleProperty(mpvHandle, "estimated-frame-number");
+                var fps = MPVInterop.GetDoubleProperty(mpvHandle, "container-fps");
+
+                if (currentTime.HasValue && currentTime >= 0)
+                {
+                    // Format the timecode using the current values
+                    timecode = FormatTimecode(currentTime.Value, currentFrame, fps);
+                    if (currentFrame.HasValue)
+                    {
+                        framecode = currentFrame.Value.ToString("F0");
+                    }
+                }
+            }
+
+            string burnText = $"{timecode} F:{framecode}";
+
+            // Create a bitmap to work with
+            using System.Drawing.Bitmap bitmap = new System.Drawing.Bitmap(image);
+            using System.Drawing.Graphics graphics = System.Drawing.Graphics.FromImage(bitmap);
+
+            // Set graphics quality for better text rendering
+            graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
+
+            // Create font and brushes - 50% larger font size
+            using System.Drawing.Font font = new System.Drawing.Font("Consolas", 21, System.Drawing.FontStyle.Bold);
+            System.Drawing.SizeF textSize = graphics.MeasureString(burnText, font);
+
+            // Improved margins
+            int horizontalMargin = 15;    // Left margin
+            int verticalMargin = 33;      // Bottom margin
+            int padding = 10;             // Padding inside the text box
+
+            // Draw a semi-transparent black background for better readability
+            using System.Drawing.SolidBrush bgBrush = new System.Drawing.SolidBrush(System.Drawing.Color.FromArgb(180, 0, 0, 0));
+            graphics.FillRectangle(
+                bgBrush,
+                horizontalMargin,
+                bitmap.Height - textSize.Height - verticalMargin,
+                textSize.Width + padding * 2,
+                textSize.Height + padding * 2
+            );
+
+            // Draw text
+            using System.Drawing.SolidBrush textBrush = new System.Drawing.SolidBrush(System.Drawing.Color.White);
+            graphics.DrawString(
+                burnText,
+                font,
+                textBrush,
+                horizontalMargin + padding,
+                bitmap.Height - textSize.Height - verticalMargin + padding
+            );
+
+            // Return the modified image
+            return new System.Drawing.Bitmap(bitmap);
         }
 
         // Keyboard commands

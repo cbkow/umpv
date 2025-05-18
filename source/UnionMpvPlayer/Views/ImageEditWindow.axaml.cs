@@ -28,7 +28,6 @@ namespace UnionMpvPlayer.Views
             public Border? ResizeGrip { get; set; }
             public Border? DragHandle { get; set; }
             public bool IsErase { get; set; }
-
             public bool IsTextBox { get; set; }
         }
 
@@ -272,30 +271,26 @@ namespace UnionMpvPlayer.Views
         {
             if (_activeTextBox != null)
             {
-                // Find and remove the corresponding resize grip and drag handle
-                var resizeGrip = DrawingCanvas.Children
-                    .OfType<Border>()
-                    .FirstOrDefault(b => Canvas.GetLeft(b) == Canvas.GetLeft(_activeTextBox) + _activeTextBox.Width - 5
-                                      && Canvas.GetTop(b) == Canvas.GetTop(_activeTextBox) + _activeTextBox.Height - 5);
-
-                var dragHandle = DrawingCanvas.Children
-                    .OfType<Border>()
-                    .FirstOrDefault(b => Canvas.GetLeft(b) == Canvas.GetLeft(_activeTextBox) - 10
-                                      && Canvas.GetTop(b) == Canvas.GetTop(_activeTextBox) - 10);
-
-                if (resizeGrip != null)
-                    DrawingCanvas.Children.Remove(resizeGrip);
-
-                if (dragHandle != null)
-                    DrawingCanvas.Children.Remove(dragHandle);
-
-                // Finalize text box
+                // Make the text box non-editable
                 _activeTextBox.IsReadOnly = true;
-                _activeTextBox.Cursor = new Cursor(StandardCursorType.Arrow); // Remove text cursor
-                _activeTextBox.Classes.Add("DisabledTextBox"); // Apply a style if needed
-                _activeTextBox.LostFocus -= OnTextBoxDeselected;
+                _activeTextBox.Focusable = false;
+                _activeTextBox.Cursor = new Cursor(StandardCursorType.Arrow);
+
+                // Remove the resize and drag handles
+                if (_resizeGrip != null)
+                {
+                    DrawingCanvas.Children.Remove(_resizeGrip);
+                    _resizeGrip = null;
+                }
+
+                if (_dragHandle != null)
+                {
+                    DrawingCanvas.Children.Remove(_dragHandle);
+                    _dragHandle = null;
+                }
+
                 _activeTextBox = null;
-                _isTextMode = false; // Exit text mode
+                _isTextMode = false;
             }
         }
 
@@ -311,17 +306,12 @@ namespace UnionMpvPlayer.Views
                     // Remove the text box when undoing
                     DrawingCanvas.Children.Remove(operation.TextBox);
 
-                    if (_resizeGrip != null)
-                    {
-                        DrawingCanvas.Children.Remove(_resizeGrip);
-                        _resizeGrip = null;
-                    }
+                    // Also remove resize grip and drag handle if they exist
+                    if (operation.ResizeGrip != null)
+                        DrawingCanvas.Children.Remove(operation.ResizeGrip);
 
-                    if (_dragHandle != null)
-                    {
-                        DrawingCanvas.Children.Remove(_dragHandle);
-                        _dragHandle = null;
-                    }
+                    if (operation.DragHandle != null)
+                        DrawingCanvas.Children.Remove(operation.DragHandle);
                 }
                 else if (operation.IsErase)
                 {
@@ -357,15 +347,12 @@ namespace UnionMpvPlayer.Views
                     // Restore the text box
                     DrawingCanvas.Children.Add(operation.TextBox);
 
-                    if (_resizeGrip != null)
-                    {
-                        DrawingCanvas.Children.Add(_resizeGrip);
-                    }
+                    // Also restore resize grip and drag handle if they exist
+                    if (operation.ResizeGrip != null)
+                        DrawingCanvas.Children.Add(operation.ResizeGrip);
 
-                    if (_dragHandle != null)
-                    {
-                        DrawingCanvas.Children.Add(_dragHandle);
-                    }
+                    if (operation.DragHandle != null)
+                        DrawingCanvas.Children.Add(operation.DragHandle);
                 }
                 else if (operation.IsErase)
                 {
@@ -394,8 +381,17 @@ namespace UnionMpvPlayer.Views
             if (sender is Button button && button.Background is IBrush brush)
             {
                 _currentBrush = brush;
-                _isErasing = false;
 
+                // Update the color of the active text box if it exists
+                if (_activeTextBox != null)
+                {
+                    _activeTextBox.Background = brush;
+
+                    // Determine text color (white for dark backgrounds, black for light backgrounds)
+                    _activeTextBox.Foreground = IsColorDark(brush) ? Brushes.White : Brushes.Black;
+                }
+
+                // Update selected color button
                 if (_selectedColorButton != null)
                 {
                     _selectedColorButton.Classes.Remove("Selected");
@@ -405,6 +401,18 @@ namespace UnionMpvPlayer.Views
 
                 EraserButton.Classes.Remove("Selected");
             }
+        }
+
+        // Helper method to determine if a color is dark
+        private bool IsColorDark(IBrush brush)
+        {
+            if (brush is SolidColorBrush solidBrush)
+            {
+                var color = solidBrush.Color;
+                double brightness = (0.299 * color.R + 0.587 * color.G + 0.114 * color.B) / 255;
+                return brightness < 0.5;
+            }
+            return true; // Default to assuming dark
         }
 
         private Bitmap LoadImage(string path)
@@ -469,6 +477,29 @@ namespace UnionMpvPlayer.Views
 
         private void Canvas_PointerPressed(object? sender, PointerPressedEventArgs e)
         {
+            var position = e.GetPosition(DrawingCanvas);
+
+            // First check if we clicked on a text box
+            if (!_isErasing && !_isArrowMode && !_isTextMode)
+            {
+                foreach (var child in DrawingCanvas.Children)
+                {
+                    if (child is TextBox textBox)
+                    {
+                        var left = Canvas.GetLeft(textBox);
+                        var top = Canvas.GetTop(textBox);
+                        var bounds = new Rect(left, top, textBox.Width, textBox.Height);
+
+                        if (bounds.Contains(position))
+                        {
+                            // We clicked on a text box, activate it
+                            SelectTextBox(textBox);
+                            return; // Don't continue with other drawing operations
+                        }
+                    }
+                }
+            }
+
             _isDrawing = true;
             _lastPoint = e.GetPosition(DrawingCanvas);
 
@@ -478,7 +509,7 @@ namespace UnionMpvPlayer.Views
 
             if (_isTextMode)
             {
-                CreateTextBox(_lastPoint);
+               
                 _isDrawing = false; // Don't continue dragging for text
                 return;
             }
@@ -502,6 +533,56 @@ namespace UnionMpvPlayer.Views
             }
         }
 
+        private void SelectTextBox(TextBox textBox)
+        {
+            // Deselect the current active text box if any
+            if (_activeTextBox != null)
+            {
+                // Remove existing controls
+                if (_resizeGrip != null)
+                    DrawingCanvas.Children.Remove(_resizeGrip);
+                if (_dragHandle != null)
+                    DrawingCanvas.Children.Remove(_dragHandle);
+            }
+
+            _activeTextBox = textBox;
+
+            // Create new resize grip
+            _resizeGrip = new Border
+            {
+                Width = 12,
+                Height = 12,
+                Background = Brushes.Gray,
+                CornerRadius = new CornerRadius(2),
+                Cursor = new Cursor(StandardCursorType.SizeAll)
+            };
+
+            Canvas.SetLeft(_resizeGrip, Canvas.GetLeft(textBox) + textBox.Width - 6);
+            Canvas.SetTop(_resizeGrip, Canvas.GetTop(textBox) + textBox.Height - 6);
+
+            _resizeGrip.PointerPressed += (s, e) => StartResizeTextBox(s, e, textBox);
+            _resizeGrip.PointerReleased += (s, e) => _isResizingTextBox = false;
+
+            // Create new drag handle
+            _dragHandle = new Border
+            {
+                Width = 12,
+                Height = 12,
+                Background = Brushes.DarkGray,
+                CornerRadius = new CornerRadius(6),
+                Cursor = new Cursor(StandardCursorType.SizeAll)
+            };
+
+            Canvas.SetLeft(_dragHandle, Canvas.GetLeft(textBox) - 6);
+            Canvas.SetTop(_dragHandle, Canvas.GetTop(textBox) - 6);
+
+            _dragHandle.PointerPressed += (s, e) => StartDragTextBox(s, e, textBox);
+            _dragHandle.PointerReleased += (s, e) => _isDraggingTextBox = false;
+
+            // Add the controls to the canvas
+            DrawingCanvas.Children.Add(_resizeGrip);
+            DrawingCanvas.Children.Add(_dragHandle);
+        }
 
         private void Canvas_PointerMoved(object? sender, PointerEventArgs e)
         {
@@ -629,6 +710,9 @@ namespace UnionMpvPlayer.Views
         {
             try
             {
+                // First, finalize any active text box
+                ExitTextEditMode();
+
                 var baseDir = System.IO.Path.GetDirectoryName(_imagePath);
                 var editedImagesDir = System.IO.Path.Combine(baseDir!, "imagesEdited");
                 Directory.CreateDirectory(editedImagesDir);
@@ -645,7 +729,7 @@ namespace UnionMpvPlayer.Views
                 var scaleX = originalWidth / currentWidth;
                 var scaleY = originalHeight / currentHeight;
 
-                // ✅ Step 1: Render the image and lines manually
+                // Step 1: Render the image and lines manually
                 var panel = new Panel
                 {
                     Width = originalWidth,
@@ -699,7 +783,7 @@ namespace UnionMpvPlayer.Views
                 using var renderBitmap = new RenderTargetBitmap(pixelSize);
                 renderBitmap.Render(panel);
 
-                // ✅ Step 2: Render text boxes separately
+                // Step 2: Render text boxes separately with improved scaling
                 var textCanvas = new Canvas
                 {
                     Width = originalWidth,
@@ -710,30 +794,42 @@ namespace UnionMpvPlayer.Views
                 {
                     if (child is TextBox textBox)
                     {
+                        // Improved text rendering with proper sizing
+                        double left = Canvas.GetLeft(textBox) * scaleX;
+                        double top = Canvas.GetTop(textBox) * scaleY;
+                        double width = textBox.Width * scaleX;
+                        double height = textBox.Height * scaleY;
+
+                        // Scale font size based on the same ratio
+                        double scaledFontSize = textBox.FontSize * Math.Min(scaleX, scaleY);
+
                         var textBlock = new Border
                         {
                             Background = textBox.Background,
-                            Width = textBox.Width * scaleX,
-                            Height = textBox.Height * scaleY,
+                            Width = width,
+                            Height = height,
+                            CornerRadius = new CornerRadius(4 * Math.Min(scaleX, scaleY)),
                             Child = new TextBlock
                             {
                                 Text = textBox.Text,
-                                FontSize = textBox.FontSize,
+                                FontSize = scaledFontSize,
                                 Foreground = textBox.Foreground,
                                 TextWrapping = TextWrapping.WrapWithOverflow,
                                 Padding = new Thickness(
-                                    (textBox.Padding.Left - 2) * scaleX,
-                                    (textBox.Padding.Top - 2) * scaleY,
-                                    (textBox.Padding.Right - 2) * scaleX,
-                                    (textBox.Padding.Bottom - 2) * scaleY
+                                    textBox.Padding.Left * scaleX,
+                                    textBox.Padding.Top * scaleY,
+                                    textBox.Padding.Right * scaleX,
+                                    textBox.Padding.Bottom * scaleY
                                 ),
-                                LineHeight = textBox.FontSize * 1.05,
+                                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                                LineHeight = scaledFontSize * 1.2,
+                                TextAlignment = TextAlignment.Center
                             }
                         };
 
-
-                        Canvas.SetLeft(textBlock, Canvas.GetLeft(textBox) * scaleX);
-                        Canvas.SetTop(textBlock, Canvas.GetTop(textBox) * scaleY);
+                        Canvas.SetLeft(textBlock, left);
+                        Canvas.SetTop(textBlock, top);
                         textCanvas.Children.Add(textBlock);
                     }
                 }
@@ -744,7 +840,7 @@ namespace UnionMpvPlayer.Views
                 var textRenderBitmap = new RenderTargetBitmap(pixelSize);
                 textRenderBitmap.Render(textCanvas);
 
-                // ✅ Step 3: Merge both layers into one final image
+                // Step 3: Merge both layers into one final image
                 var finalCanvas = new Canvas
                 {
                     Width = originalWidth,
@@ -773,7 +869,7 @@ namespace UnionMpvPlayer.Views
                 var finalRender = new RenderTargetBitmap(pixelSize);
                 finalRender.Render(finalCanvas);
 
-                // ✅ Step 4: Save the final image
+                // Step 4: Save the final image
                 using (var fileStream = File.OpenWrite(editedPath))
                 {
                     finalRender.Save(fileStream);
@@ -801,7 +897,6 @@ namespace UnionMpvPlayer.Views
                 Debug.WriteLine($"Error saving edited image: {ex.Message}");
             }
         }
-
 
         private void CancelButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
@@ -923,62 +1018,72 @@ namespace UnionMpvPlayer.Views
 
 
         // Text Box
-        private void TextButton_Click(object? sender, RoutedEventArgs e)
+        private async void TextButton_Click(object? sender, RoutedEventArgs e)
         {
-            ExitTextEditMode();  
-            _activeTextBox = null; 
+            ExitTextEditMode();
             _isTextMode = true;
             _isArrowMode = false;
             _isErasing = false;
 
+            // Update button states
             PenButton.Classes.Set("Selected", false);
             ArrowButton.Classes.Set("Selected", false);
             EraserButton.Classes.Set("Selected", false);
             TextButton.Classes.Set("Selected", true);
+
+            // Show simple text input dialog
+            var popup = new TextInputPopup(_currentBrush);
+            var result = await popup.ShowDialog<bool?>(this);
+
+            if (result == true && !string.IsNullOrWhiteSpace(popup.EnteredText))
+            {
+                // Get the center position of the canvas
+                var position = new Point(
+                    DrawingCanvas.Width / 2,
+                    DrawingCanvas.Height / 2
+                );
+
+                // Create the text box with entered text
+                CreateTextBoxWithText(position, popup.EnteredText, popup.TextColor, popup.FontSize);
+            }
+
+            // Reset text mode
+            _isTextMode = false;
+            TextButton.Classes.Set("Selected", false);
+            PenButton.Classes.Set("Selected", true);
         }
 
-        private void CreateTextBox(Point position)
+        private void CreateTextBoxWithText(Point position, string initialText, IBrush textColor, double fontSize)
         {
             if (_activeTextBox != null)
                 return;
 
-            var textBoxViewModel = new TextBoxViewModel
-            {
-                X = position.X,
-                Y = position.Y,
-            };
-
+            // Create a TextBox for the annotation
             var textBox = new TextBox
             {
-                Background = _currentBrush,
-                Foreground = Brushes.White,
-                FontSize = 28,
+                Background = textColor,
+                Foreground = IsColorDark(textColor) ? Brushes.White : Brushes.Black,
+                FontSize = fontSize,
+                Text = initialText,
                 TextWrapping = TextWrapping.WrapWithOverflow,
-                Padding = new Thickness(4),
-                BorderBrush = Brushes.Black,
+                Padding = new Thickness(6),
+                BorderBrush = Brushes.Transparent,
                 BorderThickness = new Thickness(0),
+                MinWidth = 100,
+                MinHeight = 40,
+                Width = Math.Max(200, initialText.Length * (fontSize * 0.6)),
+                Height = Math.Max(fontSize * 1.5, CountLines(initialText) * fontSize * 1.2),
+                TextAlignment = TextAlignment.Center,
+                VerticalContentAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center
             };
 
-            textBox.Bind(Canvas.LeftProperty, textBoxViewModel.WhenAnyValue(x => x.X));
-            textBox.Bind(Canvas.TopProperty, textBoxViewModel.WhenAnyValue(x => x.Y));
-            textBox.Bind(TextBox.WidthProperty, textBoxViewModel.WhenAnyValue(x => x.Width));
-            textBox.Bind(TextBox.HeightProperty, textBoxViewModel.WhenAnyValue(x => x.Height));
-            textBox.Bind(TextBox.TextProperty, textBoxViewModel.WhenAnyValue(x => x.Text));
 
-            _resizeGrip = new Border
-            {
-                Width = 10,
-                Height = 10,
-                Background = Brushes.Gray,
-                Cursor = new Cursor(StandardCursorType.SizeWestEast),
-            };
+            // Position the textbox at the center of the canvas
+            Canvas.SetLeft(textBox, position.X - (textBox.Width / 2));
+            Canvas.SetTop(textBox, position.Y - (textBox.Height / 2));
 
-            _resizeGrip.Bind(Canvas.LeftProperty, textBoxViewModel.WhenAnyValue(x => x.X, x => x.Width, (x, w) => x + w - 5));
-            _resizeGrip.Bind(Canvas.TopProperty, textBoxViewModel.WhenAnyValue(x => x.Y, x => x.Height, (y, h) => y + h - 5));
-
-            _resizeGrip.PointerPressed += (s, e) => StartResizeTextBox(s, e, textBoxViewModel);
-            _resizeGrip.PointerReleased += (s, e) => _isResizingTextBox = false;
-
+            // Create drag handle
             _dragHandle = new Border
             {
                 Width = 12,
@@ -988,32 +1093,65 @@ namespace UnionMpvPlayer.Views
                 Cursor = new Cursor(StandardCursorType.SizeAll)
             };
 
-            Canvas.SetLeft(_dragHandle, position.X - 10);
-            Canvas.SetTop(_dragHandle, position.Y - 10);
+            Canvas.SetLeft(_dragHandle, Canvas.GetLeft(textBox) - 6);
+            Canvas.SetTop(_dragHandle, Canvas.GetTop(textBox) - 6);
 
             _dragHandle.PointerPressed += (s, e) => StartDragTextBox(s, e, textBox);
             _dragHandle.PointerReleased += (s, e) => _isDraggingTextBox = false;
 
+            // Create resize grip
+            _resizeGrip = new Border
+            {
+                Width = 12,
+                Height = 12,
+                Background = Brushes.Gray,
+                CornerRadius = new CornerRadius(2),
+                // Use a standard cursor type available in Avalonia
+                Cursor = new Cursor(StandardCursorType.SizeAll)
+            };
+
+            Canvas.SetLeft(_resizeGrip, Canvas.GetLeft(textBox) + textBox.Width - 6);
+            Canvas.SetTop(_resizeGrip, Canvas.GetTop(textBox) + textBox.Height - 6);
+
+            _resizeGrip.PointerPressed += (s, e) => StartResizeTextBox(s, e, textBox);
+            _resizeGrip.PointerReleased += (s, e) => _isResizingTextBox = false;
+
+            // Add elements to canvas
             DrawingCanvas.Children.Add(textBox);
             DrawingCanvas.Children.Add(_dragHandle);
             DrawingCanvas.Children.Add(_resizeGrip);
 
             _activeTextBox = textBox;
 
-            textBox.LostFocus += (s, e) => OnTextBoxDeselected(s, e);
+            // Since text is already entered from popup, make it readonly
+            textBox.IsReadOnly = true;
+            textBox.Focusable = false;
 
+            // Add to undo stack
             _undoStack.Push(new DrawingOperation
             {
                 TextBox = textBox,
+                ResizeGrip = _resizeGrip,
+                DragHandle = _dragHandle,
                 IsTextBox = true,
                 IsErase = false
             });
 
             UndoButton.IsEnabled = _undoStack.Count > 0;
-
-            textBox.Focus();
         }
 
+
+        // Helper method to count lines in a string
+        private int CountLines(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return 1;
+
+            return text.Split('\n').Length;
+        }
+
+
+        
         private void StartDragTextBox(object? sender, PointerPressedEventArgs e, TextBox textBox)
         {
             //Debug.WriteLine("🟢 Drag Started!");
@@ -1064,48 +1202,48 @@ namespace UnionMpvPlayer.Views
             DrawingCanvas.PointerReleased -= StopDragTextBox;
         }
 
-
-
-        private void StartResizeTextBox(object? sender, PointerPressedEventArgs e, TextBoxViewModel textBoxViewModel)
+        private void StartResizeTextBox(object? sender, PointerPressedEventArgs e, TextBox textBox)
         {
             _isResizingTextBox = true;
+            _activeTextBox = textBox;
 
-            var initialX = Canvas.GetLeft(_activeTextBox);
-            var initialY = Canvas.GetTop(_activeTextBox);
-            var initialWidth = _activeTextBox.Width;
-            var initialHeight = _activeTextBox.Height;
+            var initialPosition = e.GetPosition(DrawingCanvas);
+            var initialTextBoxLeft = Canvas.GetLeft(textBox);
+            var initialTextBoxTop = Canvas.GetTop(textBox);
+            var initialTextBoxWidth = textBox.Width;
+            var initialTextBoxHeight = textBox.Height;
 
             void OnPointerMoved(object? s, PointerEventArgs ev)
             {
-                if (!_isResizingTextBox) return;
+                if (!_isResizingTextBox || _activeTextBox == null) return;
 
                 var newPosition = ev.GetPosition(DrawingCanvas);
 
-                _activeTextBox.Width = Math.Max(40, newPosition.X - initialX);
-                _activeTextBox.Height = Math.Max(20, newPosition.Y - initialY);
+                // Calculate new width and height
+                var newWidth = Math.Max(100, initialTextBoxWidth + (newPosition.X - initialPosition.X));
+                var newHeight = Math.Max(40, initialTextBoxHeight + (newPosition.Y - initialPosition.Y));
 
+                // Update the textbox size
+                _activeTextBox.Width = newWidth;
+                _activeTextBox.Height = newHeight;
+
+                // Update the resize grip position
                 if (_resizeGrip != null)
                 {
-                    Canvas.SetLeft(_resizeGrip, initialX + _activeTextBox.Width - 5);
-                    Canvas.SetTop(_resizeGrip, initialY + _activeTextBox.Height - 5);
-                }
-
-                if (_dragHandle != null)
-                {
-                    Canvas.SetLeft(_dragHandle, initialX - 5);
-                    Canvas.SetTop(_dragHandle, initialY - 5);
+                    Canvas.SetLeft(_resizeGrip, initialTextBoxLeft + newWidth - 6);
+                    Canvas.SetTop(_resizeGrip, initialTextBoxTop + newHeight - 6);
                 }
             }
 
             void OnPointerReleased(object? s, PointerReleasedEventArgs ev)
             {
                 _isResizingTextBox = false;
-                ((IInputElement)sender!).PointerMoved -= OnPointerMoved;
-                ((IInputElement)sender!).PointerReleased -= OnPointerReleased;
+                DrawingCanvas.PointerMoved -= OnPointerMoved;
+                DrawingCanvas.PointerReleased -= OnPointerReleased;
             }
 
-            ((IInputElement)sender!).PointerMoved += OnPointerMoved;
-            ((IInputElement)sender!).PointerReleased += OnPointerReleased;
+            DrawingCanvas.PointerMoved += OnPointerMoved;
+            DrawingCanvas.PointerReleased += OnPointerReleased;
         }
 
 

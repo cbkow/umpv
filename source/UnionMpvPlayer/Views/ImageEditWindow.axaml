@@ -51,7 +51,7 @@
 						<Button Click="CloseButton_Click"
 								Width="48" Height="32"
 								Background="Transparent"
-								CornerRadius="0"
+								CornerRadius="0,8,0,0"
 								Cursor="Hand"
 								Padding="0"
 								HorizontalContentAlignment="Center"

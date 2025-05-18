@@ -56,6 +56,7 @@
 					<Button Width="40" Height="40"
                             Background="Transparent"
                             BorderBrush="Transparent"
+							CornerRadius="0,8,0,0"
                             Name="CloseButton"
                             Click="CloseButton_Click">
 						<Button.Styles>
@@ -254,7 +255,7 @@
 			HorizontalContentAlignment="Center"
             Margin="10"
             Padding="8"
-			Background="Transparent" Cursor="Hand"
+			Background="#282828" Cursor="Hand"
 			BorderBrush="{DynamicResource SystemChromeMediumLowColor}"
             Click="ResetToDefault_Click" />
 	</Grid>

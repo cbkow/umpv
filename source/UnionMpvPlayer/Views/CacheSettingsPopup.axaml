@@ -144,7 +144,7 @@
 
 			<Button Content="Empty Cache" Margin="0,24,0,16" Click="EmptyCache_Click"
 					HorizontalAlignment="Stretch"
-					Background="Transparent" Cursor="Hand"
+					Background="#282828" Cursor="Hand"
 					BorderBrush="{DynamicResource SystemChromeMediumLowColor}"
 					HorizontalContentAlignment="Center"/>
 		</StackPanel>

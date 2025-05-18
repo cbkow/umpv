@@ -5,8 +5,8 @@
              x:DataType="local:NotesView"
              Background="{DynamicResource SystemChromeLowColor}">
 
-	<Border BorderBrush="{DynamicResource SystemChromeLowColor}" 
-			BorderThickness="2,0,0,0" CornerRadius="8,0,8,0"  Background="{DynamicResource SystemRegionColor}">
+	<Border BorderBrush="{DynamicResource SystemListLowColor}"
+			BorderThickness="1,0,0,0">
 		<Grid x:Name="NotesPanel">
 			<Grid.RowDefinitions>
 				<RowDefinition Height="Auto"/>
@@ -30,7 +30,7 @@
 				<Border BorderBrush="{DynamicResource SystemChromeLowColor}" Padding="0,0,2,0" 
 						BorderThickness="0,0,0,1">
 					<StackPanel Grid.Column="1"
-								Background="{DynamicResource SystemRegionColor}"
+								Background="{DynamicResource SystemChromeLowColor}"
 								Orientation="Horizontal"
 								HorizontalAlignment="Right">
 						<Button x:Name="ClearNotesButton"
@@ -238,7 +238,7 @@
 						</StackPanel>
 					</Border>
 					<Border Grid.Column="1" Padding="4,0,10,0"
-							Background="{DynamicResource SystemRegionColor}">
+							Background="{DynamicResource SystemChromeLowColor}">
 						<Button x:Name="NotesToggle"
 								Grid.Column="1"
 								Background="Transparent"
@@ -275,10 +275,10 @@
 			<Setter Property="BorderThickness" Value="0,0,0,2"/>
 		</Style>
 		<Style Selector="Button.disabled">
-			<Setter Property="Background" Value="{DynamicResource SystemRegionColor}"/>
+			<Setter Property="Background" Value="{DynamicResource SystemChromeLowColor}"/>
 		</Style>
 		<Style Selector="ComboBox">
-			<Setter Property="Background" Value="{DynamicResource SystemRegionColor}"/>
+			<Setter Property="Background" Value="{DynamicResource SystemChromeLowColor}"/>
 			<Setter Property="BorderBrush" Value="{DynamicResource SystemBaseLowColor}"/>
 			<Setter Property="BorderThickness" Value="1"/>
 			<Setter Property="Padding" Value="5"/>
