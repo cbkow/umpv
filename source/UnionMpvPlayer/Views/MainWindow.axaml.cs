@@ -1941,8 +1941,8 @@ namespace UnionMpvPlayer.Views
                     else
                     {
                         FlashBorderAsync();
-                        var toast = new ToastView();
-                        toast.ShowToast("Success", "Screenshot saved to desktop.", this);
+                        //var toast = new ToastView();
+                        //toast.ShowToast("Success", "Screenshot saved to desktop.", this);
                     }
                 }
             }
