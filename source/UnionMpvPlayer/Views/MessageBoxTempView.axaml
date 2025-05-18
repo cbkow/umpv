@@ -1,0 +1,88 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="UnionMpvPlayer.Views.MessageBoxTempView"
+		ExtendClientAreaChromeHints="NoChrome"
+        ExtendClientAreaTitleBarHeightHint="0"
+        ExtendClientAreaToDecorationsHint="True"
+        Width="364"
+        Height="140"
+        Background="{DynamicResource SystemChromeLowColor}"
+        CanResize="False">
+
+	<Grid Background="{DynamicResource SystemChromeLowColor}">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+		</Grid.RowDefinitions>
+
+		<!-- Title Bar -->
+		<Border Background="{DynamicResource SystemChromeLowColor}"
+                BorderBrush="{DynamicResource SystemBaseLowColor}"
+                BorderThickness="0"
+                Grid.Row="0" Height="40"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Top">
+			<Grid ColumnDefinitions="*, Auto">
+				<!-- Title and Icon -->
+				<StackPanel Orientation="Horizontal"
+                            Grid.Column="0"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Center"
+                            Spacing="10">
+					<Image Source="avares://umpv/Assets/union.ico"
+                           Width="18" Height="18"
+                           VerticalAlignment="Center"
+                           Margin="12,0,0,0"/>
+					<TextBlock Name="TitleText"
+                               VerticalAlignment="Center"
+                               FontSize="13"
+                               Foreground="{DynamicResource SystemBaseMediumHighColor}"/>
+				</StackPanel>
+
+				<!-- Close Button -->
+				<Button Width="40" Height="40"
+                        Background="Transparent"
+                        BorderBrush="Transparent"
+                        Name="CloseButton"
+                        Grid.Column="1"
+                        Click="CloseButton_Click">
+					<Button.Styles>
+						<Style Selector=":pointerover" x:SetterTargetType="Button">
+							<Setter Property="Background" Value="FireBrick"/>
+						</Style>
+					</Button.Styles>
+					<Canvas Width="40" Height="40">
+						<Path Fill="{DynamicResource SystemBaseHighColor}"
+                              Data="{DynamicResource dismiss_regular}"
+                              Width="12" Height="12"
+                              Stretch="Uniform"
+                              Canvas.Left="14" Canvas.Top="14"/>
+					</Canvas>
+				</Button>
+			</Grid>
+		</Border>
+
+		<!-- Content -->
+		<Grid Margin="14" Grid.Row="1" Background="{DynamicResource SystemChromeLowColor}">
+			<Grid.RowDefinitions>
+				<RowDefinition Height="*"/>
+				<RowDefinition Height="Auto"/>
+			</Grid.RowDefinitions>
+
+			<TextBlock Grid.Row="0"
+                        Name="MessageText"
+                        TextWrapping="Wrap"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Center"
+                        FontSize="12"
+                        Margin="0,0,0,10"
+                        Foreground="{DynamicResource SystemBaseMediumHighColor}"/>
+
+			<StackPanel Name="ButtonPanel"
+                        Grid.Row="1"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Center"
+                        Spacing="10"/>
+		</Grid>
+	</Grid>
+</Window>

@@ -479,9 +479,46 @@ namespace UnionMpvPlayer.Views
         {
             var position = e.GetPosition(DrawingCanvas);
 
-            // First check if we clicked on a text box
-            if (!_isErasing && !_isArrowMode && !_isTextMode)
+            // First check if we clicked on a text box or text controls
+            if (!_isErasing && !_isArrowMode)
             {
+                // Check for drag handle first
+                if (_dragHandle != null)
+                {
+                    var dragHandleBounds = new Rect(
+                        Canvas.GetLeft(_dragHandle),
+                        Canvas.GetTop(_dragHandle),
+                        _dragHandle.Width,
+                        _dragHandle.Height
+                    );
+
+                    if (dragHandleBounds.Contains(position))
+                    {
+                        // Let the drag handle's pointer pressed event handle this
+                        _isDrawing = false;
+                        return;
+                    }
+                }
+
+                // Check for resize grip next
+                if (_resizeGrip != null)
+                {
+                    var resizeGripBounds = new Rect(
+                        Canvas.GetLeft(_resizeGrip),
+                        Canvas.GetTop(_resizeGrip),
+                        _resizeGrip.Width,
+                        _resizeGrip.Height
+                    );
+
+                    if (resizeGripBounds.Contains(position))
+                    {
+                        // Let the resize grip's pointer pressed event handle this
+                        _isDrawing = false;
+                        return;
+                    }
+                }
+
+                // Check if we clicked on any existing text box
                 foreach (var child in DrawingCanvas.Children)
                 {
                     if (child is TextBox textBox)
@@ -494,25 +531,35 @@ namespace UnionMpvPlayer.Views
                         {
                             // We clicked on a text box, activate it
                             SelectTextBox(textBox);
+                            _isDrawing = false;
                             return; // Don't continue with other drawing operations
                         }
                     }
                 }
             }
 
-            _isDrawing = true;
-            _lastPoint = e.GetPosition(DrawingCanvas);
+            // If we're adding text, don't initiate drawing
+            if (_isTextMode)
+            {
+                _isDrawing = false;
+                return;
+            }
 
+            // If we're actively dragging or resizing text, don't initiate drawing
+            if (_isDraggingTextBox || _isResizingTextBox)
+            {
+                _isDrawing = false;
+                return;
+            }
+
+            // At this point, we're not interacting with text elements, so proceed with drawing operations
+            _isDrawing = true;
+            _lastPoint = position;
+
+            // Clear the redo stack when starting a new drawing operation
             _redoStack.Clear();
             RedoButton.IsEnabled = false;
 
-
-            if (_isTextMode)
-            {
-               
-                _isDrawing = false; // Don't continue dragging for text
-                return;
-            }
             if (_isArrowMode)
             {
                 _arrowStart = _lastPoint;
@@ -529,8 +576,54 @@ namespace UnionMpvPlayer.Views
             }
             else
             {
+                // Standard pen/brush drawing
                 _currentStroke.Clear();
             }
+        }
+
+        private bool IsPointOverTextControl(Point point)
+        {
+            // Check if point is over any text-related controls
+            if (_dragHandle != null)
+            {
+                var dragHandleBounds = new Rect(
+                    Canvas.GetLeft(_dragHandle),
+                    Canvas.GetTop(_dragHandle),
+                    _dragHandle.Width,
+                    _dragHandle.Height
+                );
+
+                if (dragHandleBounds.Contains(point))
+                    return true;
+            }
+
+            if (_resizeGrip != null)
+            {
+                var resizeGripBounds = new Rect(
+                    Canvas.GetLeft(_resizeGrip),
+                    Canvas.GetTop(_resizeGrip),
+                    _resizeGrip.Width,
+                    _resizeGrip.Height
+                );
+
+                if (resizeGripBounds.Contains(point))
+                    return true;
+            }
+
+            if (_activeTextBox != null)
+            {
+                var textBoxBounds = new Rect(
+                    Canvas.GetLeft(_activeTextBox),
+                    Canvas.GetTop(_activeTextBox),
+                    _activeTextBox.Width,
+                    _activeTextBox.Height
+                );
+
+                if (textBoxBounds.Contains(point))
+                    return true;
+            }
+
+            return false;
         }
 
         private void SelectTextBox(TextBox textBox)
@@ -1055,6 +1148,7 @@ namespace UnionMpvPlayer.Views
 
         private void CreateTextBoxWithText(Point position, string initialText, IBrush textColor, double fontSize)
         {
+            _isDrawing = false;
             if (_activeTextBox != null)
                 return;
 
@@ -1151,18 +1245,18 @@ namespace UnionMpvPlayer.Views
         }
 
 
-        
+
         private void StartDragTextBox(object? sender, PointerPressedEventArgs e, TextBox textBox)
         {
-            //Debug.WriteLine("🟢 Drag Started!");
-
+            _isDrawing = false; // Explicitly disable drawing
             _isDraggingTextBox = true;
             _textBoxOffset = e.GetPosition(textBox);
 
+            // Capture events at a higher level to prevent canvas from handling them
+            e.Handled = true;
+
             DrawingCanvas.PointerMoved += DragTextBox;
             DrawingCanvas.PointerReleased += StopDragTextBox;
-
-            //Debug.WriteLine("🔵 Dragging Events attached to DrawingCanvas.");
         }
 
 
@@ -1204,6 +1298,7 @@ namespace UnionMpvPlayer.Views
 
         private void StartResizeTextBox(object? sender, PointerPressedEventArgs e, TextBox textBox)
         {
+            _isDrawing = false;
             _isResizingTextBox = true;
             _activeTextBox = textBox;
 

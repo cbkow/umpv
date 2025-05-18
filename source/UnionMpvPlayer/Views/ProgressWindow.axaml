@@ -1,0 +1,73 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="UnionMpvPlayer.Views.ProgressWindow"
+        ExtendClientAreaChromeHints="NoChrome"
+        ExtendClientAreaTitleBarHeightHint="0"
+        ExtendClientAreaToDecorationsHint="True"
+        Width="450"
+        Height="150"
+        Background="{DynamicResource SystemChromeLowColor}"
+        CanResize="False">
+	<Grid Background="{DynamicResource SystemChromeLowColor}">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+		</Grid.RowDefinitions>
+
+		<!-- Title Bar -->
+		<Border Background="{DynamicResource SystemChromeLowColor}"
+                BorderBrush="{DynamicResource SystemBaseLowColor}"
+                BorderThickness="0"
+                Grid.Row="0" Height="40"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Top"
+                Name="TitleBar">
+			<Grid ColumnDefinitions="*, Auto">
+				<!-- Title and Icon -->
+				<StackPanel Orientation="Horizontal"
+                            Grid.Column="0"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Center"
+                            Spacing="10">
+					<PathIcon Data="{DynamicResource sync_regular}"
+                             Width="20" Height="20"
+                             Foreground="{DynamicResource SystemAccentColor}"
+                             VerticalAlignment="Center"
+                             Margin="12,0,0,0"/>
+					<TextBlock Name="TitleText"
+                               VerticalAlignment="Center"
+                               FontSize="13"
+                               Foreground="{DynamicResource SystemBaseMediumHighColor}"/>
+				</StackPanel>
+			</Grid>
+		</Border>
+
+		<!-- Content -->
+		<Grid Margin="16" Grid.Row="1">
+			<Grid.RowDefinitions>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="*"/>
+			</Grid.RowDefinitions>
+
+			<!-- Message -->
+			<TextBlock Grid.Row="0"
+                       Name="MessageText"
+                       TextWrapping="Wrap"
+                       HorizontalAlignment="Left"
+                       VerticalAlignment="Center"
+                       FontSize="12"
+                       Margin="0,0,0,10"
+                       Foreground="{DynamicResource SystemBaseMediumHighColor}"/>
+
+			<!-- Progress bar -->
+			<ProgressBar Grid.Row="1"
+                         Name="ProgressBar"
+                         Minimum="0"
+                         Maximum="1"
+                         Value="0"
+                         Height="20"
+                         Margin="0,0,0,10"/>
+		</Grid>
+	</Grid>
+</Window>
