@@ -659,7 +659,14 @@ namespace UnionMpvPlayer.Views
                 {
                     Dispatcher.UIThread.InvokeAsync(() =>
                     {
-                        _backgroundWindow?.UpdatePosition();
+                        if (isFullScreen)
+                        {
+                            EnsureCorrectFullscreenPosition();
+                        }
+                        else
+                        {
+                            _backgroundWindow?.UpdatePosition();
+                        }
                         EnsureCorrectWindowOrder();
                     });
                 });
@@ -2741,40 +2748,37 @@ namespace UnionMpvPlayer.Views
                     var screen = Screens.Primary;
                     var screenBounds = screen.Bounds;
 
-                    // Hide ALL UI elements first (before changing window state)
+                    // Hide ALL UI elements first
                     ToggleUIElementsVisibility(false);
 
                     // Expand the main window to full screen
                     this.WindowState = WindowState.FullScreen;
 
-                    // Create a small delay to let the window state change before adjusting the video container
-                    Dispatcher.UIThread.InvokeAsync(() =>
+                    // Create a delay to let the window state change completely
+                    Dispatcher.UIThread.InvokeAsync(async () =>
                     {
-                        // Fix for those last 1-2 pixel borders - apply negative margin
-                        videoContainer.Margin = new Thickness(-2, -2, -2, -2);
+                        // First, let the UI update completely
+                        await Task.Delay(50);
 
-                        // Force video container to fill the entire window
-                        videoContainer.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch;
-                        videoContainer.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Stretch;
-
-                        // Expand the MPV child window with slight oversizing to eliminate borders
-                        var windowWidth = screenBounds.Width + 4;  // Add 4 pixels to width
-                        var windowHeight = screenBounds.Height + 4;  // Add 4 pixels to height
-
+                        // Position MPV window to cover entire screen with deliberate top adjustment
+                        // The key here is to ensure it starts at y=0 
                         MoveWindow(childWindowHandle,
-                            -2,  // X position (shifted left by 2 pixels)
-                            -2,  // Y position (shifted up by 2 pixels)
-                            (int)windowWidth,
-                            (int)windowHeight,
+                            0,    // X position (start at left edge)
+                            0,    // Y position (start at top edge - critical to fix top bar)
+                            (int)screenBounds.Width,
+                            (int)screenBounds.Height,
                             true);
 
-                        // Ensure the MPV window is visible and on top
+                        // Force topmost to ensure it's visible
                         WindowManagement.SetWindowPos(
                             childWindowHandle,
                             WindowManagement.HWND_TOP,
                             0, 0, 0, 0,
                             WindowManagement.SWP_NOMOVE | WindowManagement.SWP_NOSIZE | WindowManagement.SWP_NOACTIVATE
                         );
+
+                        // Debug output to check positioning
+                        Debug.WriteLine($"Full screen MPV window position: 0, 0, {screenBounds.Width}x{screenBounds.Height}");
 
                         OnVideoModeChanged();
                     }, Avalonia.Threading.DispatcherPriority.Render);
@@ -4160,32 +4164,78 @@ namespace UnionMpvPlayer.Views
 
         private void UpdateChildWindowBounds()
         {
-            if (childWindowHandle != IntPtr.Zero)
+            if (childWindowHandle == IntPtr.Zero)
+                return;
+
+            if (isFullScreen)
             {
-                if (videoContainer.GetVisualRoot() is Window window)
+                // In fullscreen mode, cover the entire screen
+                var screen = Screens.Primary;
+                var screenBounds = screen.Bounds;
+
+                MoveWindow(childWindowHandle,
+                    0,    // X position
+                    0,    // Y position
+                    (int)screenBounds.Width,
+                    (int)screenBounds.Height,
+                    true);
+
+                Debug.WriteLine($"Updating fullscreen MPV bounds: 0, 0, {screenBounds.Width}x{screenBounds.Height}");
+                return;
+            }
+
+            // Original implementation for windowed mode
+            if (videoContainer.GetVisualRoot() is Window window)
+            {
+                var scaling = window.RenderScaling;
+
+                if (_mpvHidden)
                 {
-                    var scaling = window.RenderScaling;
+                    MoveWindow(childWindowHandle, 0, 0, 1, 1, true);
+                    return;
+                }
 
-                    if (_mpvHidden)
-                    {
-                        MoveWindow(childWindowHandle, 0, 0, 1, 1, true);
-                        return;
-                    }
+                var containerBounds = videoContainer.Bounds;
+                var containerPosition = videoContainer.TranslatePoint(new Avalonia.Point(0, 0), window);
 
-                    var containerBounds = videoContainer.Bounds;
-                    var containerPosition = videoContainer.TranslatePoint(new Avalonia.Point(0, 0), window);
+                if (containerPosition.HasValue)
+                {
+                    var x = (int)(containerPosition.Value.X * scaling);
+                    var y = (int)(containerPosition.Value.Y * scaling);
+                    var width = (int)(containerBounds.Width * scaling);
+                    var height = (int)(containerBounds.Height * scaling);
 
-                    if (containerPosition.HasValue)
-                    {
-                        var x = (int)(containerPosition.Value.X * scaling);
-                        var y = (int)(containerPosition.Value.Y * scaling);
-                        var width = (int)(containerBounds.Width * scaling);
-                        var height = (int)(containerBounds.Height * scaling);
-
-                        MoveWindow(childWindowHandle, x, y, width, height, true);
-                    }
+                    MoveWindow(childWindowHandle, x, y, width, height, true);
+                    Debug.WriteLine($"Updating windowed MPV bounds: {x}, {y}, {width}x{height}");
                 }
             }
+        }
+
+        private void EnsureCorrectFullscreenPosition()
+        {
+            if (!isFullScreen || childWindowHandle == IntPtr.Zero)
+                return;
+
+            var screen = Screens.Primary;
+            var screenBounds = screen.Bounds;
+
+            // Position window at absolute 0,0 of screen coordinates
+            MoveWindow(childWindowHandle,
+                0,    // X position
+                0,    // Y position
+                (int)screenBounds.Width,
+                (int)screenBounds.Height,
+                true);
+
+            // Force topmost
+            WindowManagement.SetWindowPos(
+                childWindowHandle,
+                WindowManagement.HWND_TOP,
+                0, 0, 0, 0,
+                WindowManagement.SWP_NOMOVE | WindowManagement.SWP_NOSIZE | WindowManagement.SWP_NOACTIVATE
+            );
+
+            Debug.WriteLine("Ensured MPV window is correctly positioned in fullscreen mode");
         }
 
         private IntPtr GetParentWindowHandle()
