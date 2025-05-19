@@ -120,6 +120,15 @@ namespace UnionMpvPlayer.Views
         private bool _mpvHidden;
         private string _currentOverlayColor = "Gold";
         private bool _burnTimecode = false;
+        private WindowState _previousWindowState = WindowState.Normal;
+        private Thickness? _previousBorderThickness;
+        private Thickness? _previousBorderPadding;
+        private CornerRadius? _previousBorderCornerRadius;
+        private IBrush _previousBorderBackground;
+        private Thickness? _previousMainGridMargin;
+        private bool _wasPlaylistVisible;
+        private bool _wasNotesVisible;
+        private List<GridLength> _previousColumnDefinitions;
 
         private readonly Dictionary<string, SafetyOverlay> _overlays = new()
         {
@@ -2717,48 +2726,82 @@ namespace UnionMpvPlayer.Views
             {
                 if (mpvHandle == IntPtr.Zero || childWindowHandle == IntPtr.Zero)
                 {
-                    // Debug.WriteLine("MPV handle or child window handle is not initialized");
                     return;
                 }
+
                 // Toggle full-screen state
                 isFullScreen = !isFullScreen;
+
                 if (isFullScreen)
                 {
+                    // Store the current window state to restore later
+                    _previousWindowState = WindowState;
+
                     // Get the current screen dimensions
                     var screen = Screens.Primary;
                     var screenBounds = screen.Bounds;
+
+                    // Hide ALL UI elements first (before changing window state)
+                    ToggleUIElementsVisibility(false);
+
                     // Expand the main window to full screen
                     this.WindowState = WindowState.FullScreen;
-                    // Expand the MPV child window to cover the main window
-                    MoveWindow(childWindowHandle,
-                        0, // X position
-                        0, // Y position
-                        screenBounds.Width,
-                        screenBounds.Height,
-                        true);
-                    // Show specific UI elements
-                    ToggleUIElementsVisibility(false);
-                    OnVideoModeChanged();
+
+                    // Create a small delay to let the window state change before adjusting the video container
+                    Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        // Fix for those last 1-2 pixel borders - apply negative margin
+                        videoContainer.Margin = new Thickness(-2, -2, -2, -2);
+
+                        // Force video container to fill the entire window
+                        videoContainer.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch;
+                        videoContainer.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Stretch;
+
+                        // Expand the MPV child window with slight oversizing to eliminate borders
+                        var windowWidth = screenBounds.Width + 4;  // Add 4 pixels to width
+                        var windowHeight = screenBounds.Height + 4;  // Add 4 pixels to height
+
+                        MoveWindow(childWindowHandle,
+                            -2,  // X position (shifted left by 2 pixels)
+                            -2,  // Y position (shifted up by 2 pixels)
+                            (int)windowWidth,
+                            (int)windowHeight,
+                            true);
+
+                        // Ensure the MPV window is visible and on top
+                        WindowManagement.SetWindowPos(
+                            childWindowHandle,
+                            WindowManagement.HWND_TOP,
+                            0, 0, 0, 0,
+                            WindowManagement.SWP_NOMOVE | WindowManagement.SWP_NOSIZE | WindowManagement.SWP_NOACTIVATE
+                        );
+
+                        OnVideoModeChanged();
+                    }, Avalonia.Threading.DispatcherPriority.Render);
                 }
                 else
                 {
                     // Restore the main window to its original size
-                    this.WindowState = WindowState.Normal;
+                    this.WindowState = _previousWindowState;
+
+                    // Reset video container margin
+                    videoContainer.Margin = new Thickness(0);
+
+                    // Show UI elements
+                    ToggleUIElementsVisibility(true);
+
                     // Restore the MPV child window to its original bounds
                     UpdateChildWindowBounds();
-                    // Hide specific UI elements
-                    ToggleUIElementsVisibility(true);
+
                     OnVideoModeChanged();
                 }
+
                 // Update the full-screen icon
                 UpdateFullScreenIcon(isFullScreen);
-                // Debug.WriteLine(isFullScreen
-                //     ? "Application entered full-screen mode."
-                //     : "Application exited full-screen mode.");
             }
             catch (Exception ex)
             {
-                // Debug.WriteLine($"Error in FullScreenButton_Click: {ex.Message}");
+                Debug.WriteLine($"Error in FullScreenButton_Click: {ex.Message}");
             }
         }
 
@@ -2766,29 +2809,142 @@ namespace UnionMpvPlayer.Views
         {
             try
             {
-                // Example: Update visibility of UI elements
-                var TopTitlebar = this.FindControl<Control>("TopTitlebar");
-                var BottomToolbar = this.FindControl<Control>("BottomToolbar");
-                var Topmenu = this.FindControl<Control>("Topmenu");
-                if (TopTitlebar != null)
+                // Get references to all UI elements that should be hidden in fullscreen
+                var topTitlebar = this.FindControl<Control>("CustomTitleBar");
+                var bottomToolbar = this.FindControl<StackPanel>("BottomToolbar");
+                var topmenu = this.FindControl<Grid>("Topmenu");
+                var mainBorder = this.FindControl<Border>("MainBorder");
+                var mainGrid = this.FindControl<Grid>("MainGrid");
+                var topMenu = this.FindControl<Menu>("TopMenu");
+
+                // In fullscreen mode, we need to modify all container elements
+                if (!isVisible)
                 {
-                    TopTitlebar.IsVisible = isVisible;
+                    // Apply changes for fullscreen mode
+
+                    // Save current values of grid column definitions
+                    if (mainGrid != null && mainGrid.ColumnDefinitions.Count > 0)
+                    {
+                        _previousColumnDefinitions = new List<GridLength>();
+                        foreach (var colDef in mainGrid.ColumnDefinitions)
+                        {
+                            _previousColumnDefinitions.Add(colDef.Width);
+                        }
+
+                        // Set all column widths to Auto to prevent any unwanted spacing
+                        foreach (var colDef in mainGrid.ColumnDefinitions)
+                        {
+                            if (colDef.Width.IsStar)
+                            {
+                                // Keep the * column for content
+                                continue;
+                            }
+                            colDef.Width = new GridLength(0);
+                        }
+                    }
+
+                    // Hide all border elements that might create visible lines
+                    if (mainBorder != null)
+                    {
+                        _previousBorderThickness = mainBorder.BorderThickness;
+                        _previousBorderPadding = mainBorder.Padding;
+                        _previousBorderCornerRadius = mainBorder.CornerRadius;
+                        _previousBorderBackground = mainBorder.Background;
+
+                        mainBorder.BorderThickness = new Thickness(0);
+                        mainBorder.Padding = new Thickness(0);
+                        mainBorder.CornerRadius = new CornerRadius(0);
+                        mainBorder.Background = new SolidColorBrush(Colors.Black);
+                        mainBorder.ClipToBounds = true; // Ensure nothing renders outside border
+                    }
                 }
-                if (BottomToolbar != null)
+                else
                 {
-                    BottomToolbar.IsVisible = isVisible;
+                    // Restore original settings when exiting fullscreen
+
+                    // Restore column definitions
+                    if (mainGrid != null && _previousColumnDefinitions != null)
+                    {
+                        for (int i = 0; i < Math.Min(mainGrid.ColumnDefinitions.Count, _previousColumnDefinitions.Count); i++)
+                        {
+                            mainGrid.ColumnDefinitions[i].Width = _previousColumnDefinitions[i];
+                        }
+                    }
+
+                    // Restore border properties
+                    if (mainBorder != null && _previousBorderThickness.HasValue)
+                    {
+                        mainBorder.BorderThickness = _previousBorderThickness.Value;
+                        mainBorder.Padding = _previousBorderPadding.Value;
+                        mainBorder.CornerRadius = _previousBorderCornerRadius.Value;
+                        mainBorder.Background = _previousBorderBackground;
+                        mainBorder.ClipToBounds = false;
+                    }
                 }
-                if (Topmenu != null)
+
+                // Set visibility for all UI elements
+                var controlsToToggle = new[] { topTitlebar, bottomToolbar, topmenu, topMenu };
+                foreach (var control in controlsToToggle)
                 {
-                    Topmenu.IsVisible = isVisible;
+                    if (control != null)
+                    {
+                        control.IsVisible = isVisible;
+                    }
                 }
+
+                // Handle playlist and notes views
+                ToggleSidePanels(isVisible);
             }
             catch (Exception ex)
             {
-                // Debug.WriteLine($"Error toggling UI element visibility: {ex.Message}");
+                Debug.WriteLine($"Error toggling UI element visibility: {ex.Message}");
             }
         }
 
+        private void ToggleSidePanels(bool isVisible)
+        {
+            // Handle playlist visibility
+            if (_playlistView != null)
+            {
+                if (!isVisible)
+                {
+                    _wasPlaylistVisible = _playlistView.IsVisible;
+                    _playlistView.IsVisible = false;
+                }
+                else
+                {
+                    _playlistView.IsVisible = _wasPlaylistVisible;
+                }
+            }
+
+            // Handle notes visibility
+            if (_notesView != null)
+            {
+                if (!isVisible)
+                {
+                    _wasNotesVisible = _notesView.IsVisible;
+                    _notesView.IsVisible = false;
+                }
+                else
+                {
+                    _notesView.IsVisible = _wasNotesVisible;
+                }
+            }
+
+            // Toggle splitters
+            var playlistSplitter = this.FindControl<GridSplitter>("PlaylistSplitter");
+            var notesSplitter = this.FindControl<GridSplitter>("NotesSplitter");
+
+            if (playlistSplitter != null)
+            {
+                playlistSplitter.IsVisible = isVisible && _wasPlaylistVisible;
+            }
+
+            if (notesSplitter != null)
+            {
+                notesSplitter.IsVisible = isVisible && _wasNotesVisible;
+            }
+        }
 
         private void UpdateFullScreenIcon(bool isFullScreen)
         {
