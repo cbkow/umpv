@@ -22,6 +22,9 @@ using System.Text.Json.Serialization;
 using System.Text.Json;
 using Avalonia.Controls.ApplicationLifetimes;
 using System.Text;
+using Markdown2Pdf;
+using Markdown2Pdf.Options;
+using PuppeteerSharp.Media;
 
 namespace UnionMpvPlayer.Views
 {
@@ -31,9 +34,39 @@ namespace UnionMpvPlayer.Views
         private EventHandler? _playbackStartedHandler;
         private bool _isOverlayActive = false;
         private double _lastImageTimecode = 0.0;
+        private NoteItem? _selectedNote;
+        public void SetSelectedNote(NoteItem? note)
+        {
+            // Clear previous selection
+            if (_selectedNote != null)
+            {
+                _selectedNote.IsSelected = false;
+            }
+
+            // Set new selection
+            _selectedNote = note;
+            if (_selectedNote != null)
+            {
+                _selectedNote.IsSelected = true;
+            }
+        }
 
         public class NoteItem : INotifyPropertyChanged
         {
+            private bool _isSelected;
+            [JsonIgnore]
+            public bool IsSelected
+            {
+                get => _isSelected;
+                set
+                {
+                    if (_isSelected != value)
+                    {
+                        _isSelected = value;
+                        OnPropertyChanged(nameof(IsSelected));
+                    }
+                }
+            }
             [JsonPropertyName("TimecodeString")]
             public string TimecodeString { get; set; }
 
@@ -467,13 +500,15 @@ namespace UnionMpvPlayer.Views
             await popup.ShowDialog((Window)TopLevel.GetTopLevel(this));
         }
 
-        private async void DeleteNoteButton_Click(object sender, RoutedEventArgs e)
+        private void DeleteNoteButton_Click(object sender, RoutedEventArgs e)
         {
+            // Stop the event from bubbling up - RoutedEventArgs has Handled property
+            e.Handled = true;
+
             if (sender is Button button && button.DataContext is NoteItem noteItem)
             {
                 try
                 {
-
                     string jsonPath = noteItem.GetJsonPath();
                     if (File.Exists(jsonPath))
                     {
@@ -562,45 +597,93 @@ namespace UnionMpvPlayer.Views
             return _isDisabledForImageSequence;
         }
 
-        private async void EditImageButton_Click(object sender, RoutedEventArgs e)
+        private async void EditImageButton_Click(object sender, PointerPressedEventArgs e)
         {
-            if (sender is Button button && button.DataContext is NoteItem noteItem)
+            // Stop the event from bubbling up to the parent border
+            e.Handled = true;
+
+            if (sender is Border border && border.DataContext is NoteItem noteItem)
             {
-                var mpvHandle = MainWindow.Current?.GetMpvHandle();
-                bool wasPlaying = false;
+                await EditImage(noteItem);
+            }
+        }
 
-                if (mpvHandle.HasValue)
+        private async void PlaySelectArea_PointerPressed(object sender, PointerPressedEventArgs e)
+        {
+            if (_isDisabledForImageSequence)
+                return;
+
+            if (sender is Border border && border.DataContext is NoteItem noteItem)
+            {
+                // Update selected note
+                SetSelectedNote(noteItem);
+
+                if (_mainWindow?.GetMpvHandle() is IntPtr mpvHandle)
                 {
-                    var isPaused = (MPVInterop.GetStringProperty(mpvHandle.Value, "pause") == "yes");
-                    wasPlaying = !isPaused;
+                    var pauseArgs = new[] { "set", "pause", "yes" };
+                    MPVInterop.mpv_command(mpvHandle, pauseArgs);
 
-                    if (wasPlaying)
+                    var timeStr = noteItem.Timecode.ToString("F3", System.Globalization.CultureInfo.InvariantCulture);
+                    var seekArgs = new[] { "seek", timeStr, "absolute" };
+                    MPVInterop.mpv_command(mpvHandle, seekArgs);
+
+                    var imagePath = !string.IsNullOrEmpty(noteItem.EditedImagePath) ?
+                        noteItem.EditedImagePath : noteItem.ImagePath;
+                    ApplyImageOverlay(imagePath, true);
+
+                    await _mainWindow.UpdatePlayPauseIcon();
+
+                    if (_playbackStartedHandler != null)
                     {
-                        MPVInterop.mpv_command(mpvHandle.Value, new[] { "set", "pause", "yes" });
-                        await MainWindow.Current.UpdatePlayPauseIcon();
+                        _mainWindow.PlaybackStarted -= _playbackStartedHandler;
                     }
+
+                    _playbackStartedHandler = (s, args) =>
+                    {
+                        ApplyImageOverlay(imagePath, false);
+                    };
+                    _mainWindow.PlaybackStarted += _playbackStartedHandler;
                 }
+            }
+        }
 
-                var editWindow = new ImageEditWindow(noteItem.ImagePath, noteItem.EditedImagePath)
+        // You can also create a separate method to avoid code duplication
+        private async Task EditImage(NoteItem noteItem)
+        {
+            var mpvHandle = MainWindow.Current?.GetMpvHandle();
+            bool wasPlaying = false;
+
+            if (mpvHandle.HasValue)
+            {
+                var isPaused = (MPVInterop.GetStringProperty(mpvHandle.Value, "pause") == "yes");
+                wasPlaying = !isPaused;
+
+                if (wasPlaying)
                 {
-                    DataContext = noteItem
-                };
-
-                editWindow.ImageEdited += (s, args) =>
-                {
-                    noteItem.RefreshImage();
-                };
-
-                await editWindow.ShowDialog((Window)TopLevel.GetTopLevel(this));
-
-                if (string.IsNullOrEmpty(noteItem.EditedImagePath))
-                {
-                    ApplyImageOverlay(noteItem.ImagePath, true);
+                    MPVInterop.mpv_command(mpvHandle.Value, new[] { "set", "pause", "yes" });
+                    await MainWindow.Current.UpdatePlayPauseIcon();
                 }
-                else
-                {
-                    ApplyImageOverlay(noteItem.EditedImagePath, true);
-                }
+            }
+
+            var editWindow = new ImageEditWindow(noteItem.ImagePath, noteItem.EditedImagePath)
+            {
+                DataContext = noteItem
+            };
+
+            editWindow.ImageEdited += (s, args) =>
+            {
+                noteItem.RefreshImage();
+            };
+
+            await editWindow.ShowDialog((Window)TopLevel.GetTopLevel(this));
+
+            if (string.IsNullOrEmpty(noteItem.EditedImagePath))
+            {
+                ApplyImageOverlay(noteItem.ImagePath, true);
+            }
+            else
+            {
+                ApplyImageOverlay(noteItem.EditedImagePath, true);
             }
         }
 
@@ -1601,130 +1684,128 @@ namespace UnionMpvPlayer.Views
                             string targetDirectory = Path.Combine(notesNetworkShare, projectFolderName);
                             Directory.CreateDirectory(targetDirectory);
 
-                            // Create a temp folder for transcoding
-                            string transcodingTempFolder = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-                            Directory.CreateDirectory(transcodingTempFolder);
-
-                            try
+                            await Dispatcher.UIThread.InvokeAsync(() =>
                             {
-                                await Dispatcher.UIThread.InvokeAsync(() =>
-                                {
-                                    progressWindow.UpdateProgress(0.3, "Generating filename...");
-                                });
+                                progressWindow.UpdateProgress(0.3, "Generating filename...");
+                            });
 
-                                // Generate filename
-                                string todayDate = DateTime.Now.ToString("yyMMdd");
-                                char versionLetter = 'a';
-                                string baseFileName = $"{todayDate}{versionLetter}";
-                                var videoName = Path.GetFileNameWithoutExtension(_currentVideoPath);
-                                string newFileName = $"{baseFileName}_{videoName}.md";
+                            // Generate filename
+                            string todayDate = DateTime.Now.ToString("yyMMdd");
+                            char versionLetter = 'a';
+                            string baseFileName = $"{todayDate}{versionLetter}";
+                            var videoName = Path.GetFileNameWithoutExtension(_currentVideoPath);
+                            string newFileName = $"{baseFileName}_{videoName}.md";
+                            exportPath = Path.Combine(targetDirectory, newFileName);
+
+                            // Check if a file with this pattern already exists
+                            while (Directory.EnumerateFiles(targetDirectory, $"{todayDate}*")
+                                            .Any(f => Path.GetFileName(f).StartsWith(baseFileName)))
+                            {
+                                versionLetter++;
+                                if (versionLetter > 'z')
+                                {
+                                    baseFileName = $"{todayDate}_extra";
+                                    break;
+                                }
+                                baseFileName = $"{todayDate}{versionLetter}";
+                                newFileName = $"{baseFileName}_{videoName}.md";
                                 exportPath = Path.Combine(targetDirectory, newFileName);
-
-                                // Check if a file with this pattern already exists
-                                while (Directory.EnumerateFiles(targetDirectory, $"{todayDate}*")
-                                                .Any(f => Path.GetFileName(f).StartsWith(baseFileName)))
-                                {
-                                    versionLetter++;
-                                    if (versionLetter > 'z')
-                                    {
-                                        baseFileName = $"{todayDate}_extra";
-                                        break;
-                                    }
-                                    baseFileName = $"{todayDate}{versionLetter}";
-                                    newFileName = $"{baseFileName}_{videoName}.md";
-                                    exportPath = Path.Combine(targetDirectory, newFileName);
-                                }
-
-                                await Dispatcher.UIThread.InvokeAsync(() =>
-                                {
-                                    progressWindow.UpdateProgress(0.4, "Creating content...");
-                                });
-
-                                // Create Union Notes content
-                                var sb = new StringBuilder();
-                                sb.AppendLine($"# {videoName}");
-                                sb.AppendLine($"`{_currentVideoPath}`");
-                                sb.AppendLine();
-
-                                // Notes table header
-                                sb.AppendLine("| Timecode | Screenshot |");
-                                sb.AppendLine("| --- | --- |");
-
-                                await Dispatcher.UIThread.InvokeAsync(() =>
-                                {
-                                    progressWindow.UpdateProgress(0.5, "Processing images...");
-                                });
-
-                                // Process each note, copying images to the same flat directory
-                                int imageCounter = 1;
-                                int totalNotes = _notes.Count;
-                                double baseProgress = 0.5;
-
-                                foreach (var note in _notes.OrderBy(n => n.Timecode))
-                                {
-                                    // Update progress per note
-                                    double noteProgress = baseProgress + ((double)imageCounter / totalNotes) * 0.4;
-                                    await Dispatcher.UIThread.InvokeAsync(() =>
-                                    {
-                                        progressWindow.UpdateProgress(noteProgress,
-                                            $"Processing note {imageCounter} of {totalNotes}...");
-                                    });
-
-                                    string sourcePath = !string.IsNullOrEmpty(note.EditedImagePath) && File.Exists(note.EditedImagePath)
-                                        ? note.EditedImagePath
-                                        : note.ImagePath;
-
-                                    try
-                                    {
-                                        // Create a new image name
-                                        string imageFileName = $"{baseFileName}_img_{imageCounter:D3}.jpg";
-                                        string targetImagePath = Path.Combine(targetDirectory, imageFileName);
-
-                                        // Transcode the image to a smaller JPG directly to the target location
-                                        TranscodeToJpeg(sourcePath, targetDirectory, imageFileName, 1920);
-
-                                        // First row: Timecode and Image
-                                        sb.AppendLine($"| {note.TimecodeString} | ![[{imageFileName}]] |");
-
-                                        // Second row: Note content
-                                        string safeNoteContent = note.Notes.Replace("|", "\\|").Replace("\n", "<br>");
-                                        sb.AppendLine($"| | {safeNoteContent} |");
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        Debug.WriteLine($"Error processing note {imageCounter}: {ex.Message}");
-
-                                        // Fallback: just copy the original image
-                                        string imageExt = Path.GetExtension(sourcePath);
-                                        string imageFileName = $"{baseFileName}_img_{imageCounter:D3}{imageExt}";
-                                        string targetImagePath = Path.Combine(targetDirectory, imageFileName);
-                                        File.Copy(sourcePath, targetImagePath, true);
-
-                                        // Add the entry with the original image
-                                        sb.AppendLine($"| {note.TimecodeString} | ![[{imageFileName}]] |");
-                                        string safeNoteContent = note.Notes.Replace("|", "\\|").Replace("\n", "<br>");
-                                        sb.AppendLine($"| | {safeNoteContent} |");
-                                    }
-
-                                    imageCounter++;
-                                }
-
-                                await Dispatcher.UIThread.InvokeAsync(() =>
-                                {
-                                    progressWindow.UpdateProgress(0.9, "Writing file...");
-                                });
-
-                                // Write the file
-                                await File.WriteAllTextAsync(exportPath, sb.ToString());
                             }
-                            finally
+
+                            await Dispatcher.UIThread.InvokeAsync(() =>
                             {
-                                // Clean up the transcoding temp folder if it exists
-                                if (Directory.Exists(transcodingTempFolder))
+                                progressWindow.UpdateProgress(0.4, "Creating content...");
+                            });
+
+                            // Create Union Notes content
+                            var sb = new StringBuilder();
+                            sb.AppendLine($"# {videoName}");
+                            sb.AppendLine($"`{_currentVideoPath}`");
+                            sb.AppendLine();
+
+                            await Dispatcher.UIThread.InvokeAsync(() =>
+                            {
+                                progressWindow.UpdateProgress(0.5, "Processing images...");
+                            });
+
+                            // Start the table
+                            sb.AppendLine("| Timecode | Image & Notes |");
+                            sb.AppendLine("|----------|---------------|");
+
+                            // Process each note, copying images and creating HTTP URLs
+                            int imageCounter = 1;
+                            int totalNotes = _notes.Count;
+                            double baseProgress = 0.5;
+
+                            foreach (var note in _notes.OrderBy(n => n.Timecode))
+                            {
+                                // Update progress per note
+                                double noteProgress = baseProgress + ((double)imageCounter / totalNotes) * 0.4;
+                                await Dispatcher.UIThread.InvokeAsync(() =>
                                 {
-                                    try { Directory.Delete(transcodingTempFolder, true); } catch { }
+                                    progressWindow.UpdateProgress(noteProgress,
+                                        $"Processing note {imageCounter} of {totalNotes}...");
+                                });
+
+                                string sourcePath = !string.IsNullOrEmpty(note.EditedImagePath) && File.Exists(note.EditedImagePath)
+                                    ? note.EditedImagePath
+                                    : note.ImagePath;
+
+                                try
+                                {
+                                    // Create a new image name
+                                    string imageFileName = $"{baseFileName}_img_{imageCounter:D3}.jpg";
+                                    string targetImagePath = Path.Combine(targetDirectory, imageFileName);
+
+                                    // Transcode the image to a smaller JPG directly to the target location
+                                    TranscodeToJpeg(sourcePath, targetDirectory, imageFileName, 1920);
+
+                                    // Create HTTP URL for the image
+                                    string httpImageUrl = $"http://192.168.40.100:8723/{projectFolderName}/{imageFileName}";
+
+                                    // Format the note content to work in a table cell
+                                    // Replace newlines with <br> for HTML rendering
+                                    string formattedNotes = note.Notes.Replace("\n", "<br>");
+
+                                    // Create table row
+                                    sb.Append($"| {note.TimecodeString} | ");
+                                    sb.Append($"![Frame at {note.TimecodeString}]({httpImageUrl})<br>");
+                                    sb.Append($"{formattedNotes} |");
+                                    sb.AppendLine();
                                 }
+                                catch (Exception ex)
+                                {
+                                    Debug.WriteLine($"Error processing note {imageCounter}: {ex.Message}");
+
+                                    // Fallback: copy the original image
+                                    string imageExt = Path.GetExtension(sourcePath);
+                                    string imageFileName = $"{baseFileName}_img_{imageCounter:D3}{imageExt}";
+                                    string targetImagePath = Path.Combine(targetDirectory, imageFileName);
+                                    File.Copy(sourcePath, targetImagePath, true);
+
+                                    // Create HTTP URL
+                                    string httpImageUrl = $"http://192.168.40.100:8723/{projectFolderName}/{imageFileName}";
+
+                                    // Format the note content to work in a table cell
+                                    string formattedNotes = note.Notes.Replace("\n", "<br>");
+
+                                    // Create table row
+                                    sb.Append($"| {note.TimecodeString} | ");
+                                    sb.Append($"![Frame at {note.TimecodeString}]({httpImageUrl})<br>");
+                                    sb.Append($"{formattedNotes} |");
+                                    sb.AppendLine();
+                                }
+
+                                imageCounter++;
                             }
+
+                            await Dispatcher.UIThread.InvokeAsync(() =>
+                            {
+                                progressWindow.UpdateProgress(0.9, "Writing file...");
+                            });
+
+                            // Write the file
+                            await File.WriteAllTextAsync(exportPath, sb.ToString());
                         }
                         else
                         {
@@ -1748,19 +1829,13 @@ namespace UnionMpvPlayer.Views
                             }
                             else if (format == "HTML")
                             {
+                                // HTML export with table layout
                                 await Dispatcher.UIThread.InvokeAsync(() =>
                                 {
                                     progressWindow.UpdateProgress(0.3, "Creating HTML export...");
                                 });
 
                                 var sb = new StringBuilder();
-
-                                // Create images folder for transcoded images
-                                var imageExportFolder = Path.Combine(
-                                    Path.GetDirectoryName(exportPath),
-                                    $"{Path.GetFileNameWithoutExtension(exportPath)}_images"
-                                );
-                                Directory.CreateDirectory(imageExportFolder);
 
                                 sb.AppendLine("<!DOCTYPE html>");
                                 sb.AppendLine("<html>");
@@ -1770,132 +1845,99 @@ namespace UnionMpvPlayer.Views
                                 sb.AppendLine($"  <title>{videoName} - Video Notes</title>");
                                 sb.AppendLine("  <style>");
                                 sb.AppendLine(@"
-        :root {
-            /* Core colors */
-            --bg-color: #ffffff;
-            --text-color: #252423;
-            --secondary-text: #605e5c;
-            --border-color: #e1dfdd;
-            --link-color: #0078d7;
-            --accent-color: #0078d7;
-            --note-bg: #ffffff;
-            --table-header-bg: #f3f2f1;
-            --table-row-even: #fafafa;
-            --table-row-odd: #ffffff;
-            --timecode-bg: #f0f7ff;
-            --timecode-color: #0078d7;
-        }
-
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg-color: #1f1f1f;
-                --text-color: #e2e8f0;
-                --secondary-text: #94a3b8;
-                --border-color: #444444;
-                --link-color: #4da7ff;
-                --accent-color: #4da7ff;
-                --note-bg: #2d2d2d;
-                --table-header-bg: #2a2a2a;
-                --table-row-even: #1f1f1f;
-                --table-row-odd: #252525;
-                --timecode-bg: #2c3e50;
-                --timecode-color: #4da7ff;
-            }
-        }
-        
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        
+        /* Base styles matching your viewer */
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            font-size: 16px;
-            line-height: 1.5;
-            color: var(--text-color);
-            background-color: var(--bg-color);
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-            transition: color 0.3s, background-color 0.3s;
-        }
-        
-        h1 {
-            font-size: 2.25rem;
-            padding-bottom: 0.5rem;
-            margin-bottom: 1.5rem;
-            border-bottom: 1px solid var(--border-color);
-            color: var(--text-color);
-        }
-        
-        .video-path {
-            font-family: monospace;
-            color: var(--secondary-text);
-            margin-bottom: 2rem;
-            display: block;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', 'Noto Sans', 'Liberation Sans', Arial, sans-serif;
+            line-height: 1.4;
+            color: #000000;
+            margin: 0;
+            padding: 20px 90px;
+            background-color: white;
+            max-width: 1280px;
         }
 
+        /* Headings */
+        h1, h2, h3, h4, h5, h6 {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', 'Noto Sans', 'Liberation Sans', Arial, sans-serif;
+            color: black;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            font-weight: 400;
+            line-height: 1.2;
+        }
+
+        h1 { font-size: 3rem; }
+
+        /* Code styling */
+        code {
+            background: #f5f5f5;
+            color: #d73a49;
+            padding: 0.2em 0.4em;
+            font-family: 'JetBrains Mono', Menlo, Monaco, 'Courier New', Courier, monospace;
+            font-size: 0.875em;
+            border-radius: 3px;
+        }
+
+        /* Table styling */
         table {
             width: 100%;
             border-collapse: collapse;
             margin: 2rem 0;
-            border: 1px solid var(--border-color);
-            color: var(--text-color);
-        }
-        
-        th {
-            background-color: var(--table-header-bg);
-            color: var(--text-color);
-            font-weight: 600;
-            text-align: left;
-            padding: 1rem;
-            border: 1px solid var(--border-color);
-        }
-        
-        td {
-            padding: 1rem;
-            border: 1px solid var(--border-color);
-            vertical-align: top;
-        }
-        
-        .timecode {
-            width: 150px;
-            font-weight: 600;
-            color: var(--timecode-color);
-            background-color: var(--timecode-bg);
-        }
-        
-        .note-content {
-            padding: 1rem;
-            white-space: pre-wrap;
-            background-color: var(--note-bg);
-        }
-        
-        .note-image {
-            max-width: 100%;
-            height: auto;
-        }
-        
-        tr.image-row td {
-            background-color: var(--table-row-odd);
-        }
-        
-        tr.note-row td {
-            border-top: none;
-            padding-top: 0;
-            background-color: var(--table-row-even);
         }
 
-        footer {
-            margin-top: 3rem;
-            padding-top: 1rem;
-            border-top: 1px solid var(--border-color);
-            color: var(--secondary-text);
-            font-size: 0.875rem;
-            text-align: center;
+        th, td {
+            border: 1px solid #e1dfdd;
+            padding: 1rem;
+            vertical-align: top;
         }
-    ");
+
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            text-align: left;
+        }
+
+        /* Timecode column */
+        td:first-child {
+            width: 120px;
+            white-space: nowrap;
+            font-family: 'JetBrains Mono', Menlo, Monaco, 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+        }
+
+        /* Images */
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        /* Note content */
+        .note-content {
+            line-height: 1.5;
+        }
+
+        /* Print optimizations */
+        @media print {
+            body {
+                font-size: 12pt;
+                line-height: 1.4;
+                padding: 20px;
+            }
+            
+            h1 { font-size: 24pt; }
+            
+            table {
+                page-break-inside: avoid;
+            }
+            
+            tr {
+                page-break-inside: avoid;
+            }
+        }
+");
                                 sb.AppendLine("  </style>");
                                 sb.AppendLine("</head>");
                                 sb.AppendLine("<body>");
@@ -1904,12 +1946,12 @@ namespace UnionMpvPlayer.Views
                                 sb.AppendLine($"  <h1>{videoName}</h1>");
                                 sb.AppendLine($"  <code class=\"video-path\">{_currentVideoPath}</code>");
 
-                                // Notes Table
+                                // Start table
                                 sb.AppendLine("  <table>");
                                 sb.AppendLine("    <thead>");
                                 sb.AppendLine("      <tr>");
                                 sb.AppendLine("        <th>Timecode</th>");
-                                sb.AppendLine("        <th>Screenshot</th>");
+                                sb.AppendLine("        <th>Image &amp; Notes</th>");
                                 sb.AppendLine("      </tr>");
                                 sb.AppendLine("    </thead>");
                                 sb.AppendLine("    <tbody>");
@@ -1936,17 +1978,25 @@ namespace UnionMpvPlayer.Views
 
                                     try
                                     {
-                                        // Transcode the image to a smaller JPG
-                                        string imageName = $"note_{imageCounter}.jpg";
-                                        string transcodedPath = TranscodeToJpeg(
-                                            originalImagePath,
-                                            imageExportFolder,
-                                            imageName,
-                                            1920
-                                        );
+                                        // Convert image to base64
+                                        byte[] imageBytes = await File.ReadAllBytesAsync(originalImagePath);
+                                        string base64String = Convert.ToBase64String(imageBytes);
 
-                                        // For HTML we can use a relative path to the image
-                                        string relativeImagePath = $"{Path.GetFileNameWithoutExtension(exportPath)}_images/{Path.GetFileName(transcodedPath)}";
+                                        // Determine MIME type
+                                        string extension = Path.GetExtension(originalImagePath).ToLower();
+                                        string mimeType = extension switch
+                                        {
+                                            ".png" => "image/png",
+                                            ".jpg" => "image/jpeg",
+                                            ".jpeg" => "image/jpeg",
+                                            ".gif" => "image/gif",
+                                            ".svg" => "image/svg+xml",
+                                            ".webp" => "image/webp",
+                                            ".bmp" => "image/bmp",
+                                            _ => "image/jpeg"
+                                        };
+
+                                        string dataUrl = $"data:{mimeType};base64,{base64String}";
 
                                         // Process note text - convert newlines to <br> tags
                                         string noteContent = note.Notes
@@ -1955,51 +2005,63 @@ namespace UnionMpvPlayer.Views
                                             .Replace(">", "&gt;")
                                             .Replace("\n", "<br>");
 
-                                        // First row: Timecode and Image
-                                        sb.AppendLine("      <tr class=\"image-row\">");
-                                        sb.AppendLine($"        <td class=\"timecode\">{note.TimecodeString}</td>");
-                                        sb.AppendLine($"        <td><img class=\"note-image\" src=\"{relativeImagePath}\" alt=\"Frame at {note.TimecodeString}\"></td>");
-                                        sb.AppendLine("      </tr>");
-
-                                        // Second row: Empty cell and Note content
-                                        sb.AppendLine("      <tr class=\"note-row\">");
-                                        sb.AppendLine("        <td></td>");
-                                        sb.AppendLine($"        <td class=\"note-content\">{noteContent}</td>");
+                                        // Create table row
+                                        sb.AppendLine("      <tr>");
+                                        sb.AppendLine($"        <td>{note.TimecodeString}</td>");
+                                        sb.AppendLine("        <td>");
+                                        sb.AppendLine($"          <img src=\"{dataUrl}\" alt=\"Frame at {note.TimecodeString}\">");
+                                        sb.AppendLine($"          <div class=\"note-content\">{noteContent}</div>");
+                                        sb.AppendLine("        </td>");
                                         sb.AppendLine("      </tr>");
                                     }
                                     catch (Exception ex)
                                     {
                                         Debug.WriteLine($"Error processing note {imageCounter}: {ex.Message}");
 
-                                        // Fallback: use the original image
-                                        string imageExt = Path.GetExtension(originalImagePath);
-                                        string imageName = $"note_{imageCounter}{imageExt}";
-                                        string exportedImagePath = Path.Combine(imageExportFolder, imageName);
-                                        File.Copy(originalImagePath, exportedImagePath, true);
+                                        // Fallback: try to use the original image
+                                        try
+                                        {
+                                            byte[] imageBytes = await File.ReadAllBytesAsync(originalImagePath);
+                                            string base64String = Convert.ToBase64String(imageBytes);
+                                            string mimeType = "image/jpeg";
+                                            string dataUrl = $"data:{mimeType};base64,{base64String}";
 
-                                        string relativeImagePath = $"{Path.GetFileNameWithoutExtension(exportPath)}_images/{imageName}";
+                                            string noteContent = note.Notes
+                                                .Replace("&", "&amp;")
+                                                .Replace("<", "&lt;")
+                                                .Replace(">", "&gt;")
+                                                .Replace("\n", "<br>");
 
-                                        // Process note text
-                                        string noteContent = note.Notes
-                                            .Replace("&", "&amp;")
-                                            .Replace("<", "&lt;")
-                                            .Replace(">", "&gt;")
-                                            .Replace("\n", "<br>");
+                                            sb.AppendLine("      <tr>");
+                                            sb.AppendLine($"        <td>{note.TimecodeString}</td>");
+                                            sb.AppendLine("        <td>");
+                                            sb.AppendLine($"          <img src=\"{dataUrl}\" alt=\"Frame at {note.TimecodeString}\">");
+                                            sb.AppendLine($"          <div class=\"note-content\">{noteContent}</div>");
+                                            sb.AppendLine("        </td>");
+                                            sb.AppendLine("      </tr>");
+                                        }
+                                        catch
+                                        {
+                                            // Final fallback: just show the note without image
+                                            string noteContent = note.Notes
+                                                .Replace("&", "&amp;")
+                                                .Replace("<", "&lt;")
+                                                .Replace(">", "&gt;")
+                                                .Replace("\n", "<br>");
 
-                                        // Add rows with original image
-                                        sb.AppendLine("      <tr class=\"image-row\">");
-                                        sb.AppendLine($"        <td class=\"timecode\">{note.TimecodeString}</td>");
-                                        sb.AppendLine($"        <td><img class=\"note-image\" src=\"{relativeImagePath}\" alt=\"Frame at {note.TimecodeString}\"></td>");
-                                        sb.AppendLine("      </tr>");
-                                        sb.AppendLine("      <tr class=\"note-row\">");
-                                        sb.AppendLine("        <td></td>");
-                                        sb.AppendLine($"        <td class=\"note-content\">{noteContent}</td>");
-                                        sb.AppendLine("      </tr>");
+                                            sb.AppendLine("      <tr>");
+                                            sb.AppendLine($"        <td>{note.TimecodeString}</td>");
+                                            sb.AppendLine("        <td>");
+                                            sb.AppendLine($"          <div class=\"note-content\">{noteContent}</div>");
+                                            sb.AppendLine("        </td>");
+                                            sb.AppendLine("      </tr>");
+                                        }
                                     }
 
                                     imageCounter++;
                                 }
 
+                                // Close table
                                 sb.AppendLine("    </tbody>");
                                 sb.AppendLine("  </table>");
 
@@ -2020,278 +2082,113 @@ namespace UnionMpvPlayer.Views
                             }
                             else if (format == "PDF")
                             {
-                                // PDF export
+                                // PDF export using Markdown2Pdf with table layout
                                 await Dispatcher.UIThread.InvokeAsync(() =>
                                 {
                                     progressWindow.UpdateProgress(0.4, "Generating PDF content...");
                                 });
 
-                                // Create a temporary folder for the transcoded images
-                                var tempImageFolder = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-                                Directory.CreateDirectory(tempImageFolder);
+                                // Create markdown content with table format
+                                var mdSb = new StringBuilder();
+                                mdSb.AppendLine($"# {videoName}");
+                                mdSb.AppendLine($"`{_currentVideoPath}`");
+                                mdSb.AppendLine();
+
+                                // Start the table
+                                mdSb.AppendLine("| Timecode | Image & Notes |");
+                                mdSb.AppendLine("|----------|---------------|");
+
+                                await Dispatcher.UIThread.InvokeAsync(() =>
+                                {
+                                    progressWindow.UpdateProgress(0.5, "Processing images...");
+                                });
+
+                                int imageCounter = 1;
+                                int totalNotes = _notes.Count;
+                                foreach (var note in _notes.OrderBy(n => n.Timecode))
+                                {
+                                    // Update progress per note
+                                    double noteProgress = 0.5 + ((double)imageCounter / totalNotes) * 0.3;
+                                    await Dispatcher.UIThread.InvokeAsync(() =>
+                                    {
+                                        progressWindow.UpdateProgress(noteProgress, $"Processing note {imageCounter} of {totalNotes}...");
+                                    });
+
+                                    string sourcePath = !string.IsNullOrEmpty(note.EditedImagePath) && File.Exists(note.EditedImagePath)
+                                        ? note.EditedImagePath
+                                        : note.ImagePath;
+
+                                    // Convert image to base64 for embedding in markdown
+                                    byte[] imageBytes = await File.ReadAllBytesAsync(sourcePath);
+                                    string base64String = Convert.ToBase64String(imageBytes);
+
+                                    // Determine MIME type
+                                    string extension = Path.GetExtension(sourcePath).ToLower();
+                                    string mimeType = extension switch
+                                    {
+                                        ".png" => "image/png",
+                                        ".jpg" => "image/jpeg",
+                                        ".jpeg" => "image/jpeg",
+                                        ".gif" => "image/gif",
+                                        ".svg" => "image/svg+xml",
+                                        ".webp" => "image/webp",
+                                        ".bmp" => "image/bmp",
+                                        _ => "image/jpeg"
+                                    };
+
+                                    string dataUrl = $"data:{mimeType};base64,{base64String}";
+
+                                    // Format the note content to work in a table cell
+                                    // Replace newlines with <br> for HTML rendering
+                                    string formattedNotes = note.Notes.Replace("\n", "<br>");
+
+                                    // Create table row
+                                    mdSb.Append($"| {note.TimecodeString} | ");
+                                    mdSb.Append($"![Frame at {note.TimecodeString}]({dataUrl})<br>");
+                                    mdSb.Append($"{formattedNotes} |");
+                                    mdSb.AppendLine();
+
+                                    imageCounter++;
+                                }
+
+                                await Dispatcher.UIThread.InvokeAsync(() =>
+                                {
+                                    progressWindow.UpdateProgress(0.8, "Converting to PDF...");
+                                });
+
+                                // Create temporary markdown file
+                                string tempMdPath = Path.GetTempFileName();
+                                tempMdPath = Path.ChangeExtension(tempMdPath, ".md");
 
                                 try
                                 {
-                                    var htmlSb = new StringBuilder();
-                                    htmlSb.AppendLine("<!DOCTYPE html>");
-                                    htmlSb.AppendLine("<html><head>");
-                                    htmlSb.AppendLine("<meta charset='utf-8'>");
-                                    htmlSb.AppendLine($"<title>{videoName} - Video Notes</title>");
-                                    htmlSb.AppendLine("<style>");
-                                    htmlSb.AppendLine(@"
-        body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            font-size: 12pt;
-            line-height: 1.5;
-            color: #333;
-            margin: 0;
-            padding: 20px;
-        }
-        
-        h1 {
-            font-size: 22pt;
-            margin-bottom: 10px;
-            color: #0078d7;
-            padding-bottom: 5px;
-            border-bottom: 1px solid #e1dfdd;
-        }
-        
-        .video-path {
-            font-family: Consolas, monospace;
-            color: #666;
-            margin-bottom: 20px;
-            display: block;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-            border: 1px solid #e1dfdd;
-        }
-        
-        th {
-            background-color: #f3f2f1;
-            color: #333;
-            font-weight: bold;
-            text-align: left;
-            padding: 10px;
-            border: 1px solid #e1dfdd;
-        }
-        
-        td {
-            padding: 10px;
-            border: 1px solid #e1dfdd;
-            vertical-align: top;
-        }
-        
-        .timecode {
-            width: 120px;
-            font-weight: bold;
-            color: #0078d7;
-            background-color: #f0f7ff;
-        }
-        
-        .note-content {
-            padding: 10px;
-            white-space: pre-wrap;
-        }
-        
-        .note-image {
-            max-width: 100%;
-            height: auto;
-        }
-        
-        tr.image-row td {
-            background-color: #f9f9f9;
-        }
-        
-        tr.note-row td {
-            border-top: none;
-            padding-top: 0;
-        }
-        
-        /* Force page breaks to avoid splitting notes across pages */
-        @media print {
-            tr.image-row {
-                page-break-before: auto;
-                page-break-after: avoid;
-            }
-            
-            tr.note-row {
-                page-break-before: avoid;
-                page-break-after: auto;
-            }
-        }
-        
-        .footer {
-            margin-top: 30px;
-            padding-top: 10px;
-            border-top: 1px solid #e1dfdd;
-            font-size: 9pt;
-            text-align: center;
-            color: #666;
-        }
-    ");
-                                    htmlSb.AppendLine("</style>");
-                                    htmlSb.AppendLine("</head>");
-                                    htmlSb.AppendLine("<body>");
+                                    await File.WriteAllTextAsync(tempMdPath, mdSb.ToString());
 
-                                    // Header
-                                    htmlSb.AppendLine($"<h1>{videoName} - Video Notes</h1>");
-                                    htmlSb.AppendLine($"<code class=\"video-path\">{_currentVideoPath}</code>");
+                                    // Extract project name for the PDF converter
+                                    string projectFolderName = !string.IsNullOrEmpty(projectRoot)
+                                        ? Path.GetFileName(projectRoot)
+                                        : Path.GetFileNameWithoutExtension(_currentVideoPath);
 
-                                    // Notes Table
-                                    htmlSb.AppendLine("<table>");
-                                    htmlSb.AppendLine("<thead>");
-                                    htmlSb.AppendLine("<tr>");
-                                    htmlSb.AppendLine("<th>Timecode</th>");
-                                    htmlSb.AppendLine("<th>Screenshot</th>");
-                                    htmlSb.AppendLine("</tr>");
-                                    htmlSb.AppendLine("</thead>");
-                                    htmlSb.AppendLine("<tbody>");
+                                    // Use Markdown2Pdf for conversion
+                                    await PdfExportHelper.ConvertMarkdownToPdfDirect(tempMdPath, exportPath, projectFolderName);
 
                                     await Dispatcher.UIThread.InvokeAsync(() =>
                                     {
-                                        progressWindow.UpdateProgress(0.5, "Processing images...");
+                                        progressWindow.UpdateProgress(0.9, "PDF generation complete...");
                                     });
-
-                                    int imageCounter = 1;
-                                    int totalNotes = _notes.Count;
-                                    foreach (var note in _notes.OrderBy(n => n.Timecode))
-                                    {
-                                        // Update progress
-                                        double noteProgress = 0.5 + ((double)imageCounter / totalNotes) * 0.4;
-                                        await Dispatcher.UIThread.InvokeAsync(() =>
-                                        {
-                                            progressWindow.UpdateProgress(noteProgress, $"Processing note {imageCounter} of {totalNotes}...");
-                                        });
-
-                                        string originalImagePath = !string.IsNullOrEmpty(note.EditedImagePath) && File.Exists(note.EditedImagePath)
-                                            ? note.EditedImagePath : note.ImagePath;
-
-                                        try
-                                        {
-                                            // Transcode the image to a smaller JPG
-                                            string imageName = $"pdf_note_{imageCounter}.jpg";
-                                            string transcodedPath = TranscodeToJpeg(
-                                                originalImagePath,
-                                                tempImageFolder,
-                                                imageName,
-                                                1920
-                                            );
-
-                                            // For PDF we embed the image as base64
-                                            byte[] imageBytes = File.ReadAllBytes(transcodedPath);
-                                            string base64 = Convert.ToBase64String(imageBytes);
-                                            string mimeType = "image/jpeg";
-
-                                            // Process note text
-                                            string noteContent = note.Notes
-                                                .Replace("&", "&amp;")
-                                                .Replace("<", "&lt;")
-                                                .Replace(">", "&gt;")
-                                                .Replace("\n", "<br>");
-
-                                            // First row: Timecode and Image
-                                            htmlSb.AppendLine("<tr class=\"image-row\">");
-                                            htmlSb.AppendLine($"<td class=\"timecode\">{note.TimecodeString}</td>");
-                                            htmlSb.AppendLine($"<td><img class=\"note-image\" src=\"data:{mimeType};base64,{base64}\" alt=\"Frame at {note.TimecodeString}\"></td>");
-                                            htmlSb.AppendLine("</tr>");
-
-                                            // Second row: Empty cell and Note content
-                                            htmlSb.AppendLine("<tr class=\"note-row\">");
-                                            htmlSb.AppendLine("<td></td>");
-                                            htmlSb.AppendLine($"<td class=\"note-content\">{noteContent}</td>");
-                                            htmlSb.AppendLine("</tr>");
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            Debug.WriteLine($"Error processing note {imageCounter}: {ex.Message}");
-
-                                            // Fallback: use the original image
-                                            // Encode original image as base64
-                                            byte[] imageBytes = File.ReadAllBytes(originalImagePath);
-                                            string base64 = Convert.ToBase64String(imageBytes);
-                                            string ext = Path.GetExtension(originalImagePath).ToLower();
-                                            string mimeType = ext == ".png" ? "image/png" : "image/jpeg";
-
-                                            // Process note text
-                                            string noteContent = note.Notes
-                                                .Replace("&", "&amp;")
-                                                .Replace("<", "&lt;")
-                                                .Replace(">", "&gt;")
-                                                .Replace("\n", "<br>");
-
-                                            // Add with original image
-                                            htmlSb.AppendLine("<tr class=\"image-row\">");
-                                            htmlSb.AppendLine($"<td class=\"timecode\">{note.TimecodeString}</td>");
-                                            htmlSb.AppendLine($"<td><img class=\"note-image\" src=\"data:{mimeType};base64,{base64}\" alt=\"Frame at {note.TimecodeString}\"></td>");
-                                            htmlSb.AppendLine("</tr>");
-                                            htmlSb.AppendLine("<tr class=\"note-row\">");
-                                            htmlSb.AppendLine("<td></td>");
-                                            htmlSb.AppendLine($"<td class=\"note-content\">{noteContent}</td>");
-                                            htmlSb.AppendLine("</tr>");
-                                        }
-
-                                        imageCounter++;
-                                    }
-
-                                    htmlSb.AppendLine("</tbody>");
-                                    htmlSb.AppendLine("</table>");
-
-                                    // Footer
-                                    htmlSb.AppendLine("<div class=\"footer\">");
-                                    htmlSb.AppendLine($"<p>Generated by Union MPV Player on {DateTime.Now.ToString("yyyy-MM-dd HH:mm")}</p>");
-                                    htmlSb.AppendLine("</div>");
-
-                                    htmlSb.AppendLine("</body>");
-                                    htmlSb.AppendLine("</html>");
-
-                                    await Dispatcher.UIThread.InvokeAsync(() =>
-                                    {
-                                        progressWindow.UpdateProgress(0.9, "Generating PDF...");
-                                    });
-
-                                    var tempHtmlPath = Path.GetTempFileName() + ".html";
-                                    await File.WriteAllTextAsync(tempHtmlPath, htmlSb.ToString());
-
-                                    try
-                                    {
-                                        var settingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "umpv");
-                                        var wkhtmltopdfPath = Path.Combine(settingsPath, "wkhtmltopdf");
-                                        exportPandoc.ExtractWkHtmlToPdfIfNeeded(wkhtmltopdfPath);
-
-                                        var pdfPath = Path.ChangeExtension(exportPath, ".pdf");
-                                        await exportPandoc.ConvertHtmlToPdfAsync(
-                                            tempHtmlPath,
-                                            pdfPath,
-                                            Path.Combine(wkhtmltopdfPath, "wkhtmltopdf.exe"),
-                                            settingsPath
-                                        );
-
-                                        exportPath = pdfPath;
-                                    }
-                                    finally
-                                    {
-                                        if (File.Exists(tempHtmlPath))
-                                        {
-                                            File.Delete(tempHtmlPath);
-                                        }
-                                    }
                                 }
                                 finally
                                 {
-                                    // Clean up temporary images folder
-                                    if (Directory.Exists(tempImageFolder))
+                                    // Clean up temp file
+                                    if (File.Exists(tempMdPath))
                                     {
-                                        try { Directory.Delete(tempImageFolder, true); } catch { }
+                                        File.Delete(tempMdPath);
                                     }
                                 }
                             }
                             else // Markdown
                             {
-                                // Standard Markdown format
+                                // Standard Markdown format with table layout
                                 await Dispatcher.UIThread.InvokeAsync(() =>
                                 {
                                     progressWindow.UpdateProgress(0.4, "Generating Markdown content...");
@@ -2306,9 +2203,9 @@ namespace UnionMpvPlayer.Views
                                 string imagesFolder = Path.Combine(exportFolder, "images");
                                 Directory.CreateDirectory(imagesFolder);
 
-                                // Notes table header
-                                sb.AppendLine("| Timecode | Screenshot |");
-                                sb.AppendLine("| --- | --- |");
+                                // Start the table
+                                sb.AppendLine("| Timecode | Image & Notes |");
+                                sb.AppendLine("|----------|---------------|");
 
                                 // Process each note
                                 int imageCounter = 1;
@@ -2341,12 +2238,15 @@ namespace UnionMpvPlayer.Views
                                         // Get just the filename for the link
                                         string imageFileName = Path.GetFileName(transcodedPath);
 
-                                        // First row: Timecode and Image with relative path
-                                        sb.AppendLine($"| {note.TimecodeString} | ![Frame at {note.TimecodeString}](images/{imageFileName}) |");
+                                        // Format the note content to work in a table cell
+                                        // Replace newlines with <br> for HTML rendering
+                                        string formattedNotes = note.Notes.Replace("\n", "<br>");
 
-                                        // Second row: Note content
-                                        string safeNoteContent = note.Notes.Replace("|", "\\|").Replace("\n", "<br>");
-                                        sb.AppendLine($"| | {safeNoteContent} |");
+                                        // Create table row
+                                        sb.Append($"| {note.TimecodeString} | ");
+                                        sb.Append($"![Frame at {note.TimecodeString}](images/{imageFileName})<br>");
+                                        sb.Append($"{formattedNotes} |");
+                                        sb.AppendLine();
                                     }
                                     catch (Exception ex)
                                     {
@@ -2357,10 +2257,14 @@ namespace UnionMpvPlayer.Views
                                         string exportedImagePath = Path.Combine(imagesFolder, imageName);
                                         File.Copy(sourcePath, exportedImagePath, true);
 
-                                        // Add the entry with the original image
-                                        sb.AppendLine($"| {note.TimecodeString} | ![Frame at {note.TimecodeString}](images/{imageName}) |");
-                                        string safeNoteContent = note.Notes.Replace("|", "\\|").Replace("\n", "<br>");
-                                        sb.AppendLine($"| | {safeNoteContent} |");
+                                        // Format the note content to work in a table cell
+                                        string formattedNotes = note.Notes.Replace("\n", "<br>");
+
+                                        // Create table row
+                                        sb.Append($"| {note.TimecodeString} | ");
+                                        sb.Append($"![Frame at {note.TimecodeString}](images/{imageName})<br>");
+                                        sb.Append($"{formattedNotes} |");
+                                        sb.AppendLine();
                                     }
 
                                     imageCounter++;
