@@ -32,7 +32,7 @@ This app function will run a Powershell script that adds the necessary registry 
 
 ## Credits
 
-**umpv** is a UI built around [Shinchiro's build](https://github.com/shinchiro/mpv-winbuild-cmake) of [libmpv](https://mpv.io/). Phil Harvey's excellent [Exiftool](https://exiftool.org/) allows for metadata parsing and, more importantly (for us), the ability to find Adobe metadata and open projects. I am using [OpenEXR](https://openexr.com/en/latest/index.html) to parse layers and channels in multi-layer EXRs and (for now) [OpenImageIO](https://github.com/AcademySoftwareFoundation/OpenImageIO) to extract a single layer EXR for playback in [libmpv](https://mpv.io/). [Pandoc](https://pandoc.org/) and [wkhtmltopdf](https://wkhtmltopdf.org/) are used to export PDFs from video notes.
+**umpv** is a UI built around [Shinchiro's build](https://github.com/shinchiro/mpv-winbuild-cmake) of [libmpv](https://mpv.io/). Phil Harvey's excellent [Exiftool](https://exiftool.org/) allows for metadata parsing and, more importantly (for us), the ability to find Adobe metadata and open projects. I am using [OpenEXR](https://openexr.com/en/latest/index.html) to parse layers and channels in multi-layer EXRs and (for now) [OpenImageIO](https://github.com/AcademySoftwareFoundation/OpenImageIO) to extract a single layer EXR for playback in [libmpv](https://mpv.io/). [Markdown2PDF](https://github.com/Flayms/Markdown2Pdf) is used to export PDFs from video notes.
 
 ## Basic Usage
 
@@ -101,7 +101,7 @@ I am certainly open to suggestions and contributions, but remember that this app
 
 ## Build Notes
 
-Before you build, download the latest [mpv-dev-x86_64-v3 from here](https://sourceforge.net/projects/mpv-player-windows/files/libmpv/), and extract `libmpv-2.dll` to `source\UnionMpvPlayer\Assets`. You will also need to download [pandoc-3.6.2-windows-x86_64.zip](https://github.com/jgm/pandoc/releases/tag/3.6.2) (or the latest release) and extract `pandoc.exe` to the same folder.
+Before you build, download the latest [mpv-dev-x86_64-v3 from here](https://sourceforge.net/projects/mpv-player-windows/files/libmpv/), and extract `libmpv-2.dll` to `source\UnionMpvPlayer\Assets`.
 
 
 ## Upgrade Notes
