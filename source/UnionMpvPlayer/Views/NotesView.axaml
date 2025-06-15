@@ -3,10 +3,11 @@
              xmlns:local="clr-namespace:UnionMpvPlayer.Views"
              x:Class="UnionMpvPlayer.Views.NotesView"
              x:DataType="local:NotesView"
-             Background="{DynamicResource SystemChromeLowColor}">
+             Background="{DynamicResource SystemChromeMediumColor}">
 
-	<Border BorderBrush="{DynamicResource SystemListLowColor}"
-			BorderThickness="1,0,0,0">
+	<Border Background="{DynamicResource SystemChromeLowColor}"
+				BorderBrush="{DynamicResource SystemListLowColor}"
+			BorderThickness="0,0,0,0">
 		<Grid x:Name="NotesPanel">
 			<Grid.RowDefinitions>
 				<RowDefinition Height="Auto"/>
@@ -270,7 +271,6 @@
 			</Grid>
 		</Grid>
 	</Border>
-
 	<UserControl.Styles>
 		<Style Selector="Button.ColorButton">
 			<Setter Property="Width" Value="24"/>

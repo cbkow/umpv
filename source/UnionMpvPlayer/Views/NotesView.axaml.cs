@@ -1880,21 +1880,27 @@ namespace UnionMpvPlayer.Views
 
         /* Table styling */
         table {
-            width: 100%;
             border-collapse: collapse;
-            margin: 2rem 0;
+            width: 100%;
+            margin: 1rem 0;
+            border: 1px solid #626262};
+            border-radius: 6px;
+        }
+
+        tr:nth-of-type(odd){
+            background-color: #e7e9eb;
         }
 
         th, td {
-            border: 1px solid #e1dfdd;
-            padding: 1rem;
-            vertical-align: top;
+            border: 1px solid #626262;
+            padding: 0.75rem;
+            text-align: left;
+            line-height: 1.5;
         }
 
         th {
-            background-color: #f8f9fa;
+            background-color: #eef0f3;
             font-weight: 600;
-            text-align: left;
         }
 
         /* Timecode column */

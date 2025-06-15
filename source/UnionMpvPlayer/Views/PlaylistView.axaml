@@ -6,8 +6,8 @@
 
 	<Border Background="{DynamicResource SystemChromeLowColor}"
 			BorderBrush="{DynamicResource SystemListLowColor}"
-			BorderThickness="0,0,1,0">
-		<Grid x:Name="PlaylistPanel" 
+			BorderThickness="0,0,0,0">
+		<Grid x:Name="PlaylistPanel"
 		  
 			  DragDrop.AllowDrop="True">
 			<Grid.RowDefinitions>
@@ -143,7 +143,7 @@
 						<ColumnDefinition Width="Auto"/>
 						<ColumnDefinition Width="*"/>
 					</Grid.ColumnDefinitions>
-				
+
 					<Button x:Name="PlaylistToggle"
 									ToolTip.Tip="Toggle Playlist"
 									Cursor="Hand"
@@ -192,7 +192,7 @@
 									  Width="13" Height="13"
 									  Stretch="Uniform"/>
 							</Button>
-					
+
 							<Button x:Name="RemoveFromPlaylistButton"
 									Background="Transparent"
 									Cursor="Hand"
@@ -215,7 +215,7 @@
 									  Width="13" Height="13"
 									  Stretch="Uniform"/>
 							</Button>
-					
+
 							<Button x:Name="ForwardSpotButton"
 									Background="Transparent"
 									Cursor="Hand"
@@ -228,7 +228,7 @@
 									  Width="13" Height="13"
 									  Stretch="Uniform"/>
 							</Button>
-						</StackPanel>	
+						</StackPanel>
 					</Border>
 				</Grid>
 			</Grid>

@@ -330,27 +330,25 @@ namespace UnionMpvPlayer.Helpers
             border-collapse: collapse;
             width: 100%;
             margin: 1rem 0;
-            border: 1px solid #d0d7de;
+            border: 1px solid #626262};
             border-radius: 6px;
-            overflow: hidden;
+        }
+
+        tr:nth-of-type(odd){
+            background-color: #e7e9eb;
         }
 
         th, td {
-            border: 1px solid #d0d7de;
+            border: 1px solid #626262;
             padding: 0.75rem;
             text-align: left;
             line-height: 1.5;
         }
 
         th {
-            background-color: #f6f8fa;
+            background-color: #eef0f3;
             font-weight: 600;
         }
-
-        tr:nth-child(even) {
-            background-color: #f6f8fa;
-        }
-
         /* Images */
         img {
             max-width: 100%;

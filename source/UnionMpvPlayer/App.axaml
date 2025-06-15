@@ -33,10 +33,10 @@
 			<Setter Property="BorderThickness" Value="0"/>
 		</Style>
 		<Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
-			<Setter Property="Background" Value="{DynamicResource SystemBaseLowColor}"/>
+			<Setter Property="Background" Value="{DynamicResource SystemBaseMediumLowColor}"/>
 		</Style>
 		<Style Selector="ListBoxItem:selected /template/ ContentPresenter">
-			<Setter Property="Background" Value="{DynamicResource SystemChromeMediumColor}"/>
+			<Setter Property="Background" Value="{DynamicResource SystemBaseLowColor}"/>
 		</Style>
 		<Style Selector="TextBox">
 			<Setter Property="Background" Value="{DynamicResource SystemRegionColor}"/>
